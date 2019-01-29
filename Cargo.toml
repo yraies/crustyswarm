@@ -6,3 +6,5 @@ authors = ["Yasin Raies <yasin.raies@gmail.de>"]
 [dependencies]
 rand = "0.6"
 cgmath = "0.17"
+rayon = "1.0"
+
