@@ -4,3 +4,4 @@ Cargo.lock
 .idea/
 *.iml
 *.ply
+viz/src/gl.rs

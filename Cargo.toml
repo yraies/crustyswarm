@@ -1,10 +1,2 @@
-[package]
-name = "crustswarm"
-version = "0.1.0"
-authors = ["Yasin Raies <yasin.raies@gmail.de>"]
-
-[dependencies]
-rand = "0.6"
-cgmath = "0.17"
-rayon = "1.0"
-
+[workspace]
+members = ["core","viz"]
