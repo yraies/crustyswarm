@@ -2,21 +2,21 @@ extern crate cgmath;
 extern crate rand;
 extern crate rayon;
 
-use cgmath::prelude::*;
-use cgmath::Vector3;
-use rand::rngs::SmallRng;
-use rand::Rng;
-use rand::SeedableRng;
-use std::time::Instant;
 use std::env;
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::time::Duration;
+use std::time::Instant;
+
+use cgmath::Vector3;
+use rand::Rng;
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
 
 use swarm::agent::Agent;
 use swarm::grammar::SwarmGrammar;
 use swarm::ruleset::RuleSet;
 use swarm::species::Species;
-use std::time::Duration;
-use std::io::{Write, BufWriter};
-use std::fs::File;
 use swarm::Val;
 
 mod swarm;
@@ -36,81 +36,99 @@ pub fn main() {
         sth
     } else { 50 };
 
-    let mut rnd = SmallRng::seed_from_u64(323_381_111u64);
+    let (mut rnd, mut grammar) = gen_swarm(agent_count);
 
+    let mut time_ctr = Duration::new(0, 0);
+
+//    println!("Initial State:");
+//    println!("{:#.2?}\n", &grammar);
+    for i in 1..=iteration_count {
+//        println!("{:#.2?}", &grammar);
+        let start = Instant::now();
+        grammar.step(&mut rnd);
+        println!("{:?}", start.elapsed());
+        time_ctr += start.elapsed();
+
+        if i % 2 == 0 {
+//            let mut w = BufWriter::new(File::create(format!("out{:02}.ply", i)).unwrap());
+//            print_swarm(&grammar, &mut w);
+        }
+    }
+    let mut w = BufWriter::new(File::create(format!("out{:02}.ply", 100)).unwrap());
+    print_swarm(&grammar, &mut w);
+//    println!("\nFinal State:");
+//    println!("{:#.2?}", &grammar);
+    println!("Total: {:?}", time_ctr);
+}
+
+#[allow(dead_code)]
+pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
+    let mut rnd = SmallRng::seed_from_u64(323_381_111u64);
     let mut agents = Vec::new();
-    let v = Vector3::new(-1.0,-1.0,-1.0);
-    for i in 1..=agent_count {
+    let v = Vector3::new(-1.0, -1.0, -1.0);
+    for _i in 1..=agent_count {
         let agent = Agent::mk_new((rnd.gen::<Vector3<Val>>() * 2.0) - v, (rnd.gen::<Vector3<Val>>() * 2.0) - v, 10.0, 1).unwrap();
         let agent2 = Agent::mk_new((rnd.gen::<Vector3<Val>>() * 2.0) - v, (rnd.gen::<Vector3<Val>>() * 2.0) - v, 10.0, 0).unwrap();
         agents.push(agent);
         agents.push(agent2);
     }
-
-
-    let species = Species::new(0.5, 1.0, 2.5, 0.4,1.0, 7.0);
-
-    let species2 = Species::new(0.5, 1.0, 2.5, 0.4,1.0, 5.0);
-
+    let species = Species::new(1.0, 1.5, 1.2, 0.3, 0.1, 2.0, 5.0);
+    let species2 = Species::new(1.8, 0.3, 0.5, 0.8, 0.1, 0.8, 15.0);
     let rule = RuleSet {
         input: 0,
-        rules: vec![(vec!(1), 0.1), (vec!(0), 0.89), (vec!(0, 1), 0.01)],
+        rules: vec![
+            (vec!(0), 0.98),
+            (vec!(1), 0.01),
+            (vec!(0, 1), 0.005),
+            (vec!(), 0.005)
+        ],
     };
-
     let rule2 = RuleSet {
         input: 1,
-        rules: vec![(vec!(0), 0.2), (vec!(1), 0.79), (vec!(0, 1), 0.01)],
+        rules: vec![
+            (vec!(1), 0.945),
+            (vec!(0), 0.05),
+            (vec!(0, 1), 0.005)
+        ],
     };
-
-
-    let mut grammar = SwarmGrammar {
+    let grammar = SwarmGrammar {
         agents,
         species: vec![species, species2],
         rule_sets: vec![rule, rule2],
     };
-
-    let mut time_ctr = Duration::new(0,0);
-
-//    println!("Initial State:");
-//    println!("{:#.2?}\n", &grammar);
-    for i in 1..=iteration_count {
-        println!("Calculating iteration {} -- {} Agents", i, &grammar.agents.len());
-//        println!("{:#.2?}", &grammar);
-        let start = Instant::now();
-        grammar.step(&mut rnd);
-        println!("{:?}",start.elapsed());
-        time_ctr += start.elapsed();
-
-        if i%2 == 0 {
-//            let mut w = BufWriter::new(File::create(format!("out{:02}.ply", i)).unwrap());
-//            print_swarm(&grammar, &mut w);
-        }
-    }
-//    println!("\nFinal State:");
-//    println!("{:#.2?}", &grammar);
-    println!("Total: {:?}", time_ctr);
-
-
+    (rnd, grammar)
 }
 
-
-
-
-fn print_swarm(grammar: &SwarmGrammar, writer : &mut BufWriter<File>) {
+#[allow(dead_code)]
+fn print_swarm(grammar: &SwarmGrammar, writer: &mut BufWriter<File>) {
     let ags = grammar.get_agents();
 
-    write!(writer,"ply\n").unwrap();
-    write!(writer,"format ascii 1.0\n").unwrap();
-    write!(writer,"element vertex {}\n", ags.len()).unwrap();
-    write!(writer,"property float x\nproperty float y\nproperty float z\n").unwrap();
-    write!(writer,"end_header\n").unwrap();
+    write!(writer, "ply\n").unwrap();
+    write!(writer, "format ascii 1.0\n").unwrap();
+    write!(writer, "element vertex {}\n", ags.len()).unwrap();
+    write!(writer, "property float x\nproperty float y\nproperty float z\n").unwrap();
+    write!(writer, "end_header\n").unwrap();
 
     for ag in ags {
-        let (x,y,z) = ag.position.into();
-        write!(writer,"{} {} {}\n", x, y, z).unwrap();
+        let (x, y, z) = ag.position.into();
+        write!(writer, "{} {} {}\n", x, y, z).unwrap();
     }
-/*    for ag in ags {
-        let (x,y,z) = ag.velocity.into();
-        write!(writer,"{} {} {}\n",x ,y ,z).unwrap();
-    }*/
+    /*    for ag in ags {
+            let (x,y,z) = ag.velocity.into();
+            write!(writer,"{} {} {}\n",x ,y ,z).unwrap();
+        }*/
+}
+
+#[allow(dead_code)]
+pub fn swarm_to_arr<'a>(grammar: &SwarmGrammar) -> Vec<f32> {
+    let count = grammar.agents.len();
+    let mut out_vec = Vec::with_capacity(count * 4);
+    for agent in &grammar.agents {
+        out_vec.push(agent.position.x);
+        out_vec.push(agent.position.y);
+        out_vec.push(agent.position.z);
+        out_vec.push(agent.species_index as f32);
+    }
+
+    out_vec
 }

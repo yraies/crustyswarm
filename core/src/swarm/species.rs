@@ -13,7 +13,7 @@ pub struct Species {
 }
 
 impl Species {
-    pub fn new(separation: Val, alignment: Val, cohesion: Val, randomness: Val, center: Val, max_speed: Val) -> Species {
-        Species { separation, alignment, cohesion, randomness, center, max_speed, view_distance: 80.0, sep_distance: 7.0 }
+    pub fn new(separation: Val, alignment: Val, cohesion: Val, randomness: Val, center: Val, max_speed: Val, sep_distance : Val) -> Species {
+        Species { separation, alignment, cohesion, randomness, center, max_speed, view_distance: 80.0, sep_distance }
     }
 }

@@ -25,6 +25,8 @@ pub struct SwarmGrammar {
 
 impl SwarmGrammar {
     pub fn step(&mut self, rnd: &mut impl Rng) {
+        println!("{} Agents", &self.agents.len());
+
         // 1. Replace by Rules          -------------------------------------
         let mut start = Instant::now();
         let replaced: Vec<Agent> = self.rule_sets.iter().flat_map(|rules| rules.execute(&self.agents, rnd)).collect();
@@ -83,7 +85,7 @@ impl SwarmGrammar {
 
             let sep_temp = safe_devide_mean(sep_vec, sep_counter);
 
-            let sep_norm = safe_normalize(if sep_temp.is_zero() { sep_temp } else { sep_temp - agent.position });
+            let sep_norm = - safe_normalize(if sep_temp.is_zero() { sep_temp } else { sep_temp - agent.position });
             let ali_norm = safe_normalize(safe_devide_mean(ali_vec, view_counter));
             let coh_norm = safe_normalize(safe_devide_mean(coh_vec, view_counter) - agent.position);
             let cen_norm = safe_normalize(-agent.position);
