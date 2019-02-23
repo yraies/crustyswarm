@@ -5,8 +5,7 @@ authors = ["Yasin Raies <yasin.raies@gmail.de>"]
 
 [dependencies]
 rand = "0.6"
-cgmath = "0.17"
+cgmath = { version = "0.17", features = ["serde"] }
 rayon = "1.0"
-
-
-
+toml = "0.4.10"
+serde = { version = "1.0.88", features = ["derive"] }

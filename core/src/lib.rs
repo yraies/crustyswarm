@@ -1,10 +1,11 @@
 extern crate cgmath;
 extern crate rand;
 extern crate rayon;
+extern crate serde;
 
 use std::env;
 use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::io::BufWriter;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -18,8 +19,12 @@ use swarm::grammar::SwarmGrammar;
 use swarm::ruleset::RuleSet;
 use swarm::species::Species;
 use swarm::Val;
+use swarm::ruleset::Rule;
+use swarm::grammar::SwarmTemplate;
 
-mod swarm;
+
+pub mod swarm;
+pub mod io;
 mod utils;
 
 
@@ -55,7 +60,7 @@ pub fn main() {
         }
     }
     let mut w = BufWriter::new(File::create(format!("out{:02}.ply", 100)).unwrap());
-    print_swarm(&grammar, &mut w);
+    io::print_swarm(&grammar, &mut w);
 //    println!("\nFinal State:");
 //    println!("{:#.2?}", &grammar);
     println!("Total: {:?}", time_ctr);
@@ -77,46 +82,28 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
     let rule = RuleSet {
         input: 0,
         rules: vec![
-            (vec!(0), 0.98),
-            (vec!(1), 0.01),
-            (vec!(0, 1), 0.005),
-            (vec!(), 0.005)
+            Rule::new(vec!(0), 0.98),
+            Rule::new(vec!(1), 0.01),
+            Rule::new(vec!(0, 1), 0.005),
+            Rule::new(vec!(), 0.005)
         ],
     };
     let rule2 = RuleSet {
         input: 1,
         rules: vec![
-            (vec!(1), 0.945),
-            (vec!(0), 0.05),
-            (vec!(0, 1), 0.005)
+            Rule::new(vec!(1), 0.945),
+            Rule::new(vec!(0), 0.05),
+            Rule::new(vec!(0, 1), 0.005)
         ],
     };
     let grammar = SwarmGrammar {
         agents,
-        species: vec![species, species2],
-        rule_sets: vec![rule, rule2],
+        template: SwarmTemplate{
+            species: vec![species, species2],
+            rule_sets: vec![rule, rule2]
+        }
     };
     (rnd, grammar)
-}
-
-#[allow(dead_code)]
-fn print_swarm(grammar: &SwarmGrammar, writer: &mut BufWriter<File>) {
-    let ags = grammar.get_agents();
-
-    write!(writer, "ply\n").unwrap();
-    write!(writer, "format ascii 1.0\n").unwrap();
-    write!(writer, "element vertex {}\n", ags.len()).unwrap();
-    write!(writer, "property float x\nproperty float y\nproperty float z\n").unwrap();
-    write!(writer, "end_header\n").unwrap();
-
-    for ag in ags {
-        let (x, y, z) = ag.position.into();
-        write!(writer, "{} {} {}\n", x, y, z).unwrap();
-    }
-    /*    for ag in ags {
-            let (x,y,z) = ag.velocity.into();
-            write!(writer,"{} {} {}\n",x ,y ,z).unwrap();
-        }*/
 }
 
 #[allow(dead_code)]

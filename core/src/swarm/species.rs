@@ -1,6 +1,8 @@
 use super::Val;
+use serde::Deserialize;
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Species {
     pub separation: Val,
     pub alignment: Val,

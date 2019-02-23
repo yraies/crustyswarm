@@ -1,14 +1,31 @@
-use super::Val;
-use super::SpeciesIndex;
-use Agent;
-use rand::Rng;
 use std::fmt;
 
+use rand::Rng;
+use serde::Deserialize;
+use serde::Serialize;
 
-//#[derive(Debug)]
+use Agent;
+
+use super::SpeciesIndex;
+use super::Val;
+
+#[derive(Serialize, Deserialize)]
 pub struct RuleSet {
     pub input: SpeciesIndex,
-    pub rules: Vec<(Vec<SpeciesIndex>, Val)>,
+    pub rules: Vec<Rule>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Rule {
+    pub p: Val,
+    pub out: Vec<SpeciesIndex>,
+}
+
+
+impl Rule {
+    pub fn new(out: Vec<SpeciesIndex>, p: Val) -> Rule {
+        Rule { out, p }
+    }
 }
 
 impl fmt::Debug for RuleSet {
@@ -26,10 +43,10 @@ impl RuleSet {
                 let thresh = rnd.gen();
                 let mut prob_counter: Val = 0.0;
 
-                for (replacements, prob) in &self.rules {
-                    prob_counter += prob;
+                for r in &self.rules {
+                    prob_counter += r.p;
                     if prob_counter > thresh {
-                        for s in replacements {
+                        for s in &r.out {
                             let mut new_agent = agent.clone();
                             new_agent.species_index = *s;
                             new_vec.push(new_agent);

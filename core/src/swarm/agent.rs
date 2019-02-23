@@ -2,8 +2,10 @@ use super::Val;
 use super::SpeciesIndex;
 use cgmath::Vector3;
 use std::fmt;
+use serde::Deserialize;
+use serde::Serialize;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Agent {
     pub position: Vector3<Val>,
     pub velocity: Vector3<Val>,

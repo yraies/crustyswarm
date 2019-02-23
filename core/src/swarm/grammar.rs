@@ -13,14 +13,40 @@ use RuleSet;
 use Species;
 
 use crate::utils::*;
+use serde::Deserialize;
+use serde::Serialize;
 
 use super::Val;
+use utils;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmGrammar {
     pub agents: Vec<Agent>,
+    pub template : SwarmTemplate,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SwarmTemplate {
     pub species: Vec<Species>,
-    pub rule_sets: Vec<RuleSet>,
+    pub rule_sets: Vec<RuleSet>
+}
+
+impl SwarmTemplate {
+    pub fn expand(self, count: usize, spread : Val, rnd : &mut impl Rng) -> SwarmGrammar {
+        let mut agents = vec![];
+
+        for i in 0..count {
+            for spec in 0..self.species.len() {
+                let a = Agent::mk_new(utils::random_one(rnd) * spread, utils::random_one(rnd), 10.0, spec).unwrap();
+                agents.push(a);
+            }
+        }
+
+        SwarmGrammar {
+            agents,
+            template: self
+        }
+    }
 }
 
 impl SwarmGrammar {
@@ -29,7 +55,7 @@ impl SwarmGrammar {
 
         // 1. Replace by Rules          -------------------------------------
         let mut start = Instant::now();
-        let replaced: Vec<Agent> = self.rule_sets.iter().flat_map(|rules| rules.execute(&self.agents, rnd)).collect();
+        let replaced: Vec<Agent> = self.template.rule_sets.iter().flat_map(|rules| rules.execute(&self.agents, rnd)).collect();
         println!("replacement {:3.1?}", start.elapsed());
 
         // 2. Recalculate Velocities    -------------------------------------
@@ -44,7 +70,7 @@ impl SwarmGrammar {
 
         start = Instant::now();
         let recalculated = replaced.par_iter().enumerate().map(|(agent_index, agent)| {
-            let agent_species = &self.species[agent.species_index];
+            let agent_species = &self.template.species[agent.species_index];
 
             // 2.1. Prepare Vectors
 
