@@ -3,6 +3,15 @@ name = "crustswarm"
 version = "0.1.0"
 authors = ["Yasin Raies <yasin.raies@gmail.de>"]
 
+[lib]
+name = "crustswarm_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "testapp"
+path = "src/bin.rs"
+
+
 [dependencies]
 rand = "0.6"
 cgmath = { version = "0.17", features = ["serde"] }
