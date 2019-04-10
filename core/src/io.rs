@@ -6,27 +6,28 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::io::Read;
 use std::fs;
+use std::io::Error;
 
 pub fn grammar_from_file(path : impl AsRef<Path>) -> SwarmGrammar {
     let mut file = File::open(&path).map_err(|e| format!("Error while opening path {}! Error: {}", path.as_ref().display(), e)).unwrap();
-    let mut toml_str = String::new();
-    file.read_to_string(&mut toml_str).unwrap();
-    toml::from_str(&toml_str).unwrap()
+    let mut json_str = String::new();
+    file.read_to_string(&mut json_str).unwrap();
+    serde_json::from_str(&json_str).unwrap()
 }
 
 pub fn template_from_file(path : impl AsRef<Path>) -> SwarmTemplate {
     let mut file = File::open(&path).map_err(|e| format!("Error while opening path {}! Error: {}", path.as_ref().display(), e)).unwrap();
-    let mut toml_str = String::new();
-    file.read_to_string(&mut toml_str).unwrap();
-    toml::from_str(&toml_str).unwrap()
+    let mut json_str = String::new();
+    file.read_to_string(&mut json_str).unwrap();
+    serde_json::from_str(&json_str).unwrap()
 }
 
-pub fn grammar_to_file(grammar : &SwarmGrammar,path : impl AsRef<Path>) {
-    fs::write(&path,toml::to_string_pretty(&grammar).unwrap());
+pub fn grammar_to_file(grammar : &SwarmGrammar,path : impl AsRef<Path>) -> Option<Error> {
+    fs::write(&path,serde_json::to_string_pretty(&grammar).unwrap()).err()
 }
 
-pub fn template_to_file(template : &SwarmTemplate,path : impl AsRef<Path>) {
-    fs::write(&path,toml::to_string_pretty(&template).unwrap());
+pub fn template_to_file(template : &SwarmTemplate,path : impl AsRef<Path>) -> Option<Error>{
+    fs::write(&path,serde_json::to_string_pretty(&template).unwrap()).err()
 }
 
 #[allow(dead_code)]
