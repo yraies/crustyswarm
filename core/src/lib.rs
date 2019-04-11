@@ -2,6 +2,7 @@ extern crate cgmath;
 extern crate rand;
 extern crate rayon;
 extern crate serde;
+extern crate core;
 
 use std::env;
 use std::fs::File;
@@ -16,11 +17,12 @@ use rand::SeedableRng;
 
 use swarm::agent::Agent;
 use swarm::grammar::SwarmGrammar;
-use swarm::ruleset::RuleSet;
+use swarm::ruleset::{RuleSet, RuleStrategy};
 use swarm::species::Species;
 use swarm::Val;
 use swarm::ruleset::Rule;
 use swarm::grammar::SwarmTemplate;
+use swarm::StartDistribution;
 
 
 pub mod swarm;
@@ -100,7 +102,9 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
         agents,
         template: SwarmTemplate{
             species: vec![species, species2],
-            rule_sets: vec![rule, rule2]
+            rule_sets: vec![rule, rule2],
+            start_dist: StartDistribution::Singularity(vec!((2,0),(2,1))),
+            strategy: RuleStrategy::Every(4,4),
         }
     };
     (rnd, grammar)

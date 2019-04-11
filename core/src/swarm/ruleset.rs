@@ -8,6 +8,30 @@ use Agent;
 
 use super::SpeciesIndex;
 use super::Val;
+use core::borrow::BorrowMut;
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum RuleStrategy {
+    Every(usize, usize),
+}
+
+impl RuleStrategy {
+  pub fn shouldReplace(&mut self) -> bool {
+    match self {
+      RuleStrategy::Every(max, ref mut curr) => {
+          if *curr > 1 {
+              *curr = *curr - 1;
+            false
+          } else {
+              *curr = *max;
+            true
+          }
+      }
+    }
+  }
+}
+
+
 
 #[derive(Serialize, Deserialize)]
 pub struct RuleSet {

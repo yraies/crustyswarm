@@ -11,6 +11,8 @@ use rayon::prelude::*;
 use Agent;
 use RuleSet;
 use Species;
+use swarm::ruleset::RuleStrategy;
+use swarm::StartDistribution;
 
 use crate::utils::*;
 use serde::Deserialize;
@@ -28,7 +30,9 @@ pub struct SwarmGrammar {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmTemplate {
     pub species: Vec<Species>,
-    pub rule_sets: Vec<RuleSet>
+    pub rule_sets: Vec<RuleSet>,
+    pub start_dist: StartDistribution,
+    pub strategy: RuleStrategy,
 }
 
 impl SwarmTemplate {
@@ -55,8 +59,14 @@ impl SwarmGrammar {
 
         // 1. Replace by Rules          -------------------------------------
         let mut start = Instant::now();
-        let replaced: Vec<Agent> = self.template.rule_sets.iter().flat_map(|rules| rules.execute(&self.agents, rnd)).collect();
-        println!("replacement {:3.1?}", start.elapsed());
+        let replaced: Vec<Agent> = if self.template.strategy.shouldReplace() {
+            let temp = self.template.rule_sets.iter().flat_map(|rules| rules.execute(&self.agents, rnd)).collect();
+            println!("replacement {:3.1?}", start.elapsed());
+            temp
+        } else {
+            println!("replacement   0.0s");
+            self.agents.to_owned()
+        };
 
         // 2. Recalculate Velocities    -------------------------------------
 

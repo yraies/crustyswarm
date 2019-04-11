@@ -4,6 +4,8 @@ use cgmath::Vector3;
 use std::fmt;
 use serde::Deserialize;
 use serde::Serialize;
+use crate::utils;
+use rand::Rng;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Agent {
@@ -48,5 +50,9 @@ impl Agent{
         } else {
             Result::Err("Energy must be greater than zero")
         }
+    }
+
+    pub fn mk_rnd_vel(position: Vector3<Val>, energy: Val, species_index: SpeciesIndex, rnd : &mut impl Rng) -> Result<Agent, &'static str> {
+        Agent::mk_new(position ,utils::random_one(rnd), energy, species_index)
     }
 }
