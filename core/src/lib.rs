@@ -1,8 +1,8 @@
 extern crate cgmath;
+extern crate core;
 extern crate rand;
 extern crate rayon;
 extern crate serde;
-extern crate core;
 
 use std::env;
 use std::fs::File;
@@ -11,60 +11,62 @@ use std::time::Duration;
 use std::time::Instant;
 
 use cgmath::Vector3;
-use rand::Rng;
 use rand::rngs::SmallRng;
+use rand::Rng;
 use rand::SeedableRng;
 
 use swarm::agent::Agent;
 use swarm::grammar::SwarmGrammar;
+use swarm::grammar::SwarmTemplate;
+use swarm::ruleset::Rule;
 use swarm::ruleset::{RuleSet, RuleStrategy};
 use swarm::species::Species;
-use swarm::Val;
-use swarm::ruleset::Rule;
-use swarm::grammar::SwarmTemplate;
 use swarm::StartDistribution;
+use swarm::Val;
 
-
-pub mod swarm;
 pub mod io;
+pub mod swarm;
 mod utils;
-
 
 pub fn main() {
     let agent_count = if let Some(arg1) = env::args().nth(1) {
         let sth = arg1.parse().unwrap_or(10);
         println!("The agent count is {}", sth);
         sth
-    } else { 10 };
+    } else {
+        10
+    };
 
     let iteration_count = if let Some(arg1) = env::args().nth(2) {
         let sth = arg1.parse().unwrap_or(50);
         println!("The iteration count is {}", sth);
         sth
-    } else { 50 };
+    } else {
+        50
+    };
 
     let (mut rnd, mut grammar) = gen_swarm(agent_count);
 
     let mut time_ctr = Duration::new(0, 0);
 
-//    println!("Initial State:");
-//    println!("{:#.2?}\n", &grammar);
+    //    println!("Initial State:");
+    //    println!("{:#.2?}\n", &grammar);
     for i in 1..=iteration_count {
-//        println!("{:#.2?}", &grammar);
+        //        println!("{:#.2?}", &grammar);
         let start = Instant::now();
         grammar.step(&mut rnd);
         println!("{:?}", start.elapsed());
         time_ctr += start.elapsed();
 
         if i % 2 == 0 {
-//            let mut w = BufWriter::new(File::create(format!("out{:02}.ply", i)).unwrap());
-//            print_swarm(&grammar, &mut w);
+            //            let mut w = BufWriter::new(File::create(format!("out{:02}.ply", i)).unwrap());
+            //            print_swarm(&grammar, &mut w);
         }
     }
     let mut w = BufWriter::new(File::create(format!("out{:02}.ply", 100)).unwrap());
     io::print_swarm(&grammar, &mut w);
-//    println!("\nFinal State:");
-//    println!("{:#.2?}", &grammar);
+    //    println!("\nFinal State:");
+    //    println!("{:#.2?}", &grammar);
     println!("Total: {:?}", time_ctr);
 }
 
@@ -74,38 +76,70 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
     let mut agents = Vec::new();
     let v = Vector3::new(-1.0, -1.0, -1.0);
     for _i in 1..=agent_count {
-        let agent = Agent::mk_new((rnd.gen::<Vector3<Val>>() * 2.0) - v, (rnd.gen::<Vector3<Val>>() * 2.0) - v, 10.0, 1).unwrap();
-        let agent2 = Agent::mk_new((rnd.gen::<Vector3<Val>>() * 2.0) - v, (rnd.gen::<Vector3<Val>>() * 2.0) - v, 10.0, 0).unwrap();
+        let agent = Agent::mk_new(
+            (rnd.gen::<Vector3<Val>>() * 2.0) - v,
+            (rnd.gen::<Vector3<Val>>() * 2.0) - v,
+            10.0,
+            1,
+        )
+        .unwrap();
+        let agent2 = Agent::mk_new(
+            (rnd.gen::<Vector3<Val>>() * 2.0) - v,
+            (rnd.gen::<Vector3<Val>>() * 2.0) - v,
+            10.0,
+            0,
+        )
+        .unwrap();
         agents.push(agent);
         agents.push(agent2);
     }
-    let species = Species::new(1.0, 1.5, 1.2, 0.3, 0.1, 2.0, 5.0);
-    let species2 = Species::new(1.8, 0.3, 0.5, 0.8, 0.1, 0.8, 15.0);
+    let species = Species::new(
+        1.0,
+        1.5,
+        1.2,
+        0.3,
+        0.1,
+        2.0,
+        5.0,
+        [1.0, 1.0, 1.0],
+        vec![(0, 1.0), (1, 1.0)],
+    );
+    let species2 = Species::new(
+        1.8,
+        0.3,
+        0.5,
+        0.8,
+        0.1,
+        0.8,
+        15.0,
+        [1.0, 1.0, 1.0],
+        vec![(0, 1.0), (1, 1.0)],
+    );
     let rule = RuleSet {
         input: 0,
         rules: vec![
-            Rule::new(vec!(0), 0.98),
-            Rule::new(vec!(1), 0.01),
-            Rule::new(vec!(0, 1), 0.005),
-            Rule::new(vec!(), 0.005)
+            Rule::new(vec![0], 0.98),
+            Rule::new(vec![1], 0.01),
+            Rule::new(vec![0, 1], 0.005),
+            Rule::new(vec![], 0.005),
         ],
     };
     let rule2 = RuleSet {
         input: 1,
         rules: vec![
-            Rule::new(vec!(1), 0.945),
-            Rule::new(vec!(0), 0.05),
-            Rule::new(vec!(0, 1), 0.005)
+            Rule::new(vec![1], 0.945),
+            Rule::new(vec![0], 0.05),
+            Rule::new(vec![0, 1], 0.005),
         ],
     };
     let grammar = SwarmGrammar {
         agents,
-        template: SwarmTemplate{
+        template: SwarmTemplate {
             species: vec![species, species2],
             rule_sets: vec![rule, rule2],
-            start_dist: StartDistribution::Singularity(vec!((2,0),(2,1))),
-            strategy: RuleStrategy::Every(4,4),
-        }
+            start_dist: StartDistribution::Singularity(vec![(2, 0), (2, 1)]),
+            strategy: RuleStrategy::Every(4, 4),
+        },
     };
     (rnd, grammar)
 }

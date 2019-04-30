@@ -1,11 +1,11 @@
-use super::Val;
 use super::SpeciesIndex;
+use super::Val;
+use crate::utils;
 use cgmath::Vector3;
-use std::fmt;
+use rand::Rng;
 use serde::Deserialize;
 use serde::Serialize;
-use crate::utils;
-use rand::Rng;
+use std::fmt;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Agent {
@@ -36,23 +36,46 @@ impl fmt::Debug for Agent {
     }
 }
 
-
-
-impl Agent{
+impl Agent {
     #[allow(dead_code)]
-    fn new(position: Vector3<Val>, velocity: Vector3<Val>, energy: Val, species_index: SpeciesIndex) -> Agent {
-        Agent{position, velocity, energy, species_index}
+    fn new(
+        position: Vector3<Val>,
+        velocity: Vector3<Val>,
+        energy: Val,
+        species_index: SpeciesIndex,
+    ) -> Agent {
+        Agent {
+            position,
+            velocity,
+            energy,
+            species_index,
+        }
     }
 
-    pub fn mk_new(position: Vector3<Val>, velocity: Vector3<Val>, energy: Val, species_index: SpeciesIndex) -> Result<Agent,&'static str> {
+    pub fn mk_new(
+        position: Vector3<Val>,
+        velocity: Vector3<Val>,
+        energy: Val,
+        species_index: SpeciesIndex,
+    ) -> Result<Agent, &'static str> {
         if energy > 0.0 {
-            Result::Ok(Agent{position, velocity, energy, species_index})
+            Result::Ok(Agent {
+                position,
+                velocity,
+                energy,
+                species_index,
+            })
         } else {
             Result::Err("Energy must be greater than zero")
         }
     }
 
-    pub fn mk_rnd_vel(position: Vector3<Val>, energy: Val, species_index: SpeciesIndex, rnd : &mut impl Rng) -> Result<Agent, &'static str> {
-        Agent::mk_new(position ,utils::random_one(rnd), energy, species_index)
+    pub fn mk_rnd_vel(
+        position: Vector3<Val>,
+        energy: Val,
+        species_index: SpeciesIndex,
+        rnd: &mut impl Rng,
+    ) -> Result<Agent, &'static str> {
+        Agent::mk_new(position, utils::random_one(rnd), energy, species_index)
     }
 }

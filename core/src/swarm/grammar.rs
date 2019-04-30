@@ -8,11 +8,11 @@ use rayon::iter::IndexedParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::prelude::*;
 
+use swarm::ruleset::RuleStrategy;
+use swarm::StartDistribution;
 use Agent;
 use RuleSet;
 use Species;
-use swarm::ruleset::RuleStrategy;
-use swarm::StartDistribution;
 
 use crate::utils::*;
 use serde::Deserialize;
@@ -24,7 +24,7 @@ use utils;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmGrammar {
     pub agents: Vec<Agent>,
-    pub template : SwarmTemplate,
+    pub template: SwarmTemplate,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -36,19 +36,25 @@ pub struct SwarmTemplate {
 }
 
 impl SwarmTemplate {
-    pub fn expand(self, count: usize, spread : Val, rnd : &mut impl Rng) -> SwarmGrammar {
+    pub fn expand(self, count: usize, spread: Val, rnd: &mut impl Rng) -> SwarmGrammar {
         let mut agents = vec![];
 
         for i in 0..count {
             for spec in 0..self.species.len() {
-                let a = Agent::mk_new(utils::random_one(rnd) * spread, utils::random_one(rnd), 10.0, spec).unwrap();
+                let a = Agent::mk_new(
+                    utils::random_one(rnd) * spread,
+                    utils::random_one(rnd),
+                    10.0,
+                    spec,
+                )
+                .unwrap();
                 agents.push(a);
             }
         }
 
         SwarmGrammar {
             agents,
-            template: self
+            template: self,
         }
     }
 }
@@ -60,7 +66,12 @@ impl SwarmGrammar {
         // 1. Replace by Rules          -------------------------------------
         let mut start = Instant::now();
         let replaced: Vec<Agent> = if self.template.strategy.shouldReplace() {
-            let temp = self.template.rule_sets.iter().flat_map(|rules| rules.execute(&self.agents, rnd)).collect();
+            let temp = self
+                .template
+                .rule_sets
+                .iter()
+                .flat_map(|rules| rules.execute(&self.agents, rnd))
+                .collect();
             println!("replacement {:3.1?}", start.elapsed());
             temp
         } else {
@@ -79,75 +90,96 @@ impl SwarmGrammar {
         println!("random      {:3.1?}", start.elapsed());
 
         start = Instant::now();
-        let recalculated = replaced.par_iter().enumerate().map(|(agent_index, agent)| {
-            let agent_species = &self.template.species[agent.species_index];
+        let recalculated = replaced
+            .par_iter()
+            .enumerate()
+            .map(|(agent_index, agent)| {
+                let agent_species = &self.template.species[agent.species_index];
 
-            // 2.1. Prepare Vectors
+                // 2.1. Prepare Vectors
 
-            let mut sep_vec = Vector3::zero();
-            let mut ali_vec = Vector3::zero();
-            let mut coh_vec = Vector3::zero();
+                let mut sep_vec = Vector3::zero();
+                let mut ali_vec = Vector3::zero();
+                let mut coh_vec = Vector3::zero();
 
-            let mut sep_counter = 0;
-            let mut view_counter = 0;
+                let mut sep_counter = 0;
+                let mut view_counter = 0;
 
-            for other_index in 0..replaced.len() {
-                if other_index == agent_index {
-                    continue;
-                }
-
-                let other = &replaced[other_index];
-
-
-                let dist = agent.position.distance(other.position);
-
-                if dist < agent_species.view_distance {
-                    if dist < agent_species.sep_distance {
-                        sep_vec += other.position;
-                        sep_counter += 1;
-                    }
-
-                    let solid_angle = agent.velocity.angle(other.position - agent.position);
-
-                    if solid_angle > Rad(0.4) {
+                for other_index in 0..replaced.len() {
+                    if other_index == agent_index {
                         continue;
                     }
 
-                    ali_vec += safe_normalize(other.velocity);
-                    coh_vec += other.position;
-                    view_counter += 1;
+                    let other = &replaced[other_index];
+
+                    let dist = agent.position.distance(other.position);
+
+                    if dist < agent_species.view_distance {
+                        if dist < agent_species.sep_distance {
+                            sep_vec += other.position;
+                            sep_counter += 1;
+                        }
+
+                        let solid_angle = agent.velocity.angle(other.position - agent.position);
+
+                        if solid_angle > Rad(0.4) {
+                            continue;
+                        }
+
+                        ali_vec += safe_normalize(other.velocity);
+                        coh_vec += other.position;
+                        view_counter += 1;
+                    }
                 }
-            }
 
-            let sep_temp = safe_devide_mean(sep_vec, sep_counter);
+                let sep_temp = safe_devide_mean(sep_vec, sep_counter);
 
-            let sep_norm = - safe_normalize(if sep_temp.is_zero() { sep_temp } else { sep_temp - agent.position });
-            let ali_norm = safe_normalize(safe_devide_mean(ali_vec, view_counter));
-            let coh_norm = safe_normalize(safe_devide_mean(coh_vec, view_counter) - agent.position);
-            let cen_norm = safe_normalize(-agent.position);
+                let sep_norm = -safe_normalize(if sep_temp.is_zero() {
+                    sep_temp
+                } else {
+                    sep_temp - agent.position
+                });
+                let ali_norm = safe_normalize(safe_devide_mean(ali_vec, view_counter));
+                let coh_norm =
+                    safe_normalize(safe_devide_mean(coh_vec, view_counter) - agent.position);
+                let cen_norm = safe_normalize(-agent.position);
 
-            let rnd_norm = safe_normalize(rnd_vec[agent_index]);
+                let rnd_norm = safe_normalize(rnd_vec[agent_index]);
 
-            // 2.2. Actually Recalculate    ------------------
+                // 2.2. Actually Recalculate    ------------------
 
-            let acceleration = agent_species.separation * sep_norm
-                + agent_species.alignment * ali_norm
-                + agent_species.cohesion * coh_norm
-                + agent_species.center * cen_norm
-                + agent_species.randomness * rnd_norm;
+                let acceleration = agent_species.separation * sep_norm
+                    + agent_species.alignment * ali_norm
+                    + agent_species.cohesion * coh_norm
+                    + agent_species.center * cen_norm
+                    + agent_species.randomness * rnd_norm;
 
-            let new_velocity = agent.velocity + acceleration;
+                let con = agent_species.axis_constraint;
+                let acc_constrained = Vector3::new(
+                    acceleration.x * con[0],
+                    acceleration.y * con[1],
+                    acceleration.z * con[2],
+                );
 
-            let clipped_new_velocity = if new_velocity.magnitude() > agent_species.max_speed {
-                new_velocity.normalize_to(agent_species.max_speed)
-            } else {
-                new_velocity
-            };
+                let new_velocity = agent.velocity + acc_constrained;
 
-            //println!("s{} a{} c{} r{}  - {}", svec(&sep), svec(&ali), svec(&coh), svec(&rnd), svec(&clipped_new_velocity));
+                let clipped_new_velocity = if new_velocity.magnitude() > agent_species.max_speed {
+                    new_velocity.normalize_to(agent_species.max_speed)
+                } else {
+                    new_velocity
+                };
 
-            Agent::mk_new(agent.position, clipped_new_velocity, agent.energy, agent.species_index).unwrap()
-        }).collect();
+                //println!("s{} a{} c{} r{}  - {}", svec(&sep), svec(&ali), svec(&coh), svec(&rnd), svec(&clipped_new_velocity));
+
+                Agent::mk_new(
+                    agent.position,
+                    clipped_new_velocity,
+                    agent.energy,
+                    agent.species_index,
+                )
+                .unwrap()
+            })
+            .collect();
         println!("recalc      {:3.1?}", start.elapsed());
 
         // 3. Move accordingly          -------------------------------------

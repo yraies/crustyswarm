@@ -16,22 +16,20 @@ pub enum RuleStrategy {
 }
 
 impl RuleStrategy {
-  pub fn shouldReplace(&mut self) -> bool {
-    match self {
-      RuleStrategy::Every(max, ref mut curr) => {
-          if *curr > 1 {
-              *curr = *curr - 1;
-            false
-          } else {
-              *curr = *max;
-            true
-          }
-      }
+    pub fn shouldReplace(&mut self) -> bool {
+        match self {
+            RuleStrategy::Every(max, ref mut curr) => {
+                if *curr > 1 {
+                    *curr = *curr - 1;
+                    false
+                } else {
+                    *curr = *max;
+                    true
+                }
+            }
+        }
     }
-  }
 }
-
-
 
 #[derive(Serialize, Deserialize)]
 pub struct RuleSet {
@@ -44,7 +42,6 @@ pub struct Rule {
     pub p: Val,
     pub out: Vec<SpeciesIndex>,
 }
-
 
 impl Rule {
     pub fn new(out: Vec<SpeciesIndex>, p: Val) -> Rule {
