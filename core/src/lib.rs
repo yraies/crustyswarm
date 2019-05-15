@@ -103,7 +103,9 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
         [1.0, 1.0, 1.0],
         vec![(0, 1.0), (1, 1.0)],
         1.0,
-        EnergyStrategy::None,
+        InitialEnergy::Inherit(1.0),
+        DepletionEnergy::None,
+        ZeroEnergy::Alive,
     );
     let species2 = Species::new(
         1.8,
@@ -116,7 +118,9 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
         [1.0, 1.0, 1.0],
         vec![(0, 1.0), (1, 1.0)],
         1.0,
-        EnergyStrategy::None,
+        InitialEnergy::Inherit(1.0),
+        DepletionEnergy::None,
+        ZeroEnergy::Alive,
     );
     let rule = RuleSet {
         input: 0,

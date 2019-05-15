@@ -27,7 +27,7 @@ pub fn template_from_file(path: impl AsRef<Path>) -> SwarmTemplate {
     let mut file = File::open(&path)
         .map_err(|e| {
             format!(
-                "Error while opening path {}! Error: {}",
+                "Error while opening json path {}! \nError: {}",
                 path.as_ref().display(),
                 e
             )

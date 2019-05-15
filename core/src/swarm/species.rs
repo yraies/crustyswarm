@@ -16,7 +16,9 @@ pub struct Species {
     pub axis_constraint: [Val; 3],
     pub influence: Vec<(SpeciesIndex, Val)>,
     pub weight: Val,
-    pub energy_strategy: EnergyStrategy,
+    pub initial_energy: InitialEnergy,
+    pub depletion_energy: DepletionEnergy,
+    pub zero_energy: ZeroEnergy,
 }
 
 impl Species {
@@ -31,7 +33,9 @@ impl Species {
         axis_constraint: [Val; 3],
         influence: Vec<(SpeciesIndex, Val)>,
         weight: Val,
-        energy_strategy: EnergyStrategy,
+        initial_energy: InitialEnergy,
+        depletion_energy: DepletionEnergy,
+        zero_energy: ZeroEnergy,
     ) -> Species {
         Species {
             separation,
@@ -45,14 +49,37 @@ impl Species {
             axis_constraint,
             influence,
             weight,
-            energy_strategy,
+            initial_energy,
+            depletion_energy,
+            zero_energy,
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum EnergyStrategy {
+pub enum DepletionEnergy {
     Constant(Val),
     Distance(Val),
     None,
+}
+
+impl Species {
+    pub fn get_spawn_energy(&self, parent_energy: Val) -> Val {
+        match self.initial_energy {
+            InitialEnergy::Constant(val) => val,
+            InitialEnergy::Inherit(val) => val * parent_energy,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum InitialEnergy {
+    Constant(Val),
+    Inherit(Val),
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum ZeroEnergy {
+    Die,
+    Alive,
 }

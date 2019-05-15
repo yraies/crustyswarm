@@ -17,13 +17,19 @@ fn main() {
         [0.0, 0.0, 0.0],
         vec![(0, 0.0)],
         1.0,
-        EnergyStrategy::Constant(0.0),
+        InitialEnergy::Inherit(1.0),
+        DepletionEnergy::None,
+        ZeroEnergy::Alive,
     );
     let ruleset0 = RuleSet {
         input: 0,
         rules: vec![
-            Rule(0.1, Replacement::Spread(0, 6)),
-            Rule(0.9, Replacement::Simple(vec![0])),
+            Rule(0.1, Replacement::Spread(0, 6, 0)),
+            Rule(0.8, Replacement::Simple(vec![0])),
+            Rule(
+                0.1,
+                Replacement::Multi(vec![Replacement::Simple(vec![0]), Replacement::Buoy]),
+            ),
         ],
     };
     let temp: SwarmTemplate = SwarmTemplate {

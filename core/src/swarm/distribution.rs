@@ -22,6 +22,7 @@ pub enum StartAgents {
     Singularity(Vec<(usize, SpeciesIndex)>),
     Plane(f32, f32, usize, SpeciesIndex),
     Grid(usize, f32, SpeciesIndex),
+    None,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -47,6 +48,7 @@ impl StartDistribution {
 
     fn gen_agents(dist: &StartAgents, template: &SwarmTemplate, rnd: &mut impl Rng) -> Vec<Agent> {
         match dist {
+            StartAgents::None => Vec::new(),
             StartAgents::Multi(distributions) => {
                 let mut agents = vec![];
                 for di in distributions {
@@ -57,7 +59,7 @@ impl StartDistribution {
             StartAgents::Single(x, z, index) => vec![Agent::mk_new(
                 Vector3::<Val>::new(*x, 0.0, *z),
                 Vector3::<Val>::zero(),
-                10f32,
+                20f32,
                 *index,
             )
             .unwrap()],
@@ -67,7 +69,7 @@ impl StartDistribution {
                 for (count, spec) in species {
                     for _i in 0..*count {
                         let pos = Vector3::<Val>::zero();
-                        agents.push(Agent::mk_rnd_vel(pos, 10f32, *spec, rnd).unwrap());
+                        agents.push(Agent::mk_rnd_vel(pos, 20f32, *spec, rnd).unwrap());
                     }
                 }
 
@@ -81,7 +83,7 @@ impl StartDistribution {
                     let ypos = rnd.gen_range(-yscale, yscale);
                     let rnd_pos = Vector3::<Val>::new(xpos, ypos, 0f32);
 
-                    agents.push(Agent::mk_rnd_vel(rnd_pos, 10f32, *spec, rnd).unwrap());
+                    agents.push(Agent::mk_rnd_vel(rnd_pos, 20f32, *spec, rnd).unwrap());
                 }
 
                 agents
@@ -98,7 +100,7 @@ impl StartDistribution {
                         let zpos = -halfsize + (z as f32) * spacing;
                         let pos = Vector3::<Val>::new(xpos, 0f32, zpos);
 
-                        agents.push(Agent::mk_rnd_vel(pos, 10f32, *species, rnd).unwrap());
+                        agents.push(Agent::mk_rnd_vel(pos, 20f32, *species, rnd).unwrap());
                     }
                 }
 

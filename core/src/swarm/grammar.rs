@@ -65,11 +65,21 @@ impl SwarmGrammar {
 
     fn replace_agents(&mut self, rnd: &mut impl Rng) -> Vec<Agent> {
         if self.template.strategy.should_replace() {
-            self.template
+            let mut res = self
+                .template
                 .rule_sets
                 .iter()
-                .flat_map(|rules| rules.execute(&self.agents, rnd))
-                .collect()
+                .map(|rules| rules.execute(&self.template, &self.agents, rnd))
+                .fold(
+                    (Vec::<Agent>::new(), Vec::<Buoy>::new()),
+                    |mut acc, mut val| {
+                        acc.0.append(&mut val.0);
+                        acc.1.append(&mut val.1);
+                        acc
+                    },
+                );
+            self.buoys.append(&mut res.1);
+            res.0
         } else {
             self.agents.to_owned()
         }
@@ -169,13 +179,14 @@ impl SwarmGrammar {
                     + agent_species.weight * gravity;
 
                 let con = agent_species.axis_constraint;
-                let acc_constrained = Vector3::new(
-                    acceleration.x * con[0],
-                    acceleration.y * con[1],
-                    acceleration.z * con[2],
-                );
 
-                let new_velocity = agent.velocity + acc_constrained;
+                let mut new_velocity = agent.velocity + acceleration;
+
+                new_velocity = Vector3::new(
+                    new_velocity.x * con[0],
+                    new_velocity.y * con[1],
+                    new_velocity.z * con[2],
+                );
 
                 let clipped_new_velocity = if new_velocity.magnitude() > agent_species.max_speed {
                     new_velocity.normalize_to(agent_species.max_speed)
@@ -189,10 +200,10 @@ impl SwarmGrammar {
 
                 out_agent.velocity = clipped_new_velocity;
                 out_agent.position += out_agent.velocity;
-                out_agent.energy -= match agent_species.energy_strategy {
-                    EnergyStrategy::Constant(v) => v,
-                    EnergyStrategy::Distance(v) => v * agent.velocity.magnitude(),
-                    EnergyStrategy::None => 0.0,
+                out_agent.energy -= match agent_species.depletion_energy {
+                    DepletionEnergy::Constant(v) => v,
+                    DepletionEnergy::Distance(v) => v * agent.velocity.magnitude(),
+                    DepletionEnergy::None => 0.0,
                 };
                 out_agent
             })
