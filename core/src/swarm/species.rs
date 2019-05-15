@@ -13,8 +13,10 @@ pub struct Species {
     pub max_speed: Val,
     pub view_distance: Val,
     pub sep_distance: Val,
-    pub axis_constraint: [Val;3],
-    pub influence: Vec<(SpeciesIndex,Val)>
+    pub axis_constraint: [Val; 3],
+    pub influence: Vec<(SpeciesIndex, Val)>,
+    pub weight: Val,
+    pub energy_strategy: EnergyStrategy,
 }
 
 impl Species {
@@ -26,8 +28,10 @@ impl Species {
         center: Val,
         max_speed: Val,
         sep_distance: Val,
-        axis_constraint: [Val;3],
-        influence: Vec<(SpeciesIndex,Val)>,
+        axis_constraint: [Val; 3],
+        influence: Vec<(SpeciesIndex, Val)>,
+        weight: Val,
+        energy_strategy: EnergyStrategy,
     ) -> Species {
         Species {
             separation,
@@ -39,7 +43,16 @@ impl Species {
             view_distance: 80.0,
             sep_distance,
             axis_constraint,
-            influence
+            influence,
+            weight,
+            energy_strategy,
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum EnergyStrategy {
+    Constant(Val),
+    Distance(Val),
+    None,
 }

@@ -50,19 +50,17 @@ pub fn template_to_file(template: &SwarmTemplate, path: impl AsRef<Path>) -> Opt
 pub fn print_swarm(grammar: &SwarmGrammar, writer: &mut BufWriter<File>) {
     let ags = grammar.get_agents();
 
-    write!(writer, "ply\n").unwrap();
-    write!(writer, "format ascii 1.0\n").unwrap();
-    write!(writer, "element vertex {}\n", ags.len()).unwrap();
-    write!(
-        writer,
-        "property float x\nproperty float y\nproperty float z\n"
-    )
-    .unwrap();
-    write!(writer, "end_header\n").unwrap();
+    writeln!(writer, "ply").unwrap();
+    writeln!(writer, "format ascii 1.0").unwrap();
+    writeln!(writer, "element vertex {}", ags.len()).unwrap();
+    writeln!(writer, "property float x").unwrap();
+    writeln!(writer, "property float y").unwrap();
+    writeln!(writer, "property float z").unwrap();
+    writeln!(writer, "end_header").unwrap();
 
     for ag in ags {
         let (x, y, z) = ag.position.into();
-        write!(writer, "{} {} {}\n", x, y, z).unwrap();
+        writeln!(writer, "{} {} {}", x, y, z).unwrap();
     }
     /*    for ag in ags {
         let (x,y,z) = ag.velocity.into();

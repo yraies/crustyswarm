@@ -7,6 +7,13 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::fmt;
 
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
+pub enum Actor {
+    Agent(Agent),
+    Buoy(Buoy),
+    Artifact(Artifact),
+}
+
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Agent {
     pub position: Vector3<Val>,
@@ -77,5 +84,47 @@ impl Agent {
         rnd: &mut impl Rng,
     ) -> Result<Agent, &'static str> {
         Agent::mk_new(position, utils::random_one(rnd), energy, species_index)
+    }
+}
+
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+pub struct Buoy {
+    pub position: Vector3<Val>,
+    pub y_vel: Val,
+}
+
+impl fmt::Debug for Buoy {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let v = &self.position;
+        let pos = format!("({:.p$};{:.p$};{:.p$})", v.x, v.y, v.z, p = 2);
+        write!(f, "Buoy P{} zV{}", pos, &self.y_vel)
+    }
+}
+
+impl Buoy {
+    #[allow(dead_code)]
+    pub fn new(position: Vector3<Val>, y_vel: Val) -> Buoy {
+        Buoy { position, y_vel }
+    }
+}
+
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+pub struct Artifact {
+    pub position: Vector3<Val>,
+    pub a_type: usize,
+}
+
+impl fmt::Debug for Artifact {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let v = &self.position;
+        let pos = format!("({:.p$};{:.p$};{:.p$})", v.x, v.y, v.z, p = 2);
+        write!(f, "Artifact P{} T{}", pos, &self.a_type)
+    }
+}
+
+impl Artifact {
+    #[allow(dead_code)]
+    fn new(position: Vector3<Val>, a_type: usize) -> Artifact {
+        Artifact { position, a_type }
     }
 }

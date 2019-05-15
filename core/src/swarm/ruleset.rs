@@ -1,14 +1,13 @@
 use std::fmt;
 
+use cgmath::{Deg, Euler, Quaternion};
 use rand::Rng;
 use serde::Deserialize;
 use serde::Serialize;
 
-use Agent;
-
+use super::actor::Agent;
 use super::SpeciesIndex;
 use super::Val;
-use core::borrow::BorrowMut;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum RuleStrategy {
@@ -16,11 +15,11 @@ pub enum RuleStrategy {
 }
 
 impl RuleStrategy {
-    pub fn shouldReplace(&mut self) -> bool {
+    pub fn should_replace(&mut self) -> bool {
         match self {
             RuleStrategy::Every(max, ref mut curr) => {
                 if *curr > 1 {
-                    *curr = *curr - 1;
+                    *curr -= 1;
                     false
                 } else {
                     *curr = *max;
@@ -31,28 +30,20 @@ impl RuleStrategy {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RuleSet {
     pub input: SpeciesIndex,
     pub rules: Vec<Rule>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Rule {
-    pub p: Val,
-    pub out: Vec<SpeciesIndex>,
-}
+pub struct Rule(pub Val, pub Replacement);
 
-impl Rule {
-    pub fn new(out: Vec<SpeciesIndex>, p: Val) -> Rule {
-        Rule { out, p }
-    }
-}
-
-impl fmt::Debug for RuleSet {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Rule {}: {:?}", self.input, self.rules)
-    }
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Replacement {
+    Simple(Vec<SpeciesIndex>),
+    Multi(Vec<Replacement>),
+    Spread(SpeciesIndex, usize),
 }
 
 impl RuleSet {
@@ -65,13 +56,9 @@ impl RuleSet {
                 let mut prob_counter: Val = 0.0;
 
                 for r in &self.rules {
-                    prob_counter += r.p;
+                    prob_counter += r.0;
                     if prob_counter > thresh {
-                        for s in &r.out {
-                            let mut new_agent = agent.clone();
-                            new_agent.species_index = *s;
-                            new_vec.push(new_agent);
-                        }
+                        r.1.replace_to(agent, &mut new_vec);
                         break;
                     }
                 }
@@ -79,5 +66,46 @@ impl RuleSet {
         }
 
         new_vec
+    }
+}
+
+impl Replacement {
+    pub fn replace_to(&self, agent: &Agent, new_vec: &mut Vec<Agent>) {
+        match self {
+            Replacement::Simple(specs) => {
+                for spec in specs.iter() {
+                    let mut clone = dbg!(agent.clone());
+                    clone.species_index = *spec;
+                    new_vec.push(clone);
+                }
+            }
+            Replacement::Multi(repls) => {
+                for repl in repls.iter() {
+                    repl.replace_to(agent, new_vec);
+                }
+            }
+            Replacement::Spread(index, count) => {
+                let rot = Quaternion::from(Euler {
+                    x: Deg(0.0),
+                    y: Deg((360f32 / (*count as f32)) % 180.0),
+                    z: Deg(0.0),
+                });
+                let base_rot = Quaternion::from(Euler {
+                    x: Deg(0.0),
+                    y: Deg(90.0),
+                    z: Deg(0.0),
+                });
+                let mut new_vel = base_rot * agent.velocity;
+
+                for _i in 0..*count {
+                    let mut clone = agent.clone();
+                    clone.species_index = *index;
+                    clone.velocity = new_vel;
+                    new_vec.push(clone);
+
+                    new_vel = rot * new_vel;
+                }
+            }
+        }
     }
 }

@@ -17,16 +17,16 @@ pub fn safe_normalize<T: BaseFloat>(v: Vector3<T>) -> Vector3<T> {
     }
 }
 
-pub fn safe_devide_mean(v: Vector3<Val>, d: usize) -> Vector3<Val> {
-    if d == 0 {
+pub fn safe_devide_mean(v: Vector3<Val>, d: Val) -> Vector3<Val> {
+    if d == 0.0 {
         v
     } else {
-        v / (d as Val)
+        v / d
     }
 }
 
 pub fn random_one(rnd: &mut impl Rng) -> Vector3<Val> {
-    (rnd.gen::<Vector3<Val>>() * 2.0) - MINUS_ONE
+    (rnd.gen::<Vector3<Val>>() * 2.0) + MINUS_ONE
 }
 
 #[allow(dead_code)]

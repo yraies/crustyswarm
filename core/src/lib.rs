@@ -15,13 +15,12 @@ use rand::rngs::SmallRng;
 use rand::Rng;
 use rand::SeedableRng;
 
-use swarm::agent::Agent;
+use swarm::actor::Agent;
+use swarm::distribution::{StartAgents, StartBuoys, StartDistribution};
 use swarm::grammar::SwarmGrammar;
 use swarm::grammar::SwarmTemplate;
-use swarm::ruleset::Rule;
-use swarm::ruleset::{RuleSet, RuleStrategy};
-use swarm::species::Species;
-use swarm::StartDistribution;
+use swarm::ruleset::{Rule, RuleSet, RuleStrategy};
+use swarm::species::*;
 use swarm::Val;
 
 pub mod io;
@@ -103,6 +102,8 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
         5.0,
         [1.0, 1.0, 1.0],
         vec![(0, 1.0), (1, 1.0)],
+        1.0,
+        EnergyStrategy::None,
     );
     let species2 = Species::new(
         1.8,
@@ -114,30 +115,37 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
         15.0,
         [1.0, 1.0, 1.0],
         vec![(0, 1.0), (1, 1.0)],
+        1.0,
+        EnergyStrategy::None,
     );
     let rule = RuleSet {
         input: 0,
         rules: vec![
-            Rule::new(vec![0], 0.98),
-            Rule::new(vec![1], 0.01),
-            Rule::new(vec![0, 1], 0.005),
-            Rule::new(vec![], 0.005),
+            // Rule::new(vec![0], 0.98),
+            // Rule::new(vec![1], 0.01),
+            // Rule::new(vec![0, 1], 0.005),
+            // Rule::new(vec![], 0.005),
         ],
     };
     let rule2 = RuleSet {
         input: 1,
         rules: vec![
-            Rule::new(vec![1], 0.945),
-            Rule::new(vec![0], 0.05),
-            Rule::new(vec![0, 1], 0.005),
+            // Rule::new(vec![1], 0.945),
+            // Rule::new(vec![0], 0.05),
+            // Rule::new(vec![0, 1], 0.005),
         ],
     };
     let grammar = SwarmGrammar {
         agents,
+        artifacts: vec![],
+        buoys: vec![],
         template: SwarmTemplate {
             species: vec![species, species2],
             rule_sets: vec![rule, rule2],
-            start_dist: StartDistribution::Singularity(vec![(2, 0), (2, 1)]),
+            start_dist: StartDistribution {
+                start_agents: StartAgents::Singularity(vec![(2, 0), (2, 1)]),
+                start_buoys: StartBuoys::None,
+            },
             strategy: RuleStrategy::Every(4, 4),
         },
     };
@@ -145,14 +153,44 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
 }
 
 #[allow(dead_code)]
-pub fn swarm_to_arr<'a>(grammar: &SwarmGrammar) -> Vec<f32> {
-    let count = grammar.agents.len();
+pub fn agents_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
+    let ags = grammar.get_agents();
+    let count = ags.len();
     let mut out_vec = Vec::with_capacity(count * 4);
-    for agent in &grammar.agents {
+    for agent in ags {
         out_vec.push(agent.position.x);
         out_vec.push(agent.position.y);
         out_vec.push(agent.position.z);
         out_vec.push(agent.species_index as f32);
+    }
+
+    out_vec
+}
+
+#[allow(dead_code)]
+pub fn buoys_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
+    let buoys = grammar.get_buoys();
+    let count = buoys.len();
+    let mut out_vec = Vec::with_capacity(count * 3);
+    for buoy in buoys {
+        out_vec.push(buoy.position.x);
+        out_vec.push(buoy.position.y);
+        out_vec.push(buoy.position.z);
+    }
+
+    out_vec
+}
+
+#[allow(dead_code)]
+pub fn artifacts_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
+    let arts = grammar.get_artifacts();
+    let count = arts.len();
+    let mut out_vec = Vec::with_capacity(count * 4);
+    for art in arts {
+        out_vec.push(art.position.x);
+        out_vec.push(art.position.y);
+        out_vec.push(art.position.z);
+        out_vec.push(art.a_type as f32);
     }
 
     out_vec
