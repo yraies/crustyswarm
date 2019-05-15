@@ -108,7 +108,7 @@ impl Replacement {
             Replacement::Spread(index, count, offset) => {
                 let rot = Quaternion::from(Euler {
                     x: Deg(0.0),
-                    y: dbg!(Deg(360f32 / (*count as f32))),
+                    y: Deg(360f32 / (*count as f32)),
                     z: Deg(0.0),
                 });
                 let base_rot = Quaternion::from(Euler {
