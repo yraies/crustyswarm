@@ -14,12 +14,13 @@ pub enum Actor {
     Artifact(Artifact),
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
 pub struct Agent {
     pub position: Vector3<Val>,
     pub velocity: Vector3<Val>,
     pub energy: Val,
     pub species_index: SpeciesIndex,
+    pub seed_center: Vector3<Val>,
 }
 
 impl fmt::Debug for Agent {
@@ -56,6 +57,7 @@ impl Agent {
             velocity,
             energy,
             species_index,
+            seed_center: Vector3::new(0.0, 0.0, 0.0),
         }
     }
 
@@ -71,6 +73,7 @@ impl Agent {
                 velocity,
                 energy,
                 species_index,
+                seed_center: Vector3::new(0.0, 0.0, 0.0),
             })
         } else {
             Result::Err("Energy must be greater than zero")
@@ -87,10 +90,11 @@ impl Agent {
     }
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
 pub struct Buoy {
     pub position: Vector3<Val>,
     pub y_vel: Val,
+    pub base: Val,
 }
 
 impl fmt::Debug for Buoy {
@@ -103,12 +107,16 @@ impl fmt::Debug for Buoy {
 
 impl Buoy {
     #[allow(dead_code)]
-    pub fn new(position: Vector3<Val>, y_vel: Val) -> Buoy {
-        Buoy { position, y_vel }
+    pub fn new(position: Vector3<Val>, y_vel: Val, base: Val) -> Buoy {
+        Buoy {
+            position,
+            y_vel,
+            base,
+        }
     }
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
 pub struct Artifact {
     pub position: Vector3<Val>,
     pub a_type: usize,

@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use cgmath::prelude::*;
-use cgmath::Rad;
+use cgmath::{Deg, Rad};
 use cgmath::{Vector2, Vector3};
 use rand::Rng;
 use rayon::iter::IndexedParallelIterator;
@@ -92,7 +92,7 @@ impl SwarmGrammar {
         }
 
         let recalculated = replaced
-            .par_iter()
+            .iter()
             .enumerate()
             .map(|(agent_index, agent)| {
                 let agent_species = &self.template.species[agent.species_index];
@@ -107,15 +107,19 @@ impl SwarmGrammar {
                 let mut view_counter = 0.0;
 
                 for (other_index, other) in replaced.iter().enumerate() {
+                    //check for self
                     if other_index == agent_index {
                         continue;
                     }
 
+                    // Find influence in influence vector
                     let inf_opt = agent_species
                         .influence
                         .iter()
                         .find(|&&i| (i.0) == other_index)
                         .map(|v| v.1);
+
+                    // Default influence = 0
                     match inf_opt {
                         None => (),
                         Some(influence) => {
@@ -124,19 +128,19 @@ impl SwarmGrammar {
                             if dist < agent_species.view_distance {
                                 if dist < agent_species.sep_distance {
                                     sep_vec += other.position * influence;
-                                    sep_counter += 1.0 * influence;
+                                    sep_counter += 1.0 * influence.abs();
                                 }
 
                                 let solid_angle =
                                     agent.velocity.angle(other.position - agent.position);
 
-                                if solid_angle > Rad(0.4) {
+                                if solid_angle > Rad::from(Deg(90.0)) {
                                     continue;
                                 }
 
-                                ali_vec += safe_normalize(other.velocity * influence);
+                                ali_vec += other.velocity * influence;
                                 coh_vec += other.position * influence;
-                                view_counter += 1.0 * influence;
+                                view_counter += 1.0 * influence.abs();
                             }
                         }
                     }
@@ -144,39 +148,40 @@ impl SwarmGrammar {
 
                 let sep_temp = safe_devide_mean(sep_vec, sep_counter);
 
-                let sep_norm = -safe_normalize(if sep_temp.is_zero() {
+                let sep_norm = -(if sep_temp.is_zero() {
                     sep_temp
                 } else {
                     sep_temp - agent.position
                 });
                 let (ali_norm, coh_norm) = if view_counter > 0.0 {
-                    let an = safe_normalize(safe_devide_mean(ali_vec, view_counter));
-                    let cn =
-                        safe_normalize(safe_devide_mean(coh_vec, view_counter) - agent.position);
+                    let an = safe_devide_mean(ali_vec, view_counter);
+                    let cn = safe_devide_mean(coh_vec, view_counter) - agent.position;
                     (an, cn)
                 } else {
                     (Vector3::<Val>::zero(), Vector3::<Val>::zero())
                 };
-                let cen_norm = safe_normalize(-agent.position);
+                let cen_norm = agent.seed_center - agent.position;
 
-                let rnd_norm = safe_normalize(rnd_vec[agent_index]);
+                let rnd_norm = rnd_vec[agent_index];
 
-                let gravity = if agent.position.y > 20.0 {
-                    -Vector3::<Val>::unit_y() * 0.1
-                } else if agent.position.y > 0.0 {
-                    -Vector3::<Val>::unit_y() * 0.1 * (20.0 - agent.position.y) / 20.0
+                let base_dist = agent.position.y - agent.seed_center.z;
+                let gravity = if base_dist > 40.0 {
+                    -Vector3::<Val>::unit_y() * 0.2
+                } else if base_dist > 20.0 {
+                    -Vector3::<Val>::unit_y() * 0.2 * (40.0 - base_dist) / 20.0
+                } else if base_dist > -5.0 {
+                    Vector3::<Val>::zero()
                 } else {
-                    Vector3::<Val>::unit_y() * 0.05
+                    Vector3::<Val>::unit_y() * 0.2
                 };
 
                 // 2.2. Actually Recalculate    ------------------
 
-                let acceleration = agent_species.separation * sep_norm
-                    + agent_species.alignment * ali_norm
-                    + agent_species.cohesion * coh_norm
-                    + agent_species.center * cen_norm
-                    + agent_species.randomness * rnd_norm
-                    + agent_species.weight * gravity;
+                let acceleration = agent_species.separation * sep_norm * 0.01
+                    + agent_species.alignment * ali_norm * 0.1
+                    + agent_species.cohesion * coh_norm * 0.01
+                    + agent_species.center * cen_norm * 0.01
+                    + agent_species.randomness * rnd_norm * 0.1;
 
                 let con = agent_species.axis_constraint;
 
@@ -199,7 +204,7 @@ impl SwarmGrammar {
                 let mut out_agent = agent.clone();
 
                 out_agent.velocity = clipped_new_velocity;
-                out_agent.position += out_agent.velocity;
+                out_agent.position += out_agent.velocity + agent_species.weight * gravity;
                 out_agent.energy -= match agent_species.depletion_energy {
                     DepletionEnergy::Constant(v) => v,
                     DepletionEnergy::Distance(v) => v * agent.velocity.magnitude(),

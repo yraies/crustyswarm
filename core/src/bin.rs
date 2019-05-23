@@ -6,6 +6,7 @@ use crustswarm::swarm::ruleset::{Replacement, Rule, RuleSet, RuleStrategy};
 use crustswarm::swarm::species::*;
 
 fn main() {
+    let test = 7;
     let spec = Species::new(
         1.0,
         1.0,
@@ -20,6 +21,7 @@ fn main() {
         InitialEnergy::Inherit(1.0),
         DepletionEnergy::None,
         ZeroEnergy::Alive,
+        false,
     );
     let ruleset0 = RuleSet {
         input: 0,

@@ -19,6 +19,7 @@ pub struct Species {
     pub initial_energy: InitialEnergy,
     pub depletion_energy: DepletionEnergy,
     pub zero_energy: ZeroEnergy,
+    pub hand_down_seed: bool,
 }
 
 impl Species {
@@ -36,6 +37,7 @@ impl Species {
         initial_energy: InitialEnergy,
         depletion_energy: DepletionEnergy,
         zero_energy: ZeroEnergy,
+        hand_down_seed: bool,
     ) -> Species {
         Species {
             separation,
@@ -52,6 +54,7 @@ impl Species {
             initial_energy,
             depletion_energy,
             zero_energy,
+            hand_down_seed,
         }
     }
 }

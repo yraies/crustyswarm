@@ -118,7 +118,7 @@ impl StartDistribution {
                 }
                 buoys
             }
-            StartBuoys::Single(x, z) => vec![Buoy::new(Vector3::<Val>::new(*x, 0.0, *z), 0.0)],
+            StartBuoys::Single(x, z) => vec![Buoy::new(Vector3::<Val>::new(*x, 0.0, *z), 0.0, 0.0)],
             StartBuoys::Plane(xscale, yscale, count) => {
                 let mut buoys = vec![];
 
@@ -127,7 +127,7 @@ impl StartDistribution {
                     let ypos = rnd.gen_range(-yscale, yscale);
                     let rnd_pos = Vector3::<Val>::new(xpos, ypos, 0f32);
 
-                    buoys.push(Buoy::new(rnd_pos, 0.0));
+                    buoys.push(Buoy::new(rnd_pos, 0.0, 0.0));
                 }
 
                 buoys
@@ -144,7 +144,7 @@ impl StartDistribution {
                         let zpos = -halfsize + (z as f32) * spacing;
                         let pos = Vector3::<Val>::new(xpos, 0f32, zpos);
 
-                        buoys.push(Buoy::new(pos, 0.0));
+                        buoys.push(Buoy::new(pos, 0.0, 0.0));
                     }
                 }
 

@@ -19,13 +19,14 @@ use swarm::actor::Agent;
 use swarm::distribution::{StartAgents, StartBuoys, StartDistribution};
 use swarm::grammar::SwarmGrammar;
 use swarm::grammar::SwarmTemplate;
-use swarm::ruleset::{Rule, RuleSet, RuleStrategy};
+use swarm::ruleset::{RuleSet, RuleStrategy};
 use swarm::species::*;
 use swarm::Val;
 
 pub mod io;
 pub mod swarm;
 mod utils;
+pub mod world;
 
 pub fn main() {
     let agent_count = if let Some(arg1) = env::args().nth(1) {
@@ -106,6 +107,7 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
         InitialEnergy::Inherit(1.0),
         DepletionEnergy::None,
         ZeroEnergy::Alive,
+        false,
     );
     let species2 = Species::new(
         1.8,
@@ -121,6 +123,7 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
         InitialEnergy::Inherit(1.0),
         DepletionEnergy::None,
         ZeroEnergy::Alive,
+        false,
     );
     let rule = RuleSet {
         input: 0,

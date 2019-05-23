@@ -84,9 +84,8 @@ impl Replacement {
         new_vec: &mut Vec<Agent>,
         new_buoys: &mut Vec<Buoy>,
     ) {
-        if agent.energy < 0.0
-            && template.species[agent.species_index].zero_energy == (ZeroEnergy::Die)
-        {
+        let agent_species = &template.species[agent.species_index];
+        if agent.energy < 0.0 && agent_species.zero_energy == (ZeroEnergy::Die) {
             return;
         }
 
@@ -97,6 +96,9 @@ impl Replacement {
                     clone.species_index = *spec;
                     clone.energy =
                         template.species[clone.species_index].get_spawn_energy(agent.energy);
+                    if agent_species.hand_down_seed {
+                        clone.seed_center = agent.position;
+                    }
                     new_vec.push(clone);
                 }
             }
@@ -122,6 +124,9 @@ impl Replacement {
                     let mut clone = agent.clone();
                     clone.species_index = *index;
                     clone.velocity = new_vel;
+                    if agent_species.hand_down_seed {
+                        clone.seed_center = agent.position;
+                    }
                     new_vec.push(clone);
 
                     new_vel = rot * new_vel;
@@ -130,6 +135,7 @@ impl Replacement {
             Replacement::Buoy => new_buoys.push(Buoy {
                 position: agent.position.clone(),
                 y_vel: 0.0,
+                base: agent.position.y,
             }),
         }
     }
