@@ -12,6 +12,7 @@ use super::distribution::StartDistribution;
 use swarm::actor::{Agent, Artifact, Buoy};
 use swarm::ruleset::RuleStrategy;
 use swarm::species::*;
+use world::World;
 use RuleSet;
 
 use crate::utils::*;
@@ -47,12 +48,12 @@ impl SwarmGrammar {
 
         // 1. Replace by Rules          -------------------------------------
         let mut start = Instant::now();
-        let mut replaced = self.replace_agents(rnd);
+        let replaced = self.replace_agents(rnd);
         println!("replacement {:3.1?}", start.elapsed());
 
         // 2. Recalculate Velocities    -------------------------------------
         start = Instant::now();
-        self.recalc_agent(rnd, &mut replaced);
+        self.recalc_agent(rnd, replaced);
         println!("recalc      {:3.1?}", start.elapsed());
 
         // 3. Spawn Artifacts           -------------------------------------
@@ -85,14 +86,16 @@ impl SwarmGrammar {
         }
     }
 
-    pub fn recalc_agent(&mut self, rnd: &mut impl Rng, replaced: &mut Vec<Agent>) {
+    pub fn recalc_agent(&mut self, rnd: &mut impl Rng, replaced: Vec<Agent>) {
         let mut rnd_vec = Vec::new();
         for _i in 0..replaced.len() {
             rnd_vec.push(random_one(rnd));
         }
 
-        let recalculated = replaced
-            .iter()
+        let world: World = World::new(replaced, 10.0);
+
+        let recalculated = world
+            .get_all_agents()
             .enumerate()
             .map(|(agent_index, agent)| {
                 let agent_species = &self.template.species[agent.species_index];
@@ -106,7 +109,13 @@ impl SwarmGrammar {
                 let mut sep_counter = 0.0;
                 let mut view_counter = 0.0;
 
-                for (other_index, other) in replaced.iter().enumerate() {
+                for (other_index, other) in world
+                    .get_agents_at_least_within(
+                        agent_species.view_distance,
+                        Vector2::new(agent.position.x, agent.position.z),
+                    )
+                    .enumerate()
+                {
                     //check for self
                     if other_index == agent_index {
                         continue;

@@ -1,12 +1,15 @@
+extern crate fnv;
+
+use self::fnv::FnvHashMap;
 use std::collections::HashMap;
 use swarm::actor::*;
 
 use cgmath::Vector2;
 
 #[derive(Debug)]
-struct World {
+pub struct World {
     config: WorldConfig,
-    cells: HashMap<(i16, i16), WorldCell>,
+    cells: FnvHashMap<(i16, i16), WorldCell>,
     spacing: f32,
 }
 
@@ -15,15 +18,11 @@ struct WorldConfig {
     test: String,
 }
 
-#[derive(PartialEq, Eq, Hash, Debug)]
+#[derive(PartialEq, Debug)]
 struct WorldCell {
     agents: Vec<Agent>,
     artifacts: Vec<Artifact>,
     buoys: Vec<Buoy>,
-}
-
-struct Accessor<T> {
-    it: Iterator<Item = T>,
 }
 
 impl World {
@@ -41,20 +40,22 @@ impl World {
         let iter = self
             .cells
             .iter()
-            .filter(|(&cell_pos, _)| self.include_cell(range, cell_pos, center_pos))
+            .filter(move |(&cell_pos, _)| self.is_cell_included(range, cell_pos, center_pos))
             .flat_map(|(_, cell)| cell.get_agents().iter());
         iter
     }
 
-    fn include_cell(&self, range: f32, cell_pos: (i16, i16), center_pos: Vector2<f32>) -> bool {
+    fn is_cell_included(&self, range: f32, cell_pos: (i16, i16), center_pos: Vector2<f32>) -> bool {
         // improve filter!
-        let new_range = range * 2.0;
-        let (x_cell, y_cell) = (
-            (cell_pos.0 as f32) * self.spacing,
-            (cell_pos.1 as f32) * self.spacing,
-        );
-        let x_bool = (center_pos.x + new_range) > x_cell && (center_pos.x - new_range) < x_cell;
-        let y_bool = (center_pos.y + new_range) > y_cell && (center_pos.y - new_range) < y_cell;
+        let cell_range = (range / self.spacing).ceil() as i16;
+
+        let x_up = (center_pos.x / self.spacing).floor() as i16 + cell_range;
+        let x_low = (center_pos.x / self.spacing).floor() as i16 - cell_range;
+        let y_up = (center_pos.y / self.spacing).floor() as i16 + cell_range;
+        let y_low = (center_pos.y / self.spacing).floor() as i16 - cell_range;
+
+        let x_bool = x_low <= cell_pos.0 && cell_pos.0 <= x_up;
+        let y_bool = y_low <= cell_pos.1 && cell_pos.1 <= y_up;
         x_bool && y_bool
     }
 
@@ -68,11 +69,25 @@ impl World {
             .or_insert(WorldCell::new(4, 4, 4));
         cell.agents.push(agent);
     }
+
+    pub fn new(agents: Vec<Agent>, spacing: f32) -> World {
+        let mut world = World {
+            spacing,
+            config: WorldConfig {
+                test: String::from("tesa"),
+            },
+            cells: FnvHashMap::default(),
+        };
+
+        agents.into_iter().for_each(|ag| world.insert_agent(ag));
+
+        world
+    }
 }
 
 impl WorldCell {
-    fn get_agents(&self) -> Vec<Agent> {
-        self.agents
+    fn get_agents(&self) -> &Vec<Agent> {
+        &self.agents
     }
 
     fn new(agent_capacity: usize, artifacts_capacity: usize, buoy_capacity: usize) -> WorldCell {

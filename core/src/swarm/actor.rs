@@ -14,7 +14,7 @@ pub enum Actor {
     Artifact(Artifact),
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Agent {
     pub position: Vector3<Val>,
     pub velocity: Vector3<Val>,
@@ -90,7 +90,7 @@ impl Agent {
     }
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Buoy {
     pub position: Vector3<Val>,
     pub y_vel: Val,
@@ -116,7 +116,7 @@ impl Buoy {
     }
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, Hash, Eq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Artifact {
     pub position: Vector3<Val>,
     pub a_type: usize,
