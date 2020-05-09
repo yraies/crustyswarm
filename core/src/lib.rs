@@ -189,6 +189,32 @@ pub fn buoys_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
 }
 
 #[allow(dead_code)]
+pub fn agents_to_arr2(grammar: &SwarmGrammar) -> Vec<([f32; 3], usize)> {
+    let ags = grammar.get_agents();
+    let count = ags.len();
+    let mut out_vec = Vec::with_capacity(count * 4);
+    for agent in ags {
+        out_vec.push((
+            [agent.position.x, agent.position.y, agent.position.z],
+            agent.species_index,
+        ));
+    }
+
+    out_vec
+}
+
+#[allow(dead_code)]
+pub fn buoys_to_arr2(grammar: &SwarmGrammar) -> Vec<[f32; 3]> {
+    let buoys = grammar.get_buoys();
+    let count = buoys.len();
+    let mut out_vec = Vec::with_capacity(count * 3);
+    for buoy in buoys {
+        out_vec.push([buoy.position.x, buoy.position.y, buoy.position.z]);
+    }
+
+    out_vec
+}
+#[allow(dead_code)]
 pub fn artifacts_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
     let arts = grammar.get_artifacts();
     let count = arts.len();

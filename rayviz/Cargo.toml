@@ -1,0 +1,14 @@
+[package]
+name = "crustswarm-rayviz"
+version = "0.1.0"
+authors = ["Yasin Raies <yasin.raies@gmail.de>"]
+edition = "2018"
+
+[dependencies]
+raylib = "^1.0"
+rand = "^0.6"
+tempfile = "3.1.0"
+
+[dependencies.crustswarm]
+path = "../core"
+
