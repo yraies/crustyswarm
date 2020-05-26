@@ -126,10 +126,12 @@ fn main() {
             // Draw UI Stuff
             {
                 let stat_info = format!(
-                    "FPS: {:2}\n{}\n{}",
+                    "FPS: {:2}\n{}\n{}\nAgents: {:4}\nBuoys:  {:4}",
                     d.get_fps(),
                     render_stats.to_string("Render", 6, false),
                     sim_stats.to_string("Sim", 6, false),
+                    sg.get_agents().len(),
+                    sg.get_buoys().len(),
                 );
                 draw_text(&mut d, &font, 5, 5, &stat_info);
 
