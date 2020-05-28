@@ -44,10 +44,10 @@ fn main() {
         60.0,
     );
 
-    rl.set_camera_mode(&camera, CameraMode::CAMERA_FREE);
+    rl.set_camera_mode(&camera, CameraMode::CAMERA_THIRD_PERSON);
     rl.set_target_fps(30);
 
-    let seed = rand::random();
+    let seed = if false { rand::random() } else { 2u64 };
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
     let mut sg = {
         let temp = crustswarm::io::template_from_file(configfile);
@@ -83,7 +83,16 @@ fn main() {
                 draw_buoy = !draw_buoy;
             }
 
+            let old_position = camera.position;
             rl.update_camera(&mut camera);
+            let camera_movement = camera.position - old_position;
+            if rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
+                camera.position += camera_movement * 20.0;
+                camera.target += camera_movement * 20.0;
+            } else {
+                camera.position += camera_movement * 4.0;
+                camera.target += camera_movement * 4.0;
+            }
         }
 
         // Draw the Scene
@@ -95,6 +104,9 @@ fn main() {
             // Draw 3D Stuff
             {
                 let mut d3d = d.begin_mode_3D(camera);
+                d3d.draw_cube(Vector3::new(1.0, 0.0, 0.0), 2.5, 0.5, 0.5, Color::RED);
+                d3d.draw_cube(Vector3::new(0.0, 1.0, 0.0), 0.5, 2.5, 0.5, Color::GREEN);
+                d3d.draw_cube(Vector3::new(0.0, 0.0, 1.0), 0.5, 0.5, 2.5, Color::BLUE);
 
                 d3d.draw_grid(10, 10.0);
 
@@ -137,12 +149,11 @@ fn main() {
 
                 //d.draw_text("", 20, 30, 10, Color::DARKGRAY);
                 d.draw_text(
-                    "Free camera default controls:
-- Mouse Wheel to Zoom in-out
-- Mouse Wheel Pressed to Pan
-- Alt + Mouse Wheel Pressed to Rotate
-- Alt + Ctrl + Mouse Wheel Pressed for Smooth Zoom
-- Z to zoom to (0, 0, 0)",
+                    "Controls:
+- Mouse to look around
+- WASD to move around
+- EQ to move up and down
+- Shift to increase movement speed",
                     10,
                     d.get_screen_height() - 100,
                     10,
