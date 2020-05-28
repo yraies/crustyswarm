@@ -173,16 +173,9 @@ impl SwarmGrammar {
 
                 let rnd_norm = rnd_vec[agent_index];
 
-                let base_dist = agent.position.y - agent.seed_center.z;
-                let gravity = if base_dist > 40.0 {
-                    -Vector3::<Val>::unit_y() * 0.2
-                } else if base_dist > 20.0 {
-                    -Vector3::<Val>::unit_y() * 0.2 * (40.0 - base_dist) / 20.0
-                } else if base_dist > -5.0 {
-                    Vector3::<Val>::zero()
-                } else {
-                    Vector3::<Val>::unit_y() * 0.2
-                };
+                let base_dist = agent.position.y - agent.seed_center.y;
+                let gravity = -Vector3::<Val>::unit_y()
+                    * (base_dist * base_dist / 2000.0 + base_dist / 200.0);
 
                 // 2.2. Actually Recalculate    ------------------
 
@@ -208,12 +201,21 @@ impl SwarmGrammar {
                     new_velocity
                 };
 
+                let new_position = new_velocity + agent_species.mass * gravity;
+
+                let clipped_new_position =
+                    if agent_species.noclip && new_position.y < agent.seed_center.y {
+                        Vector3::new(new_position.x, agent.seed_center.y, new_position.z)
+                    } else {
+                        new_position
+                    };
+
                 //println!("s{} a{} c{} r{}  - {}", svec(&sep), svec(&ali), svec(&coh), svec(&rnd), svec(&clipped_new_velocity));
 
                 let mut out_agent = agent.clone();
 
                 out_agent.velocity = clipped_new_velocity;
-                out_agent.position += out_agent.velocity + agent_species.weight * gravity;
+                out_agent.position += clipped_new_position;
                 out_agent.energy -= match agent_species.depletion_energy {
                     DepletionEnergy::Constant(v) => v,
                     DepletionEnergy::Distance(v) => v * agent.velocity.magnitude(),
