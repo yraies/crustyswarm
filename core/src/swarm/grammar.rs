@@ -12,7 +12,7 @@ use super::distribution::StartDistribution;
 use swarm::actor::{Agent, Artifact, Buoy};
 use swarm::ruleset::RuleStrategy;
 use swarm::species::*;
-use world::World;
+use swarm::world::{ChunkedWorld, World};
 use RuleSet;
 
 use crate::utils::*;
@@ -92,10 +92,9 @@ impl SwarmGrammar {
             rnd_vec.push(random_one(rnd));
         }
 
-        let world: World = World::new(replaced, 10.0);
+        let world: ChunkedWorld = ChunkedWorld::new(replaced, 10.0);
 
-        let recalculated = world
-            .get_all_agents()
+        let recalculated = World::get_all_agents(&world)
             .enumerate()
             .map(|(agent_index, agent)| {
                 let agent_species = &self.template.species[agent.species_index];
@@ -109,12 +108,12 @@ impl SwarmGrammar {
                 let mut sep_counter = 0.0;
                 let mut view_counter = 0.0;
 
-                for (other_index, other) in world
-                    .get_agents_at_least_within(
-                        agent_species.view_distance,
-                        Vector2::new(agent.position.x, agent.position.z),
-                    )
-                    .enumerate()
+                for (other_index, other) in World::get_agents_at_least_within(
+                    &world,
+                    agent_species.view_distance,
+                    Vector2::new(agent.position.x, agent.position.z),
+                )
+                .enumerate()
                 {
                     //check for self
                     if other_index == agent_index {

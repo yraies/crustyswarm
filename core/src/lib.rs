@@ -26,7 +26,6 @@ use swarm::Val;
 pub mod io;
 pub mod swarm;
 mod utils;
-pub mod world;
 
 pub fn main() {
     let agent_count = if let Some(arg1) = env::args().nth(1) {
