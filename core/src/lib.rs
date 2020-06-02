@@ -154,7 +154,7 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
                 start_agents: StartAgents::Singularity(vec![(2, 0), (2, 1)]),
                 start_buoys: StartBuoys::None,
             },
-            strategy: RuleStrategy::Every(4, 4),
+            strategy: RuleStrategy::new(4),
         },
     };
     (rnd, grammar)

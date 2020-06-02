@@ -46,6 +46,10 @@ pub fn template_to_file(template: &SwarmTemplate, path: impl AsRef<Path>) -> Opt
     fs::write(&path, serde_json::to_string_pretty(&template).unwrap()).err()
 }
 
+pub fn template_to_sout(template: &SwarmTemplate) {
+    println!("{}", serde_json::to_string_pretty(&template).unwrap())
+}
+
 #[allow(dead_code)]
 pub fn print_swarm(grammar: &SwarmGrammar, writer: &mut BufWriter<File>) {
     let ags = grammar.get_agents();

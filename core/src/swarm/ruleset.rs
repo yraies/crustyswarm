@@ -1,7 +1,6 @@
 use cgmath::{Deg, Euler, Quaternion};
 use rand::Rng;
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::actor::{Agent, Artifact, Buoy};
 use super::grammar::SwarmTemplate;
@@ -9,22 +8,33 @@ use super::species::ZeroEnergy;
 use super::SpeciesIndex;
 use super::Val;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub enum RuleStrategy {
-    Every(usize, usize),
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+pub struct RuleStrategy {
+    every: usize,
+    #[serde(default)]
+    curr: Option<usize>,
 }
 
 impl RuleStrategy {
+    pub fn new(every: usize) -> RuleStrategy {
+        RuleStrategy {
+            every,
+            curr: Some(every),
+        }
+    }
     pub fn should_replace(&mut self) -> bool {
-        match self {
-            RuleStrategy::Every(max, ref mut curr) => {
-                if *curr > 1 {
-                    *curr -= 1;
-                    false
-                } else {
-                    *curr = *max;
-                    true
-                }
+        match self.curr {
+            None => {
+                self.curr = Some(self.every);
+                false
+            }
+            Some(x) if x > 1 => {
+                self.curr = Some(x - 1);
+                false
+            }
+            Some(_) => {
+                self.curr = Some(self.every);
+                true
             }
         }
     }

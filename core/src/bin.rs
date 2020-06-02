@@ -18,6 +18,7 @@ fn main() {
         [0.0, 0.0, 0.0],
         vec![(0, 0.0)],
         1.0,
+        true,
         InitialEnergy::Inherit(1.0),
         DepletionEnergy::None,
         ZeroEnergy::Alive,
@@ -44,7 +45,7 @@ fn main() {
             ]),
             start_buoys: StartBuoys::Grid(5, 10.0),
         },
-        strategy: RuleStrategy::Every(1, 1),
+        strategy: RuleStrategy::new(1),
     };
-    io::template_to_file(&temp, "newtest.json");
+    io::template_to_sout(&temp);
 }

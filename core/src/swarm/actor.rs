@@ -7,13 +7,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::fmt;
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
-pub enum Actor {
-    Agent(Agent),
-    Buoy(Buoy),
-    Artifact(Artifact),
-}
-
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Agent {
     pub position: Vector3<Val>,
