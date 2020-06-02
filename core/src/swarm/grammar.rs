@@ -8,24 +8,20 @@ use rayon::iter::IndexedParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::prelude::*;
 
-use super::distribution::StartDistribution;
-use swarm::actor::{Agent, Artifact, Buoy};
-use swarm::ruleset::RuleStrategy;
+use crate::utils::*;
+use swarm::actor::*;
+use swarm::distribution::StartDistribution;
+use swarm::ruleset::*;
 use swarm::species::*;
 use swarm::world::{ChunkedWorld, World};
-use RuleSet;
+use swarm::Val;
 
-use crate::utils::*;
 use serde::Deserialize;
 use serde::Serialize;
 
-use super::Val;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmGrammar {
-    pub agents: Vec<Agent>,
-    pub buoys: Vec<Buoy>,
-    pub artifacts: Vec<Artifact>,
+    pub world: ChunkedWorld,
     pub template: SwarmTemplate,
 }
 
@@ -44,7 +40,7 @@ impl SwarmGrammar {
         // Spawn Artifacts
         // Recalc Buoys
 
-        println!("{} Agents", &self.agents.len());
+        println!("{} Agents", self.world.get_all_agents().count());
 
         // 1. Replace by Rules          -------------------------------------
         let mut start = Instant::now();
@@ -53,24 +49,22 @@ impl SwarmGrammar {
 
         // 2. Recalculate Velocities    -------------------------------------
         start = Instant::now();
-        self.recalc_agent(rnd, replaced);
+        self.recalc_agent(rnd);
         println!("recalc      {:3.1?}", start.elapsed());
 
-        // 3. Spawn Artifacts           -------------------------------------
-
-        // 4. Recalculate Buoys         -------------------------------------
+        // 3. Recalculate Buoys         -------------------------------------
         start = Instant::now();
-        self.move_buoys();
+        self.world.update_terrain();
         println!("buoys rec   {:3.1?}", start.elapsed());
     }
 
-    fn replace_agents(&mut self, rnd: &mut impl Rng) -> Vec<Agent> {
+    fn replace_agents(&mut self, rnd: &mut impl Rng) {
         if self.template.strategy.should_replace() {
             let mut res = self
                 .template
                 .rule_sets
                 .iter()
-                .map(|rules| rules.execute(&self.template, &self.agents, rnd))
+                .map(|rules| rules.execute(&self.template, self.world.get_all_agents(), rnd))
                 .fold(
                     (Vec::<Agent>::new(), Vec::<Buoy>::new()),
                     |mut acc, mut val| {
@@ -79,22 +73,20 @@ impl SwarmGrammar {
                         acc
                     },
                 );
-            self.buoys.append(&mut res.1);
-            res.0
-        } else {
-            self.agents.to_owned()
+            self.world.insert_buoys(res.1);
+            self.world.set_agents(res.0);
         }
     }
 
-    pub fn recalc_agent(&mut self, rnd: &mut impl Rng, replaced: Vec<Agent>) {
+    pub fn recalc_agent(&mut self, rnd: &mut impl Rng) {
         let mut rnd_vec = Vec::new();
-        for _i in 0..replaced.len() {
+        for _i in 0..self.world.get_all_agents().count() {
             rnd_vec.push(random_one(rnd));
         }
 
-        let world: ChunkedWorld = ChunkedWorld::new(replaced, 10.0);
-
-        let recalculated = World::get_all_agents(&world)
+        let recalculated = self
+            .world
+            .get_all_agents()
             .enumerate()
             .map(|(agent_index, agent)| {
                 let agent_species = &self.template.species[agent.species_index];
@@ -108,12 +100,13 @@ impl SwarmGrammar {
                 let mut sep_counter = 0.0;
                 let mut view_counter = 0.0;
 
-                for (other_index, other) in World::get_agents_at_least_within(
-                    &world,
-                    agent_species.view_distance,
-                    Vector2::new(agent.position.x, agent.position.z),
-                )
-                .enumerate()
+                for (other_index, other) in self
+                    .world
+                    .get_agents_at_least_within(
+                        agent_species.view_distance,
+                        Vector2::new(agent.position.x, agent.position.z),
+                    )
+                    .enumerate()
                 {
                     //check for self
                     if other_index == agent_index {
@@ -223,55 +216,10 @@ impl SwarmGrammar {
                 out_agent
             })
             .collect();
-        self.agents = recalculated;
+        self.world.set_agents(recalculated);
     }
 
-    fn move_buoys(&mut self) {
-        let bs: &mut Vec<Buoy> = &mut self.buoys;
-        let ags: &Vec<Agent> = &self.agents;
-
-        bs.iter_mut().for_each(|b| {
-            let mut factors = 0.5;
-            let mut d = -0.1;
-
-            // keep above ground
-            if b.position.y < 0.0 {
-                d = 0.1;
-            }
-
-            for a in ags {
-                let bpos = Vector2::new(b.position.x, b.position.z);
-                let apos = Vector2::new(a.position.x, a.position.z);
-                let dist = bpos.distance(apos);
-                // let factor = 1.0 / (1.0 + dist).powf(1.5);
-                let thresh = 25.5;
-                let factor = (if dist > thresh {
-                    0.0
-                } else {
-                    (thresh - dist) / thresh
-                })
-                .powf(2.0);
-                let ydist = a.position.y - b.position.y;
-
-                if !(factor.is_nan() || ydist.is_nan()) {
-                    factors += factor;
-                    d += ydist * factor;
-                }
-            }
-
-            let vel = if d == 0.0 { 0.0 } else { d / factors };
-
-            b.position.y += vel * 0.5;
-        });
-    }
-
-    pub fn get_agents(&self) -> &[Agent] {
-        &self.agents
-    }
-    pub fn get_buoys(&self) -> &[Buoy] {
-        &self.buoys
-    }
-    pub fn get_artifacts(&self) -> &[Artifact] {
-        &self.artifacts
+    pub fn get_world(&self) -> &ChunkedWorld {
+        &self.world
     }
 }

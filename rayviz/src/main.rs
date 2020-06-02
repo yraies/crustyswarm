@@ -1,3 +1,4 @@
+use crustswarm::swarm::world::World;
 use crustswarm_lib as crustswarm;
 
 use std::fs::File;
@@ -142,8 +143,8 @@ fn main() {
                     d.get_fps(),
                     render_stats.to_string("Render", 6, false),
                     sim_stats.to_string("Sim", 6, false),
-                    sg.get_agents().len(),
-                    sg.get_buoys().len(),
+                    sg.world.get_agent_count(),
+                    sg.world.get_buoy_count(),
                 );
                 draw_text(&mut d, &font, 5, 5, &stat_info);
 

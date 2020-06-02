@@ -21,6 +21,7 @@ use swarm::grammar::SwarmGrammar;
 use swarm::grammar::SwarmTemplate;
 use swarm::ruleset::{RuleSet, RuleStrategy};
 use swarm::species::*;
+use swarm::world::{ChunkedWorld, World};
 use swarm::Val;
 
 pub mod io;
@@ -144,9 +145,7 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
         ],
     };
     let grammar = SwarmGrammar {
-        agents,
-        artifacts: vec![],
-        buoys: vec![],
+        world: ChunkedWorld::new(agents, 10.0),
         template: SwarmTemplate {
             species: vec![species, species2],
             rule_sets: vec![rule, rule2],
@@ -162,7 +161,7 @@ pub fn gen_swarm(agent_count: i32) -> (SmallRng, SwarmGrammar) {
 
 #[allow(dead_code)]
 pub fn agents_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
-    let ags = grammar.get_agents();
+    let ags: Vec<_> = grammar.world.get_all_agents().collect();
     let count = ags.len();
     let mut out_vec = Vec::with_capacity(count * 4);
     for agent in ags {
@@ -177,7 +176,7 @@ pub fn agents_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
 
 #[allow(dead_code)]
 pub fn buoys_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
-    let buoys = grammar.get_buoys();
+    let buoys: Vec<_> = grammar.world.get_all_buoys().collect();
     let count = buoys.len();
     let mut out_vec = Vec::with_capacity(count * 3);
     for buoy in buoys {
@@ -191,7 +190,7 @@ pub fn buoys_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
 
 #[allow(dead_code)]
 pub fn agents_to_arr2(grammar: &SwarmGrammar) -> Vec<([f32; 3], usize)> {
-    let ags = grammar.get_agents();
+    let ags: Vec<_> = grammar.world.get_all_agents().collect();
     let count = ags.len();
     let mut out_vec = Vec::with_capacity(count * 4);
     for agent in ags {
@@ -206,7 +205,7 @@ pub fn agents_to_arr2(grammar: &SwarmGrammar) -> Vec<([f32; 3], usize)> {
 
 #[allow(dead_code)]
 pub fn buoys_to_arr2(grammar: &SwarmGrammar) -> Vec<[f32; 3]> {
-    let buoys = grammar.get_buoys();
+    let buoys: Vec<_> = grammar.world.get_all_buoys().collect();
     let count = buoys.len();
     let mut out_vec = Vec::with_capacity(count * 3);
     for buoy in buoys {
@@ -217,7 +216,7 @@ pub fn buoys_to_arr2(grammar: &SwarmGrammar) -> Vec<[f32; 3]> {
 }
 #[allow(dead_code)]
 pub fn artifacts_to_arr(grammar: &SwarmGrammar) -> Vec<f32> {
-    let arts = grammar.get_artifacts();
+    let arts: Vec<_> = grammar.world.get_all_artifacts().collect();
     let count = arts.len();
     let mut out_vec = Vec::with_capacity(count * 4);
     for art in arts {

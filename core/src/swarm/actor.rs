@@ -129,3 +129,22 @@ impl Artifact {
         Artifact { position, a_type }
     }
 }
+
+pub trait Context {
+    fn get_context_id(&self) -> usize;
+}
+
+pub trait Position {
+    fn get_position(&self) -> Vector3<Val>;
+}
+
+impl Position for Agent {
+    fn get_position(&self) -> Vector3<Val> {
+        self.position
+    }
+}
+impl Position for Artifact {
+    fn get_position(&self) -> Vector3<Val> {
+        self.position
+    }
+}

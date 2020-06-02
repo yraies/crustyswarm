@@ -1,12 +1,15 @@
 extern crate fnv;
 
 use self::fnv::FnvHashMap;
+use serde::{Deserialize, Serialize};
 use swarm::actor::*;
+use swarm::Val;
 
-use cgmath::Vector2;
+use cgmath::{MetricSpace, Vector2, Vector3};
 
 type AgentIterBox<'a> = Box<dyn Iterator<Item = &'a Agent> + 'a>;
 type ArtifactIterBox<'a> = Box<dyn Iterator<Item = &'a Artifact> + 'a>;
+type BuoyIterBox<'a> = Box<dyn Iterator<Item = &'a Buoy> + 'a>;
 
 pub trait World {
     fn get_all_agents(&self) -> AgentIterBox;
@@ -15,6 +18,7 @@ pub trait World {
         range: f32,
         center_pos: Vector2<f32>,
     ) -> AgentIterBox<'a>;
+
     fn get_all_artifacts(&self) -> ArtifactIterBox;
     fn get_artifacts_at_least_within<'a>(
         &'a self,
@@ -22,8 +26,22 @@ pub trait World {
         center_pos: Vector2<f32>,
     ) -> ArtifactIterBox<'a>;
 
+    fn get_all_buoys(&self) -> BuoyIterBox;
+
     fn insert_agents(&mut self, new_agents: Vec<Agent>);
     fn insert_artifacts(&mut self, new_artifacts: Vec<Artifact>);
+    fn insert_buoys(&mut self, new_buoys: Vec<Buoy>);
+
+    fn set_agents(&mut self, new_agents: Vec<Agent>);
+    fn set_artifacts(&mut self, new_artifacts: Vec<Artifact>);
+    fn set_buoys(&mut self, new_buoys: Vec<Buoy>);
+
+    fn get_agent_count(&self) -> usize;
+    fn get_artifact_count(&self) -> usize;
+    fn get_buoy_count(&self) -> usize;
+
+    fn update_terrain(&mut self);
+    fn get_height(&self, position: impl Position) -> Val;
 }
 
 impl World for ChunkedWorld {
@@ -49,6 +67,10 @@ impl World for ChunkedWorld {
         Box::new(self.get_artifacts_at_least_within(range, center_pos))
     }
 
+    fn get_all_buoys(&self) -> BuoyIterBox {
+        Box::new(self.get_all_buoys())
+    }
+
     fn insert_agents(&mut self, new_agents: Vec<Agent>) {
         for agent in new_agents {
             self.insert_agent(agent);
@@ -59,37 +81,95 @@ impl World for ChunkedWorld {
             self.insert_artifact(artifact);
         }
     }
+    fn insert_buoys(&mut self, new_buoys: Vec<Buoy>) {
+        for buoy in new_buoys {
+            self.insert_buoy(buoy);
+        }
+    }
+
+    fn set_agents(&mut self, new_agents: Vec<Agent>) {
+        self.delete_agents();
+        self.insert_agents(new_agents);
+    }
+    fn set_artifacts(&mut self, new_artifacts: Vec<Artifact>) {
+        self.delete_artifacts();
+        self.insert_artifacts(new_artifacts);
+    }
+    fn set_buoys(&mut self, new_buoys: Vec<Buoy>) {
+        self.delete_buoys();
+        self.insert_buoys(new_buoys);
+    }
+
+    fn get_agent_count(&self) -> usize {
+        self.agent_count
+    }
+    fn get_artifact_count(&self) -> usize {
+        self.artifact_count
+    }
+    fn get_buoy_count(&self) -> usize {
+        self.buoy_count
+    }
+
+    fn update_terrain(&mut self) {
+        let buoys: Vec<&mut Buoy> = self
+            .buoy_cells
+            .values_mut()
+            .flat_map(|cell| cell.iter_mut())
+            .collect();
+        for b in buoys {
+            let mut factors = 0.5;
+            let mut d = if b.position.y < 0.0 { 0.1 } else { -0.1 };
+
+            for a in self.agent_cells.values().flat_map(|cell| cell.iter()) {
+                let bpos = Vector2::new(b.position.x, b.position.z);
+                let apos = Vector2::new(a.position.x, a.position.z);
+                let dist = bpos.distance(apos);
+                // let factor = 1.0 / (1.0 + dist).powf(1.5);
+                let thresh = 25.5;
+                let factor = (if dist > thresh {
+                    0.0
+                } else {
+                    (thresh - dist) / thresh
+                })
+                .powf(2.0);
+                let ydist = a.position.y - b.position.y;
+
+                if !(factor.is_nan() || ydist.is_nan()) {
+                    factors += factor;
+                    d += ydist * factor;
+                }
+            }
+
+            let vel = if d == 0.0 { 0.0 } else { d / factors };
+
+            b.position.y += vel * 0.5;
+        }
+    }
+    fn get_height(&self, position: impl Position) -> Val {
+        0.0
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ChunkedWorld {
-    config: WorldConfig,
-    cells: FnvHashMap<(i16, i16), WorldCell>,
+    agent_cells: FnvHashMap<(i16, i16), Vec<Agent>>,
+    artifact_cells: FnvHashMap<(i16, i16), Vec<Artifact>>,
+    buoy_cells: FnvHashMap<(i16, i16), Vec<Buoy>>,
+    agent_count: usize,
+    artifact_count: usize,
+    buoy_count: usize,
     spacing: f32,
-}
-
-#[derive(Debug)]
-struct WorldConfig {
-    test: String,
-}
-
-#[derive(PartialEq, Debug)]
-struct WorldCell {
-    agents: Vec<Agent>,
-    artifacts: Vec<Artifact>,
-    buoys: Vec<Buoy>,
 }
 
 impl ChunkedWorld {
     fn get_all_agents<'a>(&'a self) -> impl Iterator<Item = &'a Agent> + 'a {
-        self.cells
-            .iter()
-            .flat_map(|(_, cell)| cell.get_agents().iter())
+        self.agent_cells.iter().flat_map(|(_, cell)| cell.iter())
     }
     fn get_all_artifacts<'a>(&'a self) -> impl Iterator<Item = &'a Artifact> + 'a {
-        self.cells
-            .iter()
-            .flat_map(|(_, cell)| cell.get_artifacts().iter())
+        self.artifact_cells.iter().flat_map(|(_, cell)| cell.iter())
+    }
+    fn get_all_buoys<'a>(&'a self) -> impl Iterator<Item = &'a Buoy> + 'a {
+        self.buoy_cells.iter().flat_map(|(_, cell)| cell.iter())
     }
 
     fn get_agents_at_least_within(
@@ -97,20 +177,30 @@ impl ChunkedWorld {
         range: f32,
         center_pos: Vector2<f32>,
     ) -> impl Iterator<Item = &Agent> {
-        self.cells
+        self.agent_cells
             .iter()
             .filter(move |(&cell_pos, _)| self.is_cell_included(range, cell_pos, center_pos))
-            .flat_map(|(_, cell)| cell.get_agents().iter())
+            .flat_map(|(_, cell)| cell.iter())
     }
     fn get_artifacts_at_least_within(
         &self,
         range: f32,
         center_pos: Vector2<f32>,
     ) -> impl Iterator<Item = &Artifact> {
-        self.cells
+        self.artifact_cells
             .iter()
             .filter(move |(&cell_pos, _)| self.is_cell_included(range, cell_pos, center_pos))
-            .flat_map(|(_, cell)| cell.get_artifacts().iter())
+            .flat_map(|(_, cell)| cell.iter())
+    }
+    fn get_buoys_at_least_within(
+        &self,
+        range: f32,
+        center_pos: Vector2<f32>,
+    ) -> impl Iterator<Item = &Buoy> {
+        self.buoy_cells
+            .iter()
+            .filter(move |(&cell_pos, _)| self.is_cell_included(range, cell_pos, center_pos))
+            .flat_map(|(_, cell)| cell.iter())
     }
 
     fn is_cell_included(&self, range: f32, cell_pos: (i16, i16), center_pos: Vector2<f32>) -> bool {
@@ -132,10 +222,11 @@ impl ChunkedWorld {
         let y_coord = (agent.position.y / self.spacing).floor() as i16;
 
         let cell = self
-            .cells
+            .agent_cells
             .entry((x_coord, y_coord))
-            .or_insert_with(|| WorldCell::new(4, 4, 4));
-        cell.agents.push(agent);
+            .or_insert_with(|| Vec::new());
+        cell.push(agent);
+        self.agent_count += 1;
     }
 
     fn insert_artifact(&mut self, artifact: Artifact) {
@@ -143,40 +234,50 @@ impl ChunkedWorld {
         let y_coord = (artifact.position.y / self.spacing).floor() as i16;
 
         let cell = self
-            .cells
+            .artifact_cells
             .entry((x_coord, y_coord))
-            .or_insert_with(|| WorldCell::new(4, 4, 4));
-        cell.artifacts.push(artifact);
+            .or_insert_with(|| Vec::new());
+        cell.push(artifact);
+        self.artifact_count += 1;
+    }
+    fn insert_buoy(&mut self, buoy: Buoy) {
+        let x_coord = (buoy.position.x / self.spacing).floor() as i16;
+        let y_coord = (buoy.position.y / self.spacing).floor() as i16;
+
+        let cell = self
+            .buoy_cells
+            .entry((x_coord, y_coord))
+            .or_insert_with(|| Vec::new());
+        cell.push(buoy);
+        self.buoy_count += 1;
+    }
+
+    fn delete_agents(&mut self) {
+        self.agent_cells = FnvHashMap::default();
+        self.agent_count = 0;
+    }
+    fn delete_artifacts(&mut self) {
+        self.artifact_cells = FnvHashMap::default();
+        self.artifact_count = 0;
+    }
+    fn delete_buoys(&mut self) {
+        self.buoy_cells = FnvHashMap::default();
+        self.buoy_count = 0;
     }
 
     pub fn new(agents: Vec<Agent>, spacing: f32) -> ChunkedWorld {
         let mut world = ChunkedWorld {
             spacing,
-            config: WorldConfig {
-                test: String::from("tesa"),
-            },
-            cells: FnvHashMap::default(),
+            agent_cells: FnvHashMap::default(),
+            artifact_cells: FnvHashMap::default(),
+            buoy_cells: FnvHashMap::default(),
+            artifact_count: 0,
+            agent_count: 0,
+            buoy_count: 0,
         };
 
         agents.into_iter().for_each(|ag| world.insert_agent(ag));
 
         world
-    }
-}
-
-impl WorldCell {
-    fn get_agents(&self) -> &Vec<Agent> {
-        &self.agents
-    }
-    fn get_artifacts(&self) -> &Vec<Artifact> {
-        &self.artifacts
-    }
-
-    fn new(agent_capacity: usize, artifacts_capacity: usize, buoy_capacity: usize) -> WorldCell {
-        WorldCell {
-            agents: Vec::with_capacity(agent_capacity),
-            artifacts: Vec::with_capacity(artifacts_capacity),
-            buoys: Vec::with_capacity(buoy_capacity),
-        }
     }
 }

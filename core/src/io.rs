@@ -7,6 +7,7 @@ use std::io::Write;
 use std::path::Path;
 use swarm::grammar::SwarmGrammar;
 use swarm::grammar::SwarmTemplate;
+use swarm::world::World;
 
 pub fn grammar_from_file(path: impl AsRef<Path>) -> SwarmGrammar {
     let mut file = File::open(&path)
@@ -52,7 +53,7 @@ pub fn template_to_sout(template: &SwarmTemplate) {
 
 #[allow(dead_code)]
 pub fn print_swarm(grammar: &SwarmGrammar, writer: &mut BufWriter<File>) {
-    let ags = grammar.get_agents();
+    let ags: Vec<_> = grammar.world.get_all_agents().collect();
 
     writeln!(writer, "ply").unwrap();
     writeln!(writer, "format ascii 1.0").unwrap();

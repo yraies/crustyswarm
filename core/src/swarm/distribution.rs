@@ -8,6 +8,7 @@ use serde::Serialize;
 
 use super::actor::{Agent, Buoy};
 use super::grammar::{SwarmGrammar, SwarmTemplate};
+use super::world::{ChunkedWorld, World};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StartDistribution {
@@ -38,12 +39,9 @@ impl StartDistribution {
     pub fn apply(&self, template: SwarmTemplate, rnd: &mut impl Rng) -> SwarmGrammar {
         let agents: Vec<Agent> = StartDistribution::gen_agents(&self.start_agents, &template, rnd);
         let buoys: Vec<Buoy> = StartDistribution::gen_buoys(&self.start_buoys, &template, rnd);
-        SwarmGrammar {
-            agents,
-            buoys,
-            artifacts: vec![],
-            template,
-        }
+        let mut world = ChunkedWorld::new(agents, 10.0);
+        world.set_buoys(buoys);
+        SwarmGrammar { world, template }
     }
 
     fn gen_agents(dist: &StartAgents, template: &SwarmTemplate, rnd: &mut impl Rng) -> Vec<Agent> {

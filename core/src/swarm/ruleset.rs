@@ -58,10 +58,10 @@ pub enum Replacement {
 }
 
 impl RuleSet {
-    pub fn execute(
+    pub fn execute<'a>(
         &self,
         template: &SwarmTemplate,
-        agents: &[Agent],
+        agents: impl Iterator<Item = &'a Agent>,
         rnd: &mut impl Rng,
     ) -> (Vec<Agent>, Vec<Buoy>) {
         let mut new_agents = Vec::new();
