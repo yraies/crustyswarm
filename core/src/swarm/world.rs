@@ -222,8 +222,8 @@ impl World for ChunkedWorld {
             b.position.y += vel * 0.5;
         }
     }
-    fn get_height(&self, _agent: &Agent) -> f32 {
-        0.0
+    fn get_height(&self, agent: &Agent) -> f32 {
+        agent.position.y - agent.seed_center.y
     }
 }
 
