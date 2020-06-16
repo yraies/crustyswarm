@@ -140,17 +140,18 @@ impl SwarmGrammar {
 
                 let rnd_norm = rnd_vec[agent_index];
 
-                let base_dist = agent.position.y - agent.seed_center.y;
+                let base_dist = self.world.get_height(agent);
                 let gravity = -Vector3::<f32>::unit_y()
                     * (base_dist * base_dist / 2000.0 + base_dist / 200.0);
+
 
                 // 2.2. Actually Recalculate    ------------------
 
                 let acceleration = agent_species.separation * sep_norm * 0.01
-                    + agent_species.alignment * ali_norm * 0.1
+                    + agent_species.alignment * ali_norm * 0.01
                     + agent_species.cohesion * coh_norm * 0.01
                     + agent_species.center * cen_norm * 0.01
-                    + agent_species.randomness * rnd_norm * 0.1;
+                    + agent_species.randomness * rnd_norm * 0.01;
 
                 let con = agent_species.axis_constraint;
 
@@ -168,7 +169,8 @@ impl SwarmGrammar {
                     new_velocity
                 };
 
-                let new_position = new_velocity + agent_species.mass * gravity;
+                let new_position = agent.position + new_velocity + agent_species.mass * 0.01 * gravity;
+
 
                 let clipped_new_position =
                     if agent_species.noclip && new_position.y < agent.seed_center.y {
@@ -182,7 +184,7 @@ impl SwarmGrammar {
                 let mut out_agent = agent.clone();
 
                 out_agent.velocity = clipped_new_velocity;
-                out_agent.position += clipped_new_position;
+                out_agent.position = clipped_new_position;
                 out_agent.energy -= agent_species
                     .depletion_energy
                     .get(agent.velocity.magnitude());

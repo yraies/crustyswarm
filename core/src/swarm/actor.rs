@@ -100,6 +100,7 @@ impl Agent {
         velocity: Vector3<f32>,
         energy: f32,
         species_index: SpeciesIndex,
+        seed_center: Vector3<f32>,
         uid: Uid,
     ) -> Result<Agent, &'static str> {
         if energy > 0.0 {
@@ -108,7 +109,7 @@ impl Agent {
                 velocity,
                 energy,
                 species_index,
-                seed_center: Vector3::new(0.0, 0.0, 0.0),
+                seed_center,
                 last: None,
                 id: uid,
             })
@@ -122,9 +123,10 @@ impl Agent {
         energy: f32,
         species_index: SpeciesIndex,
         rnd: &mut impl Rng,
+        seed_center: Vector3<f32>,
         uid: Uid,
     ) -> Result<Agent, &'static str> {
-        Agent::mk_new(position, utils::random_one(rnd), energy, species_index, uid)
+        Agent::mk_new(position, utils::random_one(rnd), energy, species_index,seed_center, uid)
     }
 }
 

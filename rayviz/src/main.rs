@@ -39,10 +39,10 @@ fn main() {
         .build();
 
     let mut camera = Camera3D::perspective(
-        Vector3::new(10.0, 10.0, 10.0),
-        Vector3::new(0.0, 1.8, 0.0),
+        Vector3::new(-105.0, 1.0, -105.0),
         Vector3::new(0.0, 1.0, 0.0),
-        70.0,
+        Vector3::new(0.0, 1.0, 0.0),
+        60.0,
     );
 
     rl.set_camera_mode(&camera, CameraMode::CAMERA_THIRD_PERSON);
@@ -87,12 +87,17 @@ fn main() {
             let old_position = camera.position;
             rl.update_camera(&mut camera);
             let camera_movement = camera.position - old_position;
-            if rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
-                camera.position += camera_movement * 20.0;
-                camera.target += camera_movement * 20.0;
+            let leftshift =rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT);
+            let leftalt =rl.is_key_down(KeyboardKey::KEY_LEFT_ALT);
+            if leftshift && leftalt {
+                camera.position += camera_movement * 5.0;
+                camera.target += camera_movement * 5.0;
+            } else if leftshift || leftalt {
+                camera.position += camera_movement * 100.0;
+                camera.target += camera_movement * 100.0;
             } else {
-                camera.position += camera_movement * 4.0;
-                camera.target += camera_movement * 4.0;
+                camera.position += camera_movement * 25.0;
+                camera.target += camera_movement * 20.0;
             }
         }
 

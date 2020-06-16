@@ -416,7 +416,7 @@ impl SwarmGenome {
     ) {
         match surr {
             SurroundingIndex::Agent(species_index) => agents.push(
-                Agent::mk_new(pos, Vector3::new(0.0, 0.0, 0.0), 10.0, species_index, uid).unwrap(),
+                Agent::mk_new(pos, Vector3::new(0.0, 0.0, 0.0), 10.0, species_index, pos, uid).unwrap(),
             ),
             SurroundingIndex::Artifact(artifact_index) => artifacts.push(Artifact {
                 pre: None,
