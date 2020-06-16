@@ -2,10 +2,36 @@ extern crate crustswarm_lib as crustswarm;
 use crustswarm::io;
 use crustswarm::swarm::distribution::{StartAgents, StartBuoys, StartDistribution};
 use crustswarm::swarm::grammar::SwarmTemplate;
-use crustswarm::swarm::ruleset::{Replacement, Rule, RuleSet, RuleStrategy};
+use crustswarm::swarm::ruleset::{ContextRule, Replacement, RuleSet, RuleStrategy};
 use crustswarm::swarm::species::*;
+use std::convert::TryFrom;
+use std::fs::File;
+use std::io::Read;
 
 fn main() {
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&crustswarm::swarm::dummies::example_dummy_genome()).unwrap()
+    );
+    println!("##########");
+    println!(
+        "{:?}",
+        &serde_json::to_string_pretty(&crustswarm::swarm::genome::SwarmGenome::try_from(
+            crustswarm::swarm::dummies::example_dummy_genome()
+        ))
+    );
+    println!("##########");
+
+    let mut file = File::open("new_config.json").unwrap();
+    let mut json_str = String::new();
+    file.read_to_string(&mut json_str).unwrap();
+    let genome: crustswarm::swarm::genome::SwarmGenome = serde_json::from_str(&json_str).unwrap();
+    println!("\n# From ###\n\n");
+    println!("{}", &json_str);
+    println!("\n# To #####\n\n");
+    println!("{:#?}", &genome);
+
+    return;
     let test = 7;
     let spec = Species::new(
         1.0,
@@ -27,12 +53,24 @@ fn main() {
     let ruleset0 = RuleSet {
         input: 0,
         rules: vec![
-            Rule(0.1, Replacement::Spread(0, 6, 0)),
-            Rule(0.8, Replacement::Simple(vec![0])),
-            Rule(
-                0.1,
-                Replacement::Multi(vec![Replacement::Simple(vec![0]), Replacement::Buoy]),
-            ),
+            ContextRule {
+                weight: 0.1,
+                replacement: Replacement::Spread(0, 6, 0),
+                ..Default::default()
+            },
+            ContextRule {
+                weight: 0.8,
+                replacement: Replacement::Simple(vec![0]),
+                ..Default::default()
+            },
+            ContextRule {
+                weight: 0.1,
+                replacement: Replacement::Multi(vec![
+                    Replacement::Simple(vec![0]),
+                    Replacement::Buoy,
+                ]),
+                ..Default::default()
+            },
         ],
     };
     let temp: SwarmTemplate = SwarmTemplate {

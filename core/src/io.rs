@@ -5,15 +5,14 @@ use std::io::Error;
 use std::io::Read;
 use std::io::Write;
 use std::path::Path;
-use swarm::grammar::SwarmGrammar;
-use swarm::grammar::SwarmTemplate;
+use swarm::genome::SwarmGenome;
 use swarm::world::World;
 
-pub fn grammar_from_file(path: impl AsRef<Path>) -> SwarmGrammar {
+pub fn genome_from_file(path: impl AsRef<Path>) -> SwarmGenome {
     let mut file = File::open(&path)
         .map_err(|e| {
             format!(
-                "Error while opening path {}! Error: {}",
+                "Error while opening json from {}! \nError: {}",
                 path.as_ref().display(),
                 e
             )
@@ -24,36 +23,13 @@ pub fn grammar_from_file(path: impl AsRef<Path>) -> SwarmGrammar {
     serde_json::from_str(&json_str).unwrap()
 }
 
-pub fn template_from_file(path: impl AsRef<Path>) -> SwarmTemplate {
-    let mut file = File::open(&path)
-        .map_err(|e| {
-            format!(
-                "Error while opening json path {}! \nError: {}",
-                path.as_ref().display(),
-                e
-            )
-        })
-        .unwrap();
-    let mut json_str = String::new();
-    file.read_to_string(&mut json_str).unwrap();
-    serde_json::from_str(&json_str).unwrap()
-}
-
-pub fn grammar_to_file(grammar: &SwarmGrammar, path: impl AsRef<Path>) -> Option<Error> {
-    fs::write(&path, serde_json::to_string_pretty(&grammar).unwrap()).err()
-}
-
-pub fn template_to_file(template: &SwarmTemplate, path: impl AsRef<Path>) -> Option<Error> {
+pub fn genome_to_file(template: &SwarmGenome, path: impl AsRef<Path>) -> Option<Error> {
     fs::write(&path, serde_json::to_string_pretty(&template).unwrap()).err()
 }
 
-pub fn template_to_sout(template: &SwarmTemplate) {
-    println!("{}", serde_json::to_string_pretty(&template).unwrap())
-}
-
 #[allow(dead_code)]
-pub fn print_swarm(grammar: &SwarmGrammar, writer: &mut BufWriter<File>) {
-    let ags: Vec<_> = grammar.world.get_all_agents().collect();
+pub fn print_swarm(world: &impl World, writer: &mut BufWriter<File>) {
+    let ags: Vec<_> = world.get_all_agents().collect();
 
     writeln!(writer, "ply").unwrap();
     writeln!(writer, "format ascii 1.0").unwrap();

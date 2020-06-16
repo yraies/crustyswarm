@@ -1,31 +1,30 @@
 extern crate fnv;
 
+use std::cmp::Ordering;
+
 use self::fnv::FnvHashMap;
+use crate::utils::UidGen;
 use serde::{Deserialize, Serialize};
 use swarm::actor::*;
-use swarm::Val;
+use swarm::genome::SurroundingIndex;
+use swarm::genome::SwarmGenome;
 
 use cgmath::{MetricSpace, Vector2, Vector3};
+use rand::Rng;
 
 type AgentIterBox<'a> = Box<dyn Iterator<Item = &'a Agent> + 'a>;
 type ArtifactIterBox<'a> = Box<dyn Iterator<Item = &'a Artifact> + 'a>;
 type BuoyIterBox<'a> = Box<dyn Iterator<Item = &'a Buoy> + 'a>;
 
 pub trait World {
+    fn replace_by(&mut self, genome: &SwarmGenome, rnd: &mut impl Rng);
+
+    fn get_uid_gen(&mut self) -> &mut UidGen;
+
+    fn get_context_within(&self, range: f32, center_pos: Vector3<f32>) -> Vec<(f32, Actor)>;
+
     fn get_all_agents(&self) -> AgentIterBox;
-    fn get_agents_at_least_within<'a>(
-        &'a self,
-        range: f32,
-        center_pos: Vector2<f32>,
-    ) -> AgentIterBox<'a>;
-
     fn get_all_artifacts(&self) -> ArtifactIterBox;
-    fn get_artifacts_at_least_within<'a>(
-        &'a self,
-        range: f32,
-        center_pos: Vector2<f32>,
-    ) -> ArtifactIterBox<'a>;
-
     fn get_all_buoys(&self) -> BuoyIterBox;
 
     fn insert_agents(&mut self, new_agents: Vec<Agent>);
@@ -41,30 +40,108 @@ pub trait World {
     fn get_buoy_count(&self) -> usize;
 
     fn update_terrain(&mut self);
-    fn get_height(&self, position: impl Position) -> Val;
+    fn get_height(&self, agent: &Agent) -> f32;
 }
 
 impl World for ChunkedWorld {
+    fn replace_by(&mut self, genome: &SwarmGenome, rnd: &mut impl Rng) {
+        if !genome.strategy.should_replace() {
+            return;
+        }
+
+        let mut new_agents: Vec<Agent> = Vec::with_capacity(self.get_agent_count());
+        let mut new_artifacts: Vec<Artifact> = Vec::with_capacity(self.get_artifact_count());
+
+        let mut uid_gen = self.uid_gen.clone();
+
+        self.get_all_agents().for_each(|agent: &Agent| {
+            let rules = genome.get_rules(&agent.species_index);
+
+            let max_range = rules
+                .iter()
+                .max_by(|a, b| a.range.partial_cmp(&b.range).unwrap_or(Ordering::Equal))
+                .map(|rule| rule.range);
+
+            let context: Vec<(f32, SurroundingIndex)> = if let Some(range) = max_range {
+                self.get_context_within(range, agent.position)
+                    .into_iter()
+                    .map(|(d, act)| (d, act.into()))
+                    .collect()
+            } else {
+                vec![]
+            };
+
+            let applicable_rules: Vec<_> = rules
+                .iter()
+                .filter(|rule| rule.is_applicable(&context))
+                .collect();
+
+            let weight_sum: f32 = applicable_rules.iter().map(|rule| rule.weight).sum();
+            let threshold = rnd.gen_range(0.0, weight_sum);
+
+            let mut gauge = 0.0;
+            for rule in applicable_rules {
+                gauge += rule.weight;
+                if gauge < threshold {
+                    continue;
+                }
+
+                let (mut new_ag, mut new_art) = rule.replace_agent(agent, genome, &mut uid_gen);
+
+                new_agents.append(&mut new_ag);
+                new_artifacts.append(&mut new_art);
+
+                break;
+            }
+        });
+
+        self.uid_gen = uid_gen;
+
+        self.delete_agents();
+        self.insert_agents(new_agents);
+        self.insert_artifacts(new_artifacts);
+    }
+
+    fn get_uid_gen(&mut self) -> &mut UidGen {
+        &mut self.uid_gen
+    }
+
+    fn get_context_within(&self, range: f32, center_pos: Vector3<f32>) -> Vec<(f32, Actor)> {
+        let xz = Vector2::new(center_pos.x, center_pos.z);
+
+        let mut agents: Vec<(f32, Actor)> = self
+            .get_agents_at_least_within(range, xz)
+            .map(|agent| {
+                (
+                    MetricSpace::distance(center_pos, agent.position),
+                    agent.clone().into(),
+                )
+            })
+            .filter(|(dist, _actor)| dist < &range)
+            .collect();
+
+        let mut artifacts: Vec<(f32, Actor)> = self
+            .get_artifacts_at_least_within(range, xz)
+            .map(|artifact| {
+                (
+                    MetricSpace::distance(center_pos, artifact.position),
+                    artifact.clone().into(),
+                )
+            })
+            .filter(|(dist, _art)| dist < &range)
+            .collect();
+
+        agents.append(&mut artifacts);
+
+        agents
+    }
+
     fn get_all_agents(&self) -> AgentIterBox {
         Box::new(self.get_all_agents())
-    }
-    fn get_agents_at_least_within<'a>(
-        &'a self,
-        range: f32,
-        center_pos: Vector2<f32>,
-    ) -> AgentIterBox<'a> {
-        Box::new(self.get_agents_at_least_within(range, center_pos))
     }
 
     fn get_all_artifacts(&self) -> ArtifactIterBox {
         Box::new(self.get_all_artifacts())
-    }
-    fn get_artifacts_at_least_within<'a>(
-        &'a self,
-        range: f32,
-        center_pos: Vector2<f32>,
-    ) -> ArtifactIterBox<'a> {
-        Box::new(self.get_artifacts_at_least_within(range, center_pos))
     }
 
     fn get_all_buoys(&self) -> BuoyIterBox {
@@ -145,7 +222,7 @@ impl World for ChunkedWorld {
             b.position.y += vel * 0.5;
         }
     }
-    fn get_height(&self, position: impl Position) -> Val {
+    fn get_height(&self, _agent: &Agent) -> f32 {
         0.0
     }
 }
@@ -159,6 +236,7 @@ pub struct ChunkedWorld {
     artifact_count: usize,
     buoy_count: usize,
     spacing: f32,
+    uid_gen: UidGen,
 }
 
 impl ChunkedWorld {
@@ -172,7 +250,7 @@ impl ChunkedWorld {
         self.buoy_cells.iter().flat_map(|(_, cell)| cell.iter())
     }
 
-    fn get_agents_at_least_within(
+    pub fn get_agents_at_least_within(
         &self,
         range: f32,
         center_pos: Vector2<f32>,
@@ -188,16 +266,6 @@ impl ChunkedWorld {
         center_pos: Vector2<f32>,
     ) -> impl Iterator<Item = &Artifact> {
         self.artifact_cells
-            .iter()
-            .filter(move |(&cell_pos, _)| self.is_cell_included(range, cell_pos, center_pos))
-            .flat_map(|(_, cell)| cell.iter())
-    }
-    fn get_buoys_at_least_within(
-        &self,
-        range: f32,
-        center_pos: Vector2<f32>,
-    ) -> impl Iterator<Item = &Buoy> {
-        self.buoy_cells
             .iter()
             .filter(move |(&cell_pos, _)| self.is_cell_included(range, cell_pos, center_pos))
             .flat_map(|(_, cell)| cell.iter())
@@ -224,7 +292,7 @@ impl ChunkedWorld {
         let cell = self
             .agent_cells
             .entry((x_coord, y_coord))
-            .or_insert_with(|| Vec::new());
+            .or_insert_with(Vec::new);
         cell.push(agent);
         self.agent_count += 1;
     }
@@ -236,7 +304,7 @@ impl ChunkedWorld {
         let cell = self
             .artifact_cells
             .entry((x_coord, y_coord))
-            .or_insert_with(|| Vec::new());
+            .or_insert_with(Vec::new);
         cell.push(artifact);
         self.artifact_count += 1;
     }
@@ -247,7 +315,7 @@ impl ChunkedWorld {
         let cell = self
             .buoy_cells
             .entry((x_coord, y_coord))
-            .or_insert_with(|| Vec::new());
+            .or_insert_with(Vec::new);
         cell.push(buoy);
         self.buoy_count += 1;
     }
@@ -265,7 +333,7 @@ impl ChunkedWorld {
         self.buoy_count = 0;
     }
 
-    pub fn new(agents: Vec<Agent>, spacing: f32) -> ChunkedWorld {
+    pub fn new(agents: Vec<Agent>, spacing: f32, uid_gen: UidGen) -> ChunkedWorld {
         let mut world = ChunkedWorld {
             spacing,
             agent_cells: FnvHashMap::default(),
@@ -274,6 +342,7 @@ impl ChunkedWorld {
             artifact_count: 0,
             agent_count: 0,
             buoy_count: 0,
+            uid_gen,
         };
 
         agents.into_iter().for_each(|ag| world.insert_agent(ag));

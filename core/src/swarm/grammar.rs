@@ -1,20 +1,19 @@
 use std::time::Instant;
 
 use cgmath::prelude::*;
+use cgmath::Vector3;
 use cgmath::{Deg, Rad};
-use cgmath::{Vector2, Vector3};
 use rand::Rng;
+#[allow(unused_imports)]
 use rayon::iter::IndexedParallelIterator;
+#[allow(unused_imports)]
 use rayon::iter::IntoParallelRefIterator;
+#[allow(unused_imports)]
 use rayon::prelude::*;
 
 use crate::utils::*;
-use swarm::actor::*;
-use swarm::distribution::StartDistribution;
-use swarm::ruleset::*;
-use swarm::species::*;
+use swarm::genome::SwarmGenome;
 use swarm::world::{ChunkedWorld, World};
-use swarm::Val;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -22,15 +21,7 @@ use serde::Serialize;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SwarmGrammar {
     pub world: ChunkedWorld,
-    pub template: SwarmTemplate,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SwarmTemplate {
-    pub species: Vec<Species>,
-    pub rule_sets: Vec<RuleSet>,
-    pub start_dist: StartDistribution,
-    pub strategy: RuleStrategy,
+    pub genome: SwarmGenome,
 }
 
 impl SwarmGrammar {
@@ -43,8 +34,9 @@ impl SwarmGrammar {
         println!("{} Agents", self.world.get_all_agents().count());
 
         // 1. Replace by Rules          -------------------------------------
+        self.genome.tick();
         let mut start = Instant::now();
-        let replaced = self.replace_agents(rnd);
+        self.world.replace_by(&self.genome, rnd);
         println!("replacement {:3.1?}", start.elapsed());
 
         // 2. Recalculate Velocities    -------------------------------------
@@ -58,26 +50,6 @@ impl SwarmGrammar {
         println!("buoys rec   {:3.1?}", start.elapsed());
     }
 
-    fn replace_agents(&mut self, rnd: &mut impl Rng) {
-        if self.template.strategy.should_replace() {
-            let mut res = self
-                .template
-                .rule_sets
-                .iter()
-                .map(|rules| rules.execute(&self.template, self.world.get_all_agents(), rnd))
-                .fold(
-                    (Vec::<Agent>::new(), Vec::<Buoy>::new()),
-                    |mut acc, mut val| {
-                        acc.0.append(&mut val.0);
-                        acc.1.append(&mut val.1);
-                        acc
-                    },
-                );
-            self.world.insert_buoys(res.1);
-            self.world.set_agents(res.0);
-        }
-    }
-
     pub fn recalc_agent(&mut self, rnd: &mut impl Rng) {
         let mut rnd_vec = Vec::new();
         for _i in 0..self.world.get_all_agents().count() {
@@ -89,7 +61,7 @@ impl SwarmGrammar {
             .get_all_agents()
             .enumerate()
             .map(|(agent_index, agent)| {
-                let agent_species = &self.template.species[agent.species_index];
+                let agent_species = &self.genome.get_species(agent);
 
                 // 2.1. Prepare Vectors
 
@@ -99,49 +71,51 @@ impl SwarmGrammar {
 
                 let mut sep_counter = 0.0;
                 let mut view_counter = 0.0;
+                let mut artifact_view_counter = 0.0;
 
-                for (other_index, other) in self
+                for (dist, other) in self
                     .world
-                    .get_agents_at_least_within(
-                        agent_species.view_distance,
-                        Vector2::new(agent.position.x, agent.position.z),
-                    )
-                    .enumerate()
+                    .get_context_within(agent_species.view_distance, agent.position)
                 {
-                    //check for self
-                    if other_index == agent_index {
+                    if agent.id == other.get_id() {
                         continue;
                     }
 
                     // Find influence in influence vector
                     let inf_opt = agent_species
-                        .influence
-                        .iter()
-                        .find(|&&i| (i.0) == other_index)
-                        .map(|v| v.1);
+                        .influenced_by
+                        .get(&other.get_surrounding_index());
 
                     // Default influence = 0
                     match inf_opt {
                         None => (),
-                        Some(influence) => {
-                            let dist = agent.position.distance(other.position);
-
+                        Some(&influence) => {
                             if dist < agent_species.view_distance {
                                 if dist < agent_species.sep_distance {
-                                    sep_vec += other.position * influence;
+                                    sep_vec += other.get_position() * influence;
                                     sep_counter += 1.0 * influence.abs();
                                 }
 
                                 let solid_angle =
-                                    agent.velocity.angle(other.position - agent.position);
+                                    agent.velocity.angle(other.get_position() - agent.position);
 
                                 if solid_angle > Rad::from(Deg(90.0)) {
                                     continue;
                                 }
 
-                                ali_vec += other.velocity * influence;
-                                coh_vec += other.position * influence;
-                                view_counter += 1.0 * influence.abs();
+                                use super::actor::Actor;
+
+                                match other {
+                                    Actor::Agent(other_agent) => {
+                                        ali_vec += other_agent.velocity * influence;
+                                        coh_vec += other_agent.position * influence;
+                                        view_counter += 1.0 * influence.abs();
+                                    }
+                                    Actor::Artifact(other_artifact) => {
+                                        coh_vec += other_artifact.position * influence;
+                                        artifact_view_counter += 1.0 * influence.abs();
+                                    }
+                                }
                             }
                         }
                     }
@@ -156,17 +130,18 @@ impl SwarmGrammar {
                 });
                 let (ali_norm, coh_norm) = if view_counter > 0.0 {
                     let an = safe_devide_mean(ali_vec, view_counter);
-                    let cn = safe_devide_mean(coh_vec, view_counter) - agent.position;
+                    let cn = safe_devide_mean(coh_vec, view_counter + artifact_view_counter)
+                        - agent.position;
                     (an, cn)
                 } else {
-                    (Vector3::<Val>::zero(), Vector3::<Val>::zero())
+                    (Vector3::<f32>::zero(), Vector3::<f32>::zero())
                 };
                 let cen_norm = agent.seed_center - agent.position;
 
                 let rnd_norm = rnd_vec[agent_index];
 
                 let base_dist = agent.position.y - agent.seed_center.y;
-                let gravity = -Vector3::<Val>::unit_y()
+                let gravity = -Vector3::<f32>::unit_y()
                     * (base_dist * base_dist / 2000.0 + base_dist / 200.0);
 
                 // 2.2. Actually Recalculate    ------------------
@@ -182,9 +157,9 @@ impl SwarmGrammar {
                 let mut new_velocity = agent.velocity + acceleration;
 
                 new_velocity = Vector3::new(
-                    new_velocity.x * con[0],
-                    new_velocity.y * con[1],
-                    new_velocity.z * con[2],
+                    new_velocity.x * con.x,
+                    new_velocity.y * con.y,
+                    new_velocity.z * con.z,
                 );
 
                 let clipped_new_velocity = if new_velocity.magnitude() > agent_species.max_speed {
@@ -208,11 +183,9 @@ impl SwarmGrammar {
 
                 out_agent.velocity = clipped_new_velocity;
                 out_agent.position += clipped_new_position;
-                out_agent.energy -= match agent_species.depletion_energy {
-                    DepletionEnergy::Constant(v) => v,
-                    DepletionEnergy::Distance(v) => v * agent.velocity.magnitude(),
-                    DepletionEnergy::None => 0.0,
-                };
+                out_agent.energy -= agent_species
+                    .depletion_energy
+                    .get(agent.velocity.magnitude());
                 out_agent
             })
             .collect();
@@ -221,5 +194,27 @@ impl SwarmGrammar {
 
     pub fn get_world(&self) -> &ChunkedWorld {
         &self.world
+    }
+
+    pub fn from(genome: SwarmGenome, mut rnd: &mut impl rand::Rng) -> SwarmGrammar {
+        let mut uid_gen = crate::utils::UidGen::default();
+        let (agents, artifacts) = genome.get_start(&mut rnd, &mut uid_gen);
+        let mut world = ChunkedWorld::new(agents, 20.0, uid_gen);
+        world.insert_artifacts(artifacts);
+
+        let mut buoys = vec![];
+        let size = 10;
+        for x in -size..(size + 1) {
+            for z in -size..(size + 1) {
+                buoys.push(super::actor::Buoy::new(
+                    Vector3::new(10f32 * x as f32, 0.0, 10f32 * z as f32),
+                    0.0,
+                    0.0,
+                ));
+            }
+        }
+        world.insert_buoys(buoys);
+
+        SwarmGrammar { genome, world }
     }
 }

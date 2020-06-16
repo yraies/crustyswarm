@@ -39,25 +39,25 @@ fn main() {
         .build();
 
     let mut camera = Camera3D::perspective(
-        Vector3::new(4.0, 4.0, 4.0),
+        Vector3::new(10.0, 10.0, 10.0),
         Vector3::new(0.0, 1.8, 0.0),
         Vector3::new(0.0, 1.0, 0.0),
-        60.0,
+        70.0,
     );
 
     rl.set_camera_mode(&camera, CameraMode::CAMERA_THIRD_PERSON);
-    rl.set_target_fps(30);
+    rl.set_target_fps(15);
 
     let seed = if false { rand::random() } else { 2u64 };
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
     let mut sg = {
-        let temp = crustswarm::io::template_from_file(configfile);
-        temp.start_dist.clone().apply(temp, &mut rnd)
+        let temp = crustswarm::io::genome_from_file(configfile);
+        crustswarm::swarm::grammar::SwarmGrammar::from(temp, &mut rnd)
     };
 
     let mut render_stats = VizStats::new();
     let mut sim_stats = VizStats::new();
-    let mut calc_next = true;
+    let mut calc_next = false;
     let mut draw_buoy = true;
 
     let font = rl
@@ -122,14 +122,25 @@ fn main() {
                     );
                 }
 
+                let artifacts = crustswarm::artifacts_to_arr2(&sg);
+                for (pos, color_index) in artifacts {
+                    d3d.draw_cube(
+                        Vector3::new(pos[0], pos[1], pos[2]),
+                        1.0,
+                        1.0,
+                        1.0,
+                        get_color(color_index),
+                    );
+                }
+
                 if draw_buoy {
                     let buoys = crustswarm::buoys_to_arr2(&sg);
                     for pos in buoys {
                         d3d.draw_cube(
                             Vector3::new(pos[0], pos[1], pos[2]),
-                            0.75,
-                            0.75,
-                            0.75,
+                            0.6,
+                            0.6,
+                            0.6,
                             get_color(8),
                         );
                     }
@@ -139,11 +150,12 @@ fn main() {
             // Draw UI Stuff
             {
                 let stat_info = format!(
-                    "FPS: {:2}\n{}\n{}\nAgents: {:4}\nBuoys:  {:4}",
+                    "FPS: {:2}\n{}\n{}\nAgents: {:4}\nArts:   {:4}\nBuoys:  {:4}",
                     d.get_fps(),
                     render_stats.to_string("Render", 6, false),
                     sim_stats.to_string("Sim", 6, false),
                     sg.world.get_agent_count(),
+                    sg.world.get_artifact_count(),
                     sg.world.get_buoy_count(),
                 );
                 draw_text(&mut d, &font, 5, 5, &stat_info);
