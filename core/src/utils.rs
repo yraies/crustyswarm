@@ -36,7 +36,7 @@ fn svec(v: &Vector3<f32>) -> String {
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Copy, Clone, PartialOrd, Ord)]
 pub struct Uid(u64);
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Copy, Clone)]

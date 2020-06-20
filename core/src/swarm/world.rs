@@ -1,16 +1,15 @@
 extern crate fnv;
 
+use self::fnv::FnvHashMap;
+use cgmath::{MetricSpace, Vector2, Vector3};
+use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
-use self::fnv::FnvHashMap;
 use crate::utils::UidGen;
-use serde::{Deserialize, Serialize};
 use swarm::actor::*;
 use swarm::genome::SurroundingIndex;
 use swarm::genome::SwarmGenome;
-
-use cgmath::{MetricSpace, Vector2, Vector3};
-use rand::Rng;
 
 type AgentIterBox<'a> = Box<dyn Iterator<Item = &'a Agent> + 'a>;
 type ArtifactIterBox<'a> = Box<dyn Iterator<Item = &'a Artifact> + 'a>;
@@ -193,11 +192,17 @@ impl World for ChunkedWorld {
             .values_mut()
             .flat_map(|cell| cell.iter_mut())
             .collect();
-        for b in buoys {
+        let agents: Vec<&Agent> = self
+            .agent_cells
+            .values()
+            .flat_map(|cell| cell.iter())
+            .collect();
+
+        fn update_buoy<'a>(agents: &[&Agent], b: &mut Buoy) {
             let mut factors = 0.5;
             let mut d = if b.position.y < 0.0 { 0.1 } else { -0.1 };
 
-            for a in self.agent_cells.values().flat_map(|cell| cell.iter()) {
+            for a in agents {
                 let bpos = Vector2::new(b.position.x, b.position.z);
                 let apos = Vector2::new(a.position.x, a.position.z);
                 let dist = bpos.distance(apos);
@@ -221,7 +226,10 @@ impl World for ChunkedWorld {
 
             b.position.y += vel * 0.5;
         }
+
+        buoys.into_par_iter().for_each(|b| update_buoy(&agents, b));
     }
+
     fn get_height(&self, agent: &Agent) -> f32 {
         agent.position.y - agent.seed_center.y
     }
@@ -239,6 +247,7 @@ pub struct ChunkedWorld {
     uid_gen: UidGen,
 }
 
+use rayon::prelude::*;
 impl ChunkedWorld {
     fn get_all_agents<'a>(&'a self) -> impl Iterator<Item = &'a Agent> + 'a {
         self.agent_cells.iter().flat_map(|(_, cell)| cell.iter())

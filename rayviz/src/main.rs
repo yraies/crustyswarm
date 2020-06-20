@@ -46,7 +46,7 @@ fn main() {
     );
 
     rl.set_camera_mode(&camera, CameraMode::CAMERA_THIRD_PERSON);
-    rl.set_target_fps(15);
+    rl.set_target_fps(30);
 
     let seed = if false { rand::random() } else { 2u64 };
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
