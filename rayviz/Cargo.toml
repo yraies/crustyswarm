@@ -1,5 +1,5 @@
 [package]
-name = "crustswarm-rayviz"
+name = "viz"
 version = "0.1.0"
 authors = ["Yasin Raies <yasin.raies@gmail.de>"]
 edition = "2018"

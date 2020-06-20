@@ -11,7 +11,7 @@ type InfluenceFactor = Factor;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DummySwarmGenome {
     pub species_map: HashMap<String, DummySpecies>,
-    pub artifact_map: HashMap<String, super::genome::ArtifactType>,
+    pub artifact_map: HashMap<String, super::ArtifactType>,
     pub start_dist: DummyDistribution,
     pub strategy: DummyApplicationStrategy,
 }
@@ -30,9 +30,9 @@ pub struct DummySpecies {
     pub influence: HashMap<Identifier, InfluenceFactor>,
     pub mass: Factor,
     pub noclip: bool,
-    pub offspring_energy: super::genome::OffspringEnergy,
-    pub depletion_energy: super::genome::DepletionEnergy,
-    pub zero_energy: super::genome::ZeroEnergy,
+    pub offspring_energy: super::OffspringEnergy,
+    pub depletion_energy: super::DepletionEnergy,
+    pub zero_energy: super::ZeroEnergy,
     pub hand_down_seed: bool,
     pub rules: Vec<DummyContextRule>,
     pub color_index: usize,
@@ -112,7 +112,7 @@ pub fn example_dummy_genome() -> DummySwarmGenome {
 
     species_map.insert("seed".to_string(), species);
 
-    artifact_map.insert("a0".to_string(), super::genome::ArtifactType::default());
+    artifact_map.insert("a0".to_string(), super::ArtifactType::default());
 
     DummySwarmGenome {
         strategy: DummyApplicationStrategy {
