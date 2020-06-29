@@ -28,18 +28,17 @@ pub trait World {
 
     fn insert_agents(&mut self, new_agents: Vec<Agent>);
     fn insert_artifacts(&mut self, new_artifacts: Vec<Artifact>);
-    fn insert_buoys(&mut self, new_buoys: Vec<Buoy>);
 
     fn set_agents(&mut self, new_agents: Vec<Agent>);
     fn set_artifacts(&mut self, new_artifacts: Vec<Artifact>);
-    fn set_buoys(&mut self, new_buoys: Vec<Buoy>);
 
     fn get_agent_count(&self) -> usize;
     fn get_artifact_count(&self) -> usize;
     fn get_buoy_count(&self) -> usize;
 
-    fn update_terrain(&mut self);
+    fn update_terrain(&mut self, influences: (&[f32], &[f32]));
     fn get_height(&self, agent: &Agent) -> f32;
+    fn get_height_at(&self, x: f32, z: f32) -> f32;
 }
 
 impl World for ChunkedWorld {
@@ -109,7 +108,7 @@ impl World for ChunkedWorld {
         let xz = Vector2::new(center_pos.x, center_pos.z);
 
         let mut agents: Vec<(f32, Actor)> = self
-            .get_agents_at_least_within(range, xz)
+            .get_all_agents()
             .map(|agent| {
                 (
                     MetricSpace::distance(center_pos, agent.position),
@@ -120,7 +119,7 @@ impl World for ChunkedWorld {
             .collect();
 
         let mut artifacts: Vec<(f32, Actor)> = self
-            .get_artifacts_at_least_within(range, xz)
+            .get_all_artifacts()
             .map(|artifact| {
                 (
                     MetricSpace::distance(center_pos, artifact.position),
@@ -157,11 +156,6 @@ impl World for ChunkedWorld {
             self.insert_artifact(artifact);
         }
     }
-    fn insert_buoys(&mut self, new_buoys: Vec<Buoy>) {
-        for buoy in new_buoys {
-            self.insert_buoy(buoy);
-        }
-    }
 
     fn set_agents(&mut self, new_agents: Vec<Agent>) {
         self.delete_agents();
@@ -171,10 +165,6 @@ impl World for ChunkedWorld {
         self.delete_artifacts();
         self.insert_artifacts(new_artifacts);
     }
-    fn set_buoys(&mut self, new_buoys: Vec<Buoy>) {
-        self.delete_buoys();
-        self.insert_buoys(new_buoys);
-    }
 
     fn get_agent_count(&self) -> usize {
         self.agent_count
@@ -183,14 +173,16 @@ impl World for ChunkedWorld {
         self.artifact_count
     }
     fn get_buoy_count(&self) -> usize {
-        self.buoy_count
+        self.terrain.sample_points.len() * self.terrain.sample_points[0].len()
     }
 
-    fn update_terrain(&mut self) {
+    fn update_terrain(&mut self, influences: (&[f32], &[f32])) {
+        let spacing = self.terrain.spacing;
         let buoys: Vec<&mut Buoy> = self
-            .buoy_cells
-            .values_mut()
-            .flat_map(|cell| cell.iter_mut())
+            .terrain
+            .sample_points
+            .iter_mut()
+            .flat_map(|v| v.iter_mut())
             .collect();
         let agents: Vec<&Agent> = self
             .agent_cells
@@ -198,40 +190,182 @@ impl World for ChunkedWorld {
             .flat_map(|cell| cell.iter())
             .collect();
 
-        fn update_buoy<'a>(agents: &[&Agent], b: &mut Buoy) {
-            let mut factors = 0.5;
-            let mut d = if b.position.y < 0.0 { 0.1 } else { -0.1 };
+        fn update_buoy<'a>(
+            agents: &[&Agent],
+            b: &mut Buoy,
+            spacing: f32,
+            influences: (&[f32], &[f32]),
+        ) {
+            let mut influecers = 0.0;
+            let mut avg_ydist = 0.0;
 
-            for a in agents {
-                let bpos = Vector2::new(b.position.x, b.position.z);
-                let apos = Vector2::new(a.position.x, a.position.z);
-                let dist = bpos.distance(apos);
+            let bpos = Vector2::new(b.position.x, b.position.z);
+            let thresh = spacing * 2.5;
+
+            for other in agents {
+                let otherpos = Vector2::new(other.position.x, other.position.z);
+                let xzdist = bpos.distance(otherpos);
                 // let factor = 1.0 / (1.0 + dist).powf(1.5);
-                let thresh = 25.5;
-                let factor = (if dist > thresh {
+                let influece = (if xzdist > thresh {
                     0.0
                 } else {
-                    (thresh - dist) / thresh
+                    (thresh - xzdist) / thresh
                 })
-                .powf(2.0);
-                let ydist = a.position.y - b.position.y;
+                .powf(2.0)
+                    * influences.0[other.species_index.0];
+                let ydist = other.position.y - b.position.y;
 
-                if !(factor.is_nan() || ydist.is_nan()) {
-                    factors += factor;
-                    d += ydist * factor;
+                if !(influece.is_nan() || ydist.is_nan()) {
+                    influecers += influece;
+                    avg_ydist += ydist * influece;
                 }
             }
 
-            let vel = if d == 0.0 { 0.0 } else { d / factors };
+            let vel = if avg_ydist == 0.0 {
+                0.0
+            } else {
+                avg_ydist / influecers
+            };
 
             b.position.y += vel * 0.5;
         }
 
-        buoys.into_par_iter().for_each(|b| update_buoy(&agents, b));
+        buoys
+            .into_iter()
+            .for_each(|b| update_buoy(&agents, b, spacing, influences));
     }
 
     fn get_height(&self, agent: &Agent) -> f32 {
-        agent.position.y - agent.seed_center.y
+        agent.position.y - self.terrain.get_height(agent.position.x, agent.position.z)
+    }
+
+    fn get_height_at(&self, x: f32, z: f32) -> f32 {
+        self.terrain.get_height(x, z)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Terrain {
+    sample_points: Vec<Vec<Buoy>>,
+    spacing: f32,
+    x_size: usize,
+    z_size: usize,
+}
+
+impl Terrain {
+    fn translate(pos: i64) -> usize {
+        use std::convert::TryInto;
+        match pos {
+            0 => 0,
+            _ if pos.is_negative() => (pos * -2).try_into().unwrap(),
+            _ => (pos * 2 - 1).try_into().unwrap(),
+        }
+    }
+
+    fn translate_back(pos: usize) -> i64 {
+        match pos {
+            0 => 0,
+            _ if (pos % 2 == 0) => -((pos / 2) as i64),
+            _ => ((pos - 1) / 2) as i64,
+        }
+    }
+
+    fn new(size: usize, spacing: f32) -> Self {
+        let mut sample_points = Vec::with_capacity(size);
+        for x in 0..size {
+            sample_points.push(Vec::with_capacity(size));
+            for z in 0..size {
+                sample_points[x].push(Buoy::new(
+                    Vector3::new(
+                        Terrain::translate_back(x) as f32 * spacing,
+                        0.0,
+                        Terrain::translate_back(z) as f32 * spacing,
+                    ),
+                    0.0,
+                    0.0,
+                ));
+            }
+        }
+        Terrain {
+            sample_points,
+            spacing,
+            x_size: size,
+            z_size: size,
+        }
+    }
+
+    fn get_height(&self, xpos: f32, zpos: f32) -> f32 {
+        fn lerp(a: f32, b: f32, fract: f32) -> f32 {
+            let ax = a as f64;
+            let bx = b as f64;
+            let fractx = fract as f64;
+            let result = if fract.is_sign_positive() {
+                ax * (1.0 - fractx) + bx * fractx
+            } else {
+                ax * -fractx + bx * (1.0 + fractx)
+            };
+            result as f32
+        }
+
+        //dbg!(xpos);
+        let x_grid = (xpos / self.spacing);
+        let x_low = ((x_grid.floor()) as i64);
+        let x_high = (x_grid.ceil() as i64);
+
+        let z_grid = zpos / self.spacing;
+        let z_low = (z_grid.floor() as i64);
+        let z_high = (z_grid.ceil() as i64);
+
+        let left_height = lerp(
+            self.get_height_on_grid(x_low, z_low),
+            self.get_height_on_grid(x_high, z_low),
+            x_grid.fract(),
+        );
+        let right_height = lerp(
+            self.get_height_on_grid(x_low, z_high),
+            self.get_height_on_grid(x_high, z_high),
+            x_grid.fract(),
+        );
+
+        let fract = z_grid.fract();
+        let result = lerp(left_height, right_height, fract);
+
+        if result > left_height.max(right_height) || result < left_height.min(right_height) {
+            dbg!(x_grid);
+            dbg!(z_grid);
+            dbg!(left_height);
+            dbg!(right_height);
+            dbg!(fract);
+            dbg!(result);
+            dbg!("--");
+        }
+
+        result
+    }
+
+    fn get_height_on_grid(&self, xpos: i64, zpos: i64) -> f32 {
+        let xindex = Terrain::translate(xpos);
+        let zindex = Terrain::translate(zpos);
+
+        let xindex_clamped = if xindex < self.x_size {
+            xindex
+        } else if xindex % 2 == 0 {
+            self.x_size - 1
+        } else {
+            self.x_size - 2
+        };
+
+        let zindex_clamped = if zindex < self.z_size {
+            zindex
+        } else if zindex % 2 == 0 {
+            self.z_size - 1
+        } else {
+            self.z_size - 2
+        };
+
+        self.sample_points[xindex_clamped][zindex_clamped]
+            .position
+            .y
     }
 }
 
@@ -239,7 +373,7 @@ impl World for ChunkedWorld {
 pub struct ChunkedWorld {
     agent_cells: FnvHashMap<(i16, i16), Vec<Agent>>,
     artifact_cells: FnvHashMap<(i16, i16), Vec<Artifact>>,
-    buoy_cells: FnvHashMap<(i16, i16), Vec<Buoy>>,
+    terrain: Terrain,
     agent_count: usize,
     artifact_count: usize,
     buoy_count: usize,
@@ -256,7 +390,7 @@ impl ChunkedWorld {
         self.artifact_cells.iter().flat_map(|(_, cell)| cell.iter())
     }
     fn get_all_buoys<'a>(&'a self) -> impl Iterator<Item = &'a Buoy> + 'a {
-        self.buoy_cells.iter().flat_map(|(_, cell)| cell.iter())
+        self.terrain.sample_points.iter().flat_map(|v| v.iter())
     }
 
     pub fn get_agents_at_least_within(
@@ -317,18 +451,6 @@ impl ChunkedWorld {
         cell.push(artifact);
         self.artifact_count += 1;
     }
-    fn insert_buoy(&mut self, buoy: Buoy) {
-        let x_coord = (buoy.position.x / self.spacing).floor() as i16;
-        let y_coord = (buoy.position.y / self.spacing).floor() as i16;
-
-        let cell = self
-            .buoy_cells
-            .entry((x_coord, y_coord))
-            .or_insert_with(Vec::new);
-        cell.push(buoy);
-        self.buoy_count += 1;
-    }
-
     fn delete_agents(&mut self) {
         self.agent_cells = FnvHashMap::default();
         self.agent_count = 0;
@@ -337,17 +459,13 @@ impl ChunkedWorld {
         self.artifact_cells = FnvHashMap::default();
         self.artifact_count = 0;
     }
-    fn delete_buoys(&mut self) {
-        self.buoy_cells = FnvHashMap::default();
-        self.buoy_count = 0;
-    }
 
-    pub fn new(agents: Vec<Agent>, spacing: f32, uid_gen: UidGen) -> ChunkedWorld {
+    pub fn new(agents: Vec<Agent>, size: usize, spacing: f32, uid_gen: UidGen) -> ChunkedWorld {
         let mut world = ChunkedWorld {
             spacing,
             agent_cells: FnvHashMap::default(),
             artifact_cells: FnvHashMap::default(),
-            buoy_cells: FnvHashMap::default(),
+            terrain: Terrain::new(size, spacing),
             artifact_count: 0,
             agent_count: 0,
             buoy_count: 0,

@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::fmt;
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub enum Actor {
     Agent(Agent),
     Artifact(Artifact),
@@ -126,7 +126,14 @@ impl Agent {
         seed_center: Vector3<f32>,
         uid: Uid,
     ) -> Result<Agent, &'static str> {
-        Agent::mk_new(position, utils::random_one(rnd), energy, species_index,seed_center, uid)
+        Agent::mk_new(
+            position,
+            utils::random_one(rnd),
+            energy,
+            species_index,
+            seed_center,
+            uid,
+        )
     }
 }
 

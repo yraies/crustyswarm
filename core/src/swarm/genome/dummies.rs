@@ -14,6 +14,13 @@ pub struct DummySwarmGenome {
     pub artifact_map: HashMap<String, super::ArtifactType>,
     pub start_dist: DummyDistribution,
     pub strategy: DummyApplicationStrategy,
+    pub terrain: TerrainConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct TerrainConfig {
+    pub size: usize,
+    pub influenced_by: HashMap<String, InfluenceFactor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -27,7 +34,7 @@ pub struct DummySpecies {
     pub view_distance: Factor,
     pub sep_distance: Factor,
     pub axis_constraint: [Factor; 3],
-    pub influence: HashMap<Identifier, InfluenceFactor>,
+    pub influenced_by: HashMap<Identifier, InfluenceFactor>,
     pub mass: Factor,
     pub noclip: bool,
     pub offspring_energy: super::OffspringEnergy,
@@ -73,6 +80,16 @@ impl Default for DummyReplacement {
         DummyReplacement::None
     }
 }
+impl DummyReplacement {
+    pub fn contains(&self, other: &str) -> bool {
+        match self {
+            Self::None => false,
+            Self::Simple(ids) => ids.iter().any(|id| id.0.eq(other)),
+            Self::Spread(id, _, _) => id.0.eq(other),
+            Self::Multi(reps) => reps.iter().any(|rep| rep.contains(other)),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum DummyDistribution {
@@ -80,6 +97,17 @@ pub enum DummyDistribution {
     Single([f32; 3], Identifier),
     Singularity([f32; 3], Vec<(usize, Identifier)>),
     Grid(usize, f32, Identifier),
+}
+
+impl DummyDistribution {
+    pub fn contains(&self, other: &str) -> bool {
+        match self {
+            Self::Single(_, id) => id.0.eq(other),
+            Self::Singularity(_, ids) => ids.iter().any(|(_, id)| id.0.eq(other)),
+            Self::Grid(_, _, id) => id.0.eq(other),
+            Self::Multi(reps) => reps.iter().any(|rep| rep.contains(other)),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
@@ -98,6 +126,7 @@ impl Identifier {
 pub fn example_dummy_genome() -> DummySwarmGenome {
     let mut species_map = HashMap::new();
     let mut artifact_map = HashMap::new();
+    let mut terrain_map = HashMap::new();
 
     let mut species = DummySpecies::default();
 
@@ -108,11 +137,13 @@ pub fn example_dummy_genome() -> DummySwarmGenome {
         persist: true,
         replacement: DummyReplacement::Simple(vec![Identifier::new("a0")]),
     });
-    species.influence.insert(Identifier::new("seed"), 2.0);
+    species.influenced_by.insert(Identifier::new("seed"), 2.0);
 
     species_map.insert("seed".to_string(), species);
 
     artifact_map.insert("a0".to_string(), super::ArtifactType::default());
+
+    terrain_map.insert("a0".to_string(), 0.0);
 
     DummySwarmGenome {
         strategy: DummyApplicationStrategy {
@@ -122,5 +153,9 @@ pub fn example_dummy_genome() -> DummySwarmGenome {
         start_dist: DummyDistribution::Single([0.0, 0.0, 0.0], Identifier::new("seed")),
         species_map,
         artifact_map,
+        terrain: TerrainConfig {
+            size: 31,
+            influenced_by: terrain_map,
+        },
     }
 }

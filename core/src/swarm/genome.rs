@@ -47,6 +47,8 @@ pub struct SwarmGenome {
     artifact_map: Vec<ArtifactType>,
     start_dist: Distribution,
     pub strategy: ApplicationStrategy,
+    pub terrain_influences: (Vec<f32>, Vec<f32>),
+    pub terrain_size: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -232,7 +234,15 @@ impl SwarmGenome {
     ) {
         match surr {
             SurroundingIndex::Agent(species_index) => agents.push(
-                Agent::mk_new(pos, Vector3::new(0.0, 0.0, 0.0), 10.0, species_index, pos, uid).unwrap(),
+                Agent::mk_new(
+                    pos,
+                    Vector3::new(0.0, 0.0, 0.0),
+                    10.0,
+                    species_index,
+                    pos,
+                    uid,
+                )
+                .unwrap(),
             ),
             SurroundingIndex::Artifact(artifact_index) => artifacts.push(Artifact {
                 pre: None,
@@ -346,7 +356,7 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
         for (name, id) in &species_names {
             let dummy_spec = dummy.species_map.get(name).unwrap();
             let influences = dummy_spec
-                .influence
+                .influenced_by
                 .iter()
                 .map(|(identifier, factor)| {
                     convert_identifier(&species_names, &artifact_names, identifier.0.to_owned())
@@ -422,6 +432,29 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
             artifact_results[*id] = Ok(dummy_art.clone())
         }
 
+        let mut terrain_art_results: Vec<Result<f32, Self::Error>> =
+            vec![Err("No terrain influence initialized".to_string()); artifact_names.len()];
+        let mut terrain_spec_results: Vec<Result<f32, Self::Error>> =
+            vec![Err("No terrain influence initialized".to_string()); species_names.len()];
+
+        for (name, id) in &species_names {
+            let dummy_inf = dummy.terrain.influenced_by.get(name).unwrap_or(&0.0);
+            terrain_spec_results[*id] = Ok(dummy_inf.clone())
+        }
+
+        for (name, id) in &artifact_names {
+            let dummy_inf = dummy.terrain.influenced_by.get(name).unwrap_or(&0.0);
+            terrain_art_results[*id] = Ok(dummy_inf.clone())
+        }
+
+        let terrain_spec = terrain_spec_results
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let terrain_art = terrain_art_results
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()?;
+
         Ok(SwarmGenome {
             species_map: species_results.into_iter().collect::<Result<Vec<_>, _>>()?,
             artifact_map: artifact_results
@@ -429,6 +462,8 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
                 .collect::<Result<Vec<_>, _>>()?,
             strategy: ApplicationStrategy::from(dummy.strategy),
             start_dist: convert_distribution(&species_names, &artifact_names, &dummy.start_dist)?,
+            terrain_size: dummy.terrain.size,
+            terrain_influences: (terrain_spec, terrain_art),
         })
     }
 }

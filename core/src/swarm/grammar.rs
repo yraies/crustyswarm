@@ -42,7 +42,10 @@ impl SwarmGrammar {
 
         // 3. Recalculate Buoys         -------------------------------------
         start = Instant::now();
-        self.world.update_terrain();
+        self.world.update_terrain((
+            &self.genome.terrain_influences.0,
+            &self.genome.terrain_influences.1,
+        ));
         println!("buoys rec   {:3.1?}", start.elapsed());
     }
 
@@ -53,7 +56,7 @@ impl SwarmGrammar {
             .map(|a| (random_one(rnd), a))
             .collect();
         let mut recalculated: Vec<Agent> = agent_random_pairs
-            .par_iter()
+            .iter()
             .map(|a| self.move_agents(*a))
             .collect();
         recalculated.sort_by_key(|agent| agent.id);
@@ -72,6 +75,7 @@ impl SwarmGrammar {
         let mut sep_counter = 0.0;
         let mut view_counter = 0.0;
         let mut artifact_view_counter = 0.0;
+        dbg!("---------");
 
         for (dist, other) in self
             .world
@@ -99,7 +103,7 @@ impl SwarmGrammar {
                         let solid_angle =
                             agent.velocity.angle(other.get_position() - agent.position);
 
-                        if solid_angle > Rad::from(Deg(90.0)) {
+                        if solid_angle > Rad::from(Deg(170.0)) {
                             continue;
                         }
 
@@ -143,14 +147,15 @@ impl SwarmGrammar {
         let base_dist = self.world.get_height(agent);
         let gravity =
             -Vector3::<f32>::unit_y() * (base_dist * base_dist / 2000.0 + base_dist / 200.0);
+        dbg!(gravity);
 
         // 2.2. Actually Recalculate    ------------------
 
-        let acceleration = agent_species.separation * sep_norm * 0.01
-            + agent_species.alignment * ali_norm * 0.01
-            + agent_species.cohesion * coh_norm * 0.01
-            + agent_species.center * cen_norm * 0.01
-            + agent_species.randomness * rnd_norm * 0.01;
+        let acceleration = dbg!(agent_species.separation * sep_norm)
+            + dbg!(agent_species.alignment * ali_norm)
+            + dbg!(agent_species.cohesion * coh_norm)
+            + dbg!(agent_species.center * cen_norm)
+            + dbg!(agent_species.randomness * rnd_norm);
 
         let con = agent_species.axis_constraint;
 
@@ -169,10 +174,12 @@ impl SwarmGrammar {
         };
 
         let new_position =
-            agent.position + new_velocity + agent_species.mass * 0.01 * dbg!(gravity);
+            agent.position + new_velocity + dbg!(agent_species.mass * 0.01 * gravity);
 
-        let clipped_new_position = if agent_species.noclip && new_position.y < agent.seed_center.y {
-            Vector3::new(new_position.x, agent.seed_center.y, new_position.z)
+        let new_floor = self.world.get_height_at(new_position.x, new_position.z);
+
+        let clipped_new_position = if !agent_species.noclip && new_floor > new_position.y {
+            Vector3::new(new_position.x, new_floor, new_position.z)
         } else {
             new_position
         };
@@ -196,21 +203,8 @@ impl SwarmGrammar {
     pub fn from(genome: SwarmGenome, mut rnd: &mut impl rand::Rng) -> SwarmGrammar {
         let mut uid_gen = crate::utils::UidGen::default();
         let (agents, artifacts) = genome.get_start(&mut rnd, &mut uid_gen);
-        let mut world = ChunkedWorld::new(agents, 20.0, uid_gen);
+        let mut world = ChunkedWorld::new(agents, genome.terrain_size, 10.0, uid_gen);
         world.insert_artifacts(artifacts);
-
-        let mut buoys = vec![];
-        let size = 15;
-        for x in -size..(size + 1) {
-            for z in -size..(size + 1) {
-                buoys.push(super::actor::Buoy::new(
-                    Vector3::new(10f32 * x as f32, 0.0, 10f32 * z as f32),
-                    0.0,
-                    0.0,
-                ));
-            }
-        }
-        world.insert_buoys(buoys);
 
         SwarmGrammar { genome, world }
     }

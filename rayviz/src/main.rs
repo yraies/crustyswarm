@@ -46,7 +46,7 @@ fn main() {
     );
 
     rl.set_camera_mode(&camera, CameraMode::CAMERA_THIRD_PERSON);
-    rl.set_target_fps(30);
+    rl.set_target_fps(10);
 
     let seed = if false { rand::random() } else { 2u64 };
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
@@ -58,7 +58,37 @@ fn main() {
     let mut render_stats = VizStats::new();
     let mut sim_stats = VizStats::new();
     let mut calc_next = false;
-    let mut draw_buoy = true;
+
+    enum ConditionalDraw {
+        Buoy,
+        Agents,
+        All,
+    }
+    impl ConditionalDraw {
+        fn next(&self) -> ConditionalDraw {
+            match self {
+                Self::Buoy => Self::Agents,
+                Self::Agents => Self::All,
+                Self::All => Self::Buoy,
+            }
+        }
+        fn draw_buoys(&self) -> bool {
+            match self {
+                Self::Buoy => true,
+                Self::Agents => false,
+                Self::All => true,
+            }
+        }
+        fn draw_agents(&self) -> bool {
+            match self {
+                Self::Buoy => false,
+                Self::Agents => true,
+                Self::All => true,
+            }
+        }
+    }
+
+    let mut conditionals_draws = ConditionalDraw::All;
 
     let font = rl
         .load_font(&thread, fontfile_path.to_str().unwrap())
@@ -81,7 +111,7 @@ fn main() {
             }
 
             if rl.is_key_pressed(KeyboardKey::KEY_B) {
-                draw_buoy = !draw_buoy;
+                conditionals_draws = conditionals_draws.next();
             }
 
             let old_position = camera.position;
@@ -116,15 +146,17 @@ fn main() {
 
                 d3d.draw_grid(10, 10.0);
 
-                let agents = crustswarm::agents_to_arr2(&sg);
-                for (pos, color_index) in agents {
-                    d3d.draw_cube(
-                        Vector3::new(pos[0], pos[1], pos[2]),
-                        1.0,
-                        1.0,
-                        1.0,
-                        get_color(color_index),
-                    );
+                if conditionals_draws.draw_agents() {
+                    let agents = crustswarm::agents_to_arr2(&sg);
+                    for (pos, color_index) in agents {
+                        d3d.draw_cube(
+                            Vector3::new(pos[0], pos[1], pos[2]),
+                            1.0,
+                            1.0,
+                            1.0,
+                            get_color(color_index),
+                        );
+                    }
                 }
 
                 let artifacts = crustswarm::artifacts_to_arr2(&sg);
@@ -138,15 +170,15 @@ fn main() {
                     );
                 }
 
-                if draw_buoy {
+                if conditionals_draws.draw_buoys() {
                     let buoys = crustswarm::buoys_to_arr2(&sg);
                     for pos in buoys {
                         d3d.draw_cube(
                             Vector3::new(pos[0], pos[1], pos[2]),
-                            0.6,
-                            0.6,
-                            0.6,
-                            get_color(8),
+                            1.0,
+                            0.2,
+                            1.0,
+                            get_color(99),
                         );
                     }
                 }
@@ -191,6 +223,9 @@ fn main() {
             4 => Color::YELLOW,
             5 => Color::SKYBLUE,
             6 => Color::MAGENTA,
+            7 => Color::BROWN,
+            8 => Color::DARKGREEN,
+            9 => Color::DARKBLUE,
             _ => Color::WHITE,
         }
     }
