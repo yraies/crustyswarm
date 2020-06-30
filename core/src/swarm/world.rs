@@ -227,7 +227,7 @@ impl World for ChunkedWorld {
                 avg_ydist / influecers
             };
 
-            b.position.y += vel * 0.5;
+            b.position.y += vel;
         }
 
         buoys
@@ -308,13 +308,13 @@ impl Terrain {
         }
 
         //dbg!(xpos);
-        let x_grid = (xpos / self.spacing);
-        let x_low = ((x_grid.floor()) as i64);
-        let x_high = (x_grid.ceil() as i64);
+        let x_grid = xpos / self.spacing;
+        let x_low = x_grid.floor() as i64;
+        let x_high = x_grid.ceil() as i64;
 
         let z_grid = zpos / self.spacing;
-        let z_low = (z_grid.floor() as i64);
-        let z_high = (z_grid.ceil() as i64);
+        let z_low = z_grid.floor() as i64;
+        let z_high = z_grid.ceil() as i64;
 
         let left_height = lerp(
             self.get_height_on_grid(x_low, z_low),

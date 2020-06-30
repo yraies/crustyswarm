@@ -75,7 +75,6 @@ impl SwarmGrammar {
         let mut sep_counter = 0.0;
         let mut view_counter = 0.0;
         let mut artifact_view_counter = 0.0;
-        dbg!("---------");
 
         for (dist, other) in self
             .world
@@ -145,53 +144,47 @@ impl SwarmGrammar {
         let rnd_norm = randomness;
 
         let base_dist = self.world.get_height(agent);
-        let gravity =
-            -Vector3::<f32>::unit_y() * (base_dist * base_dist / 2000.0 + base_dist / 200.0);
-        dbg!(gravity);
+        let gravity = -Vector3::<f32>::unit_y() * (base_dist * base_dist);
 
         // 2.2. Actually Recalculate    ------------------
 
-        let acceleration = dbg!(agent_species.separation * sep_norm)
-            + dbg!(agent_species.alignment * ali_norm)
-            + dbg!(agent_species.cohesion * coh_norm)
-            + dbg!(agent_species.center * cen_norm)
-            + dbg!(agent_species.randomness * rnd_norm);
+        let mut acceleration = (agent_species.separation * sep_norm)
+            + (agent_species.alignment * ali_norm)
+            + (agent_species.cohesion * coh_norm)
+            + (agent_species.center * cen_norm)
+            + (agent_species.randomness * rnd_norm)
+            + (agent_species.floor * gravity)
+            + agent_species.bias;
 
-        let con = agent_species.axis_constraint;
+        acceleration =
+            cgmath::ElementWise::mul_element_wise(acceleration, agent_species.axis_constraint);
+
+        acceleration = crate::utils::clip(acceleration, agent_species.max_acceleration);
 
         let mut new_velocity = agent.velocity + acceleration;
+        new_velocity = crate::utils::clip(new_velocity, agent_species.max_speed);
 
-        new_velocity = Vector3::new(
-            new_velocity.x * con.x,
-            new_velocity.y * con.y,
-            new_velocity.z * con.z,
-        );
+        if agent_species.pacekeeping > 0.0 {
+            new_velocity = agent_species.pacekeeping
+                * new_velocity.normalize_to(agent_species.normal_speed)
+                + (1.0 - agent_species.pacekeeping) * new_velocity;
+        }
 
-        let clipped_new_velocity = if new_velocity.magnitude() > agent_species.max_speed {
-            new_velocity.normalize_to(agent_species.max_speed)
-        } else {
-            new_velocity
-        };
-
-        let new_position =
-            agent.position + new_velocity + dbg!(agent_species.mass * 0.01 * gravity);
+        let new_position = agent.position + new_velocity;
 
         let new_floor = self.world.get_height_at(new_position.x, new_position.z);
-
         let clipped_new_position = if !agent_species.noclip && new_floor > new_position.y {
             Vector3::new(new_position.x, new_floor, new_position.z)
         } else {
             new_position
         };
 
-        //println!("s{} a{} c{} r{}  - {}", svec(&sep), svec(&ali), svec(&coh), svec(&rnd), svec(&clipped_new_velocity));
-
         let mut out_agent = agent.clone();
 
-        out_agent.velocity = clipped_new_velocity;
+        out_agent.velocity = new_velocity;
         out_agent.position = clipped_new_position;
         out_agent.energy -= agent_species
-            .depletion_energy
+            .movement_energy
             .get(agent.velocity.magnitude());
         out_agent
     }

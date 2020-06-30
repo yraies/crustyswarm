@@ -24,22 +24,35 @@ pub struct TerrainConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
-pub struct DummySpecies {
+pub struct Urges {
+    #[serde(default)]
+    pub bias: [Factor; 3],
     pub separation: Factor,
     pub alignment: Factor,
     pub cohesion: Factor,
     pub randomness: Factor,
     pub center: Factor,
+    pub pacekeeping: Factor,
+    pub floor: Factor,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct DummySpecies {
+    pub urges: Urges,
+    pub normal_speed: Factor,
     pub max_speed: Factor,
+    pub max_acceleration: Factor,
     pub view_distance: Factor,
     pub sep_distance: Factor,
+    #[serde(default = "crate::utils::unit")]
     pub axis_constraint: [Factor; 3],
     pub influenced_by: HashMap<Identifier, InfluenceFactor>,
-    pub mass: Factor,
+    #[serde(default = "crate::utils::no")]
     pub noclip: bool,
     pub offspring_energy: super::OffspringEnergy,
-    pub depletion_energy: super::DepletionEnergy,
+    pub movement_energy: super::MovementEnergy,
     pub zero_energy: super::ZeroEnergy,
+    #[serde(default = "crate::utils::no")]
     pub hand_down_seed: bool,
     pub rules: Vec<DummyContextRule>,
     pub color_index: usize,

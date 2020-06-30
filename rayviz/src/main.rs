@@ -46,9 +46,35 @@ fn main() {
     );
 
     rl.set_camera_mode(&camera, CameraMode::CAMERA_THIRD_PERSON);
-    rl.set_target_fps(10);
+    rl.set_target_fps(30);
 
-    let seed = if false { rand::random() } else { 2u64 };
+    let seed = if true {
+        let rnd = rand::random::<u64>();
+        std::fs::OpenOptions::new()
+            .write(true)
+            .read(true)
+            .append(true)
+            .open("./last_seed")
+            .unwrap()
+            .write_all(
+                &format!(
+                    "{:?} {}\n",
+                    SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs(),
+                    &rnd
+                )
+                .into_bytes(),
+            )
+            .unwrap();
+
+        rnd
+    } else {
+        1857039209937991852u64
+    };
+    println!("seed: {}", seed);
+
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
     let mut sg = {
         let temp = crustswarm::io::genome_from_file(configfile);
@@ -58,35 +84,6 @@ fn main() {
     let mut render_stats = VizStats::new();
     let mut sim_stats = VizStats::new();
     let mut calc_next = false;
-
-    enum ConditionalDraw {
-        Buoy,
-        Agents,
-        All,
-    }
-    impl ConditionalDraw {
-        fn next(&self) -> ConditionalDraw {
-            match self {
-                Self::Buoy => Self::Agents,
-                Self::Agents => Self::All,
-                Self::All => Self::Buoy,
-            }
-        }
-        fn draw_buoys(&self) -> bool {
-            match self {
-                Self::Buoy => true,
-                Self::Agents => false,
-                Self::All => true,
-            }
-        }
-        fn draw_agents(&self) -> bool {
-            match self {
-                Self::Buoy => false,
-                Self::Agents => true,
-                Self::All => true,
-            }
-        }
-    }
 
     let mut conditionals_draws = ConditionalDraw::All;
 
@@ -144,7 +141,9 @@ fn main() {
                 d3d.draw_cube(Vector3::new(0.0, 1.0, 0.0), 0.5, 2.5, 0.5, Color::GREEN);
                 d3d.draw_cube(Vector3::new(0.0, 0.0, 1.0), 0.5, 0.5, 2.5, Color::BLUE);
 
-                d3d.draw_grid(10, 10.0);
+                if !conditionals_draws.draw_buoys() {
+                    d3d.draw_grid(10, 10.0);
+                }
 
                 if conditionals_draws.draw_agents() {
                     let agents = crustswarm::agents_to_arr2(&sg);
@@ -206,6 +205,13 @@ fn main() {
 - Shift to increase movement speed",
                     10,
                     d.get_screen_height() - 100,
+                    10,
+                    Color::GRAY,
+                );
+                d.draw_text(
+                    &format!("Draw Mode:\n{}", conditionals_draws.mode()),
+                    d.get_screen_width() - 100,
+                    10,
                     10,
                     Color::GRAY,
                 );
@@ -293,5 +299,46 @@ impl VizStats {
     }
     fn get_time(&self) -> f32 {
         self.queue.iter().next().unwrap_or(&0).to_owned() as f32 / 1000f32
+    }
+}
+
+enum ConditionalDraw {
+    Buoy,
+    Agents,
+    All,
+    None,
+}
+impl ConditionalDraw {
+    fn next(&self) -> ConditionalDraw {
+        match self {
+            Self::All => Self::Agents,
+            Self::Agents => Self::None,
+            Self::None => Self::Buoy,
+            Self::Buoy => Self::All,
+        }
+    }
+    fn draw_buoys(&self) -> bool {
+        match self {
+            Self::Buoy => true,
+            Self::Agents => false,
+            Self::All => true,
+            Self::None => false,
+        }
+    }
+    fn draw_agents(&self) -> bool {
+        match self {
+            Self::Buoy => false,
+            Self::Agents => true,
+            Self::All => true,
+            Self::None => false,
+        }
+    }
+    fn mode(&self) -> &'static str {
+        match self {
+            Self::Buoy => "Terrain+A",
+            Self::Agents => "Agents+A",
+            Self::All => "All",
+            Self::None => "Artifacts",
+        }
     }
 }

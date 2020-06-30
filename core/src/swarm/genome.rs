@@ -64,15 +64,19 @@ pub struct Species {
     pub cohesion: Factor,
     pub randomness: Factor,
     pub center: Factor,
+    pub floor: Factor,
+    pub bias: Vector3<Factor>,
+    pub normal_speed: Factor,
     pub max_speed: Factor,
+    pub max_acceleration: Factor,
+    pub pacekeeping: Factor,
     pub view_distance: Factor,
     pub sep_distance: Factor,
     pub axis_constraint: Vector3<Factor>,
     pub influenced_by: HashMap<SurroundingIndex, InfluenceFactor>,
-    pub mass: Factor,
     pub noclip: bool,
     pub offspring_energy: OffspringEnergy,
-    pub depletion_energy: DepletionEnergy,
+    pub movement_energy: MovementEnergy,
     pub zero_energy: ZeroEnergy,
     pub hand_down_seed: bool,
     rules: Vec<ContextRule>,
@@ -100,25 +104,25 @@ enum Distribution {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum DepletionEnergy {
+pub enum MovementEnergy {
     Constant(f32),
     Distance(f32),
     None,
 }
 
-impl DepletionEnergy {
+impl MovementEnergy {
     pub fn get(&self, velocity: f32) -> f32 {
         match self {
-            DepletionEnergy::Constant(value) => *value,
-            DepletionEnergy::Distance(factor) => velocity * factor,
-            DepletionEnergy::None => 0.0,
+            Self::Constant(value) => *value,
+            Self::Distance(factor) => velocity * factor,
+            Self::None => 0.0,
         }
     }
 }
 
-impl Default for DepletionEnergy {
-    fn default() -> DepletionEnergy {
-        DepletionEnergy::Constant(1.0)
+impl Default for MovementEnergy {
+    fn default() -> MovementEnergy {
+        MovementEnergy::Constant(1.0)
     }
 }
 
@@ -192,22 +196,24 @@ impl SwarmGenome {
                 });
             }
             Distribution::Grid(count, spacing, surrounding) => {
-                let gridsize: f32 = (count - 1) as f32 * spacing;
-                let halfsize: f32 = gridsize / 2.0;
+                if !count.eq(&0usize) {
+                    let gridsize: f32 = (count - 1) as f32 * spacing;
+                    let halfsize: f32 = gridsize / 2.0;
 
-                for x in 0..*count {
-                    for z in 0..*count {
-                        let xpos = -halfsize + (x as f32) * spacing;
-                        let zpos = -halfsize + (z as f32) * spacing;
-                        let pos = Vector3::<f32>::new(xpos, 0f32, zpos);
+                    for x in 0..*count {
+                        for z in 0..*count {
+                            let xpos = -halfsize + (x as f32) * spacing;
+                            let zpos = -halfsize + (z as f32) * spacing;
+                            let pos = Vector3::<f32>::new(xpos, 0f32, zpos);
 
-                        SwarmGenome::push(
-                            *surrounding,
-                            pos,
-                            &mut agents,
-                            &mut artifacts,
-                            uid_gen.next(),
-                        );
+                            SwarmGenome::push(
+                                *surrounding,
+                                pos,
+                                &mut agents,
+                                &mut artifacts,
+                                uid_gen.next(),
+                            );
+                        }
                     }
                 }
             }
@@ -400,22 +406,26 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
                 .collect::<Result<Vec<ContextRule>, Self::Error>>()?;
 
             let species = Species {
-                alignment: dummy_spec.alignment,
+                alignment: dummy_spec.urges.alignment,
                 axis_constraint: Vector3::from(dummy_spec.axis_constraint),
-                center: dummy_spec.center,
-                cohesion: dummy_spec.cohesion,
-                depletion_energy: dummy_spec.depletion_energy.clone(),
+                center: dummy_spec.urges.center,
+                cohesion: dummy_spec.urges.cohesion,
+                bias: Vector3::from(dummy_spec.urges.bias),
+                pacekeeping: dummy_spec.urges.pacekeeping,
+                normal_speed: dummy_spec.normal_speed,
+                movement_energy: dummy_spec.movement_energy.clone(),
                 hand_down_seed: dummy_spec.hand_down_seed,
                 index: SpeciesIndex(*id),
                 influenced_by: influences,
                 offspring_energy: dummy_spec.offspring_energy.clone(),
-                mass: dummy_spec.mass,
+                floor: dummy_spec.urges.floor,
                 max_speed: dummy_spec.max_speed,
+                max_acceleration: dummy_spec.max_acceleration,
                 noclip: dummy_spec.noclip,
-                randomness: dummy_spec.randomness,
+                randomness: dummy_spec.urges.randomness,
                 rules,
                 sep_distance: dummy_spec.sep_distance,
-                separation: dummy_spec.separation,
+                separation: dummy_spec.urges.separation,
                 view_distance: dummy_spec.view_distance,
                 zero_energy: dummy_spec.zero_energy.clone(),
                 color_index: dummy_spec.color_index,

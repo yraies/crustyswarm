@@ -24,6 +24,14 @@ pub fn safe_devide_mean(v: Vector3<f32>, d: f32) -> Vector3<f32> {
     }
 }
 
+pub fn clip(v: Vector3<f32>, max_length: f32) -> Vector3<f32> {
+    if v.magnitude() > max_length {
+        v.normalize_to(max_length)
+    } else {
+        v
+    }
+}
+
 pub fn random_one(rnd: &mut impl Rng) -> Vector3<f32> {
     (rnd.gen::<Vector3<f32>>() * 2.0) + MINUS_ONE
 }
@@ -61,4 +69,25 @@ impl Default for UidGen {
     fn default() -> UidGen {
         UidGen { last: 0 }
     }
+}
+
+pub fn unit() -> [f32; 3] {
+    [1.0; 3]
+}
+
+#[allow(dead_code)]
+pub fn yes() -> bool {
+    true
+}
+#[allow(dead_code)]
+pub fn no() -> bool {
+    false
+}
+#[allow(dead_code)]
+pub fn zero() -> f32 {
+    0.0
+}
+#[allow(dead_code)]
+pub fn one() -> f32 {
+    1.0
 }
