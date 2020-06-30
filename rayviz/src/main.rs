@@ -36,6 +36,7 @@ fn main() {
         .size(1270, 720)
         .title("Hello World this is window speaking")
         .msaa_4x()
+        .resizable()
         .build();
 
     let mut camera = Camera3D::perspective(
@@ -46,15 +47,16 @@ fn main() {
     );
 
     rl.set_camera_mode(&camera, CameraMode::CAMERA_THIRD_PERSON);
+    rl.update_camera(&mut camera);
     rl.set_target_fps(30);
 
-    let seed = if true {
+    let seed = if false {
         let rnd = rand::random::<u64>();
         std::fs::OpenOptions::new()
             .write(true)
             .read(true)
             .append(true)
-            .open("./last_seed")
+            .open("last_seed")
             .unwrap()
             .write_all(
                 &format!(
