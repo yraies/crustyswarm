@@ -53,6 +53,7 @@ fn main() {
     let seed = if false {
         let rnd = rand::random::<u64>();
         std::fs::OpenOptions::new()
+            .create(true)
             .write(true)
             .read(true)
             .append(true)
@@ -73,7 +74,7 @@ fn main() {
 
         rnd
     } else {
-        1857039209937991852u64
+        15770484348065534092u64
     };
     println!("seed: {}", seed);
 

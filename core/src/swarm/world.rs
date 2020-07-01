@@ -39,6 +39,7 @@ pub trait World {
     fn update_terrain(&mut self, influences: (&[f32], &[f32]));
     fn get_height(&self, agent: &Agent) -> f32;
     fn get_height_at(&self, x: f32, z: f32) -> f32;
+    fn get_gradient_and_normal(&self, xpos: f32, zpos: f32) -> (Vector3<f32>, Vector3<f32>);
 }
 
 impl World for ChunkedWorld {
@@ -200,24 +201,20 @@ impl World for ChunkedWorld {
             let mut avg_ydist = 0.0;
 
             let bpos = Vector2::new(b.position.x, b.position.z);
-            let thresh = spacing * 2.5;
 
             for other in agents {
                 let otherpos = Vector2::new(other.position.x, other.position.z);
                 let xzdist = bpos.distance(otherpos);
-                // let factor = 1.0 / (1.0 + dist).powf(1.5);
-                let influece = (if xzdist > thresh {
-                    0.0
+                let influence = if influences.0[other.species_index.0] != 0.0 {
+                    1.0 / (1.0 + xzdist).powf(influences.0[other.species_index.0])
                 } else {
-                    (thresh - xzdist) / thresh
-                })
-                .powf(2.0)
-                    * influences.0[other.species_index.0];
+                    0.0
+                };
                 let ydist = other.position.y - b.position.y;
 
-                if !(influece.is_nan() || ydist.is_nan()) {
-                    influecers += influece;
-                    avg_ydist += ydist * influece;
+                if !(influence.is_nan() || ydist.is_nan()) {
+                    influecers += influence;
+                    avg_ydist += ydist * influence;
                 }
             }
 
@@ -241,6 +238,10 @@ impl World for ChunkedWorld {
 
     fn get_height_at(&self, x: f32, z: f32) -> f32 {
         self.terrain.get_height(x, z)
+    }
+
+    fn get_gradient_and_normal(&self, xpos: f32, zpos: f32) -> (Vector3<f32>, Vector3<f32>) {
+        self.terrain.get_gradient_and_normal(xpos, zpos)
     }
 }
 
@@ -292,6 +293,15 @@ impl Terrain {
             x_size: size,
             z_size: size,
         }
+    }
+
+    fn get_gradient_and_normal(&self, xpos: f32, zpos: f32) -> (Vector3<f32>, Vector3<f32>) {
+        let diff_x = self.get_height(xpos + 0.5, zpos) - self.get_height(xpos - 0.5, zpos);
+        let diff_z = self.get_height(xpos, zpos + 0.5) - self.get_height(xpos, zpos - 0.5);
+
+        let gradient = Vector3::new(diff_x, 0.0, diff_z);
+        let normal = Vector3::new(0.0, diff_z, 1.0).cross(Vector3::new(1.0, diff_x, 0.0));
+        (gradient, normal)
     }
 
     fn get_height(&self, xpos: f32, zpos: f32) -> f32 {

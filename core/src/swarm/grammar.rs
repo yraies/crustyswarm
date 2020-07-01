@@ -144,7 +144,11 @@ impl SwarmGrammar {
         let rnd_norm = randomness;
 
         let base_dist = self.world.get_height(agent);
-        let gravity = -Vector3::<f32>::unit_y() * (base_dist * base_dist);
+        let floor = -Vector3::<f32>::unit_y() * (base_dist * base_dist);
+
+        let (gradient, normal) = self
+            .world
+            .get_gradient_and_normal(agent.position.x, agent.position.z);
 
         // 2.2. Actually Recalculate    ------------------
 
@@ -153,7 +157,9 @@ impl SwarmGrammar {
             + (agent_species.cohesion * coh_norm)
             + (agent_species.center * cen_norm)
             + (agent_species.randomness * rnd_norm)
-            + (agent_species.floor * gravity)
+            + (agent_species.floor * floor)
+            + (agent_species.gradient * gradient)
+            + (agent_species.normal * normal)
             + agent_species.bias;
 
         acceleration =

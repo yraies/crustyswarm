@@ -34,6 +34,8 @@ pub struct Urges {
     pub center: Factor,
     pub pacekeeping: Factor,
     pub floor: Factor,
+    pub gradient: Factor,
+    pub normal: Factor,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
