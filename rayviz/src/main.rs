@@ -88,6 +88,9 @@ fn main() {
     let mut sim_stats = VizStats::new();
     let mut calc_next = false;
 
+    let mut orbit = false;
+    let orbit_speed = 0.01;
+
     let mut conditionals_draws = ConditionalDraw::All;
 
     let font = rl
@@ -114,20 +117,36 @@ fn main() {
                 conditionals_draws = conditionals_draws.next();
             }
 
-            let old_position = camera.position;
-            rl.update_camera(&mut camera);
-            let camera_movement = camera.position - old_position;
-            let leftshift = rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT);
-            let leftalt = rl.is_key_down(KeyboardKey::KEY_LEFT_ALT);
-            if leftshift && leftalt {
-                camera.position += camera_movement * 5.0;
-                camera.target += camera_movement * 5.0;
-            } else if leftshift || leftalt {
-                camera.position += camera_movement * 100.0;
-                camera.target += camera_movement * 100.0;
+            if rl.is_key_pressed(KeyboardKey::KEY_O) {
+                if orbit {
+                    orbit = false;
+                } else {
+                    orbit = true;
+                }
+            }
+
+            if !orbit {
+                let old_position = camera.position;
+                rl.update_camera(&mut camera);
+                let camera_movement = camera.position - old_position;
+                let leftshift = rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT);
+                let leftalt = rl.is_key_down(KeyboardKey::KEY_LEFT_ALT);
+                if leftshift && leftalt {
+                    camera.position += camera_movement * 5.0;
+                    camera.target += camera_movement * 5.0;
+                } else if leftshift || leftalt {
+                    camera.position += camera_movement * 100.0;
+                    camera.target += camera_movement * 100.0;
+                } else {
+                    camera.position += camera_movement * 25.0;
+                    camera.target += camera_movement * 20.0;
+                }
             } else {
-                camera.position += camera_movement * 25.0;
-                camera.target += camera_movement * 20.0;
+                rl.update_camera(&mut camera);
+                camera
+                    .position
+                    .rotate(dbg!(Quaternion::from_euler(0.0, orbit_speed, 0.0)));
+                camera.target = Vector3::zero();
             }
         }
 
@@ -212,8 +231,12 @@ fn main() {
                     Color::GRAY,
                 );
                 d.draw_text(
-                    &format!("Draw Mode:\n{}", conditionals_draws.mode()),
-                    d.get_screen_width() - 100,
+                    &format!(
+                        "Draw Mode: {}\nOrbiting: {}",
+                        conditionals_draws.mode(),
+                        orbit
+                    ),
+                    d.get_screen_width() - 200,
                     10,
                     10,
                     Color::GRAY,
