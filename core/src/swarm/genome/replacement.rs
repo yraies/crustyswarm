@@ -1,16 +1,16 @@
-use super::{Factor, SpeciesIndex, SurroundingIndex, SwarmGenome, ZeroEnergy};
+use super::{Factor, Species, SpeciesIndex, SurroundingIndex, SwarmGenome};
 use crate::utils::UidGen;
 use serde::{Deserialize, Serialize};
 use swarm::actor::{Agent, Artifact};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
-pub(crate) struct ContextRule {
-    pub(super) context: Vec<SurroundingIndex>,
+pub struct ContextRule {
+    pub context: Vec<SurroundingIndex>,
     pub range: f32,
     pub weight: Factor,
     pub persist: bool,
-    pub(super) replacement: Replacement,
+    pub replacement: Replacement,
 }
 
 impl ContextRule {
@@ -37,7 +37,9 @@ impl ContextRule {
         genome: &SwarmGenome,
         uid_gen: &mut UidGen,
     ) -> (Vec<Agent>, Vec<Artifact>) {
-        let (ags, arts) = self.replacement.replace_agent(parent, genome, uid_gen);
+        let (ags, arts) = self
+            .replacement
+            .replace_agent(parent, genome, uid_gen, self.persist);
         (ags, arts)
     }
 }
@@ -47,15 +49,15 @@ impl Default for ContextRule {
         ContextRule {
             context: Vec::new(),
             weight: 1.0,
-            persist: true,
+            persist: false,
             replacement: Replacement::None,
             range: 5.0,
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub(super) enum Replacement {
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub enum Replacement {
     None,
     Simple(Vec<SurroundingIndex>),
     Multi(Vec<Replacement>),
@@ -63,18 +65,39 @@ pub(super) enum Replacement {
 }
 
 impl Replacement {
-    pub fn replace_agent(
+    pub fn count_replacements(&self) -> usize {
+        match self {
+            Replacement::None => 0,
+            Replacement::Simple(new_indices) => new_indices.len(),
+            Replacement::Multi(repls) => repls.iter().map(|o| o.count_replacements()).sum(),
+            Replacement::Spread(_, count, _) => *count,
+        }
+    }
+
+    fn generate_agent(
+        parent: &Agent,
+        new_index: SpeciesIndex,
+        new_energy: f32,
+        hand_down_seed: bool,
+        uid_gen: &mut UidGen,
+    ) -> Agent {
+        let mut clone = parent.clone();
+        clone.species_index = new_index;
+        clone.energy = new_energy;
+        if hand_down_seed {
+            clone.seed_center = parent.position;
+        }
+        clone.id = uid_gen.next();
+        clone
+    }
+
+    pub fn replace_agent_unchecked(
         &self,
         parent: &Agent,
-        genome: &SwarmGenome,
+        parent_species: &Species,
+        energy: f32,
         uid_gen: &mut UidGen,
     ) -> (Vec<Agent>, Vec<Artifact>) {
-        let parent_species = &genome.species_map[parent.species_index.0];
-
-        if parent.energy < 0.0 && parent_species.zero_energy == (ZeroEnergy::Die) {
-            return (vec![], vec![]);
-        }
-
         let mut new_agents: Vec<Agent> = vec![];
         let mut new_artifacts: Vec<Artifact> = vec![];
 
@@ -84,8 +107,13 @@ impl Replacement {
                 for index in new_indices.iter() {
                     match index {
                         SurroundingIndex::Agent(new_species_index) => {
-                            let new_agent =
-                                parent_species.generate_agent(parent, *new_species_index);
+                            let new_agent = Self::generate_agent(
+                                parent,
+                                *new_species_index,
+                                energy,
+                                parent_species.hand_down_seed,
+                                uid_gen,
+                            );
                             new_agents.push(new_agent);
                         }
                         SurroundingIndex::Artifact(new_type_index) => {
@@ -102,7 +130,8 @@ impl Replacement {
             }
             Replacement::Multi(repls) => {
                 for repl in repls.iter() {
-                    let (mut ags, mut arts) = repl.replace_agent(parent, genome, uid_gen);
+                    let (mut ags, mut arts) =
+                        repl.replace_agent_unchecked(parent, parent_species, energy, uid_gen);
                     new_agents.append(&mut ags);
                     new_artifacts.append(&mut arts);
                 }
@@ -123,7 +152,13 @@ impl Replacement {
                 let mut new_vel = base_rot * parent.velocity;
 
                 for _i in 0..*count {
-                    let mut new_agent = parent_species.generate_agent(parent, *new_species_index);
+                    let mut new_agent = Self::generate_agent(
+                        parent,
+                        *new_species_index,
+                        energy,
+                        parent_species.hand_down_seed,
+                        uid_gen,
+                    );
                     new_agent.velocity = new_vel;
                     new_agents.push(new_agent);
 
@@ -131,6 +166,45 @@ impl Replacement {
                 }
             }
         };
+        (new_agents, new_artifacts)
+    }
+
+    pub fn replace_agent(
+        &self,
+        parent: &Agent,
+        genome: &SwarmGenome,
+        uid_gen: &mut UidGen,
+        persist: bool,
+    ) -> (Vec<Agent>, Vec<Artifact>) {
+        let parent_species = &genome.species_map[parent.species_index.0];
+
+        if !parent_species.energy.on_zero.is_alive(parent.energy) {
+            return parent_species
+                .energy
+                .on_zero
+                .replacement(parent, parent_species, uid_gen);
+        }
+
+        let per_offspring_energy = parent_species.energy.for_offspring.get(
+            parent.energy,
+            self.count_replacements(),
+            persist,
+        );
+        let new_parent_energy = parent_species.energy.on_replication.get(
+            parent.energy,
+            self.count_replacements(),
+            per_offspring_energy,
+        );
+
+        let (mut new_agents, new_artifacts) =
+            self.replace_agent_unchecked(parent, parent_species, per_offspring_energy, uid_gen);
+
+        if persist {
+            let mut new_parent = parent.clone();
+            new_parent.energy = new_parent_energy;
+            new_agents.push(new_parent);
+        }
+
         (new_agents, new_artifacts)
     }
 }
@@ -166,26 +240,5 @@ impl From<super::dummies::DummyApplicationStrategy> for ApplicationStrategy {
             every: dummy.every,
             offset: dummy.offset.unwrap_or_else(|| dummy.every),
         }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum OffspringEnergy {
-    Constant(f32),
-    Inherit(f32),
-}
-
-impl OffspringEnergy {
-    pub fn get(&self, current: f32) -> f32 {
-        match self {
-            OffspringEnergy::Constant(value) => *value,
-            OffspringEnergy::Inherit(factor) => current * factor,
-        }
-    }
-}
-
-impl Default for OffspringEnergy {
-    fn default() -> OffspringEnergy {
-        OffspringEnergy::Inherit(1.0)
     }
 }

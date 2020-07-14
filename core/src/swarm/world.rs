@@ -106,7 +106,7 @@ impl World for ChunkedWorld {
     }
 
     fn get_context_within(&self, range: f32, center_pos: Vector3<f32>) -> Vec<(f32, Actor)> {
-        let xz = Vector2::new(center_pos.x, center_pos.z);
+        let _xz = Vector2::new(center_pos.x, center_pos.z);
 
         let mut agents: Vec<(f32, Actor)> = self
             .get_all_agents()
@@ -194,7 +194,7 @@ impl World for ChunkedWorld {
         fn update_buoy<'a>(
             agents: &[&Agent],
             b: &mut Buoy,
-            spacing: f32,
+            _spacing: f32,
             influences: (&[f32], &[f32]),
         ) {
             let mut influecers = 0.0;
@@ -267,7 +267,7 @@ impl Terrain {
         match pos {
             0 => 0,
             _ if (pos % 2 == 0) => -((pos / 2) as i64),
-            _ => ((pos - 1) / 2) as i64,
+            _ => ((pos + 1) / 2) as i64,
         }
     }
 
@@ -485,5 +485,12 @@ impl ChunkedWorld {
         agents.into_iter().for_each(|ag| world.insert_agent(ag));
 
         world
+    }
+}
+
+#[test]
+fn test_terrain_map() {
+    for i in -100..100 {
+        assert_eq!(i, Terrain::translate_back(Terrain::translate(i)));
     }
 }

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Clone, Default)]
 #[serde(transparent)]
 pub struct Identifier(pub String);
 
@@ -51,9 +51,7 @@ pub struct DummySpecies {
     pub influenced_by: HashMap<Identifier, InfluenceFactor>,
     #[serde(default = "crate::utils::no")]
     pub noclip: bool,
-    pub offspring_energy: super::OffspringEnergy,
-    pub movement_energy: super::MovementEnergy,
-    pub zero_energy: super::ZeroEnergy,
+    pub energy: DummyEnergy,
     #[serde(default = "crate::utils::no")]
     pub hand_down_seed: bool,
     pub rules: Vec<DummyContextRule>,
@@ -66,6 +64,7 @@ pub struct DummyContextRule {
     pub context: Vec<Identifier>,
     pub range: f32,
     pub weight: f32,
+    #[serde(default = "crate::utils::no")]
     pub persist: bool,
     pub replacement: DummyReplacement,
 }
@@ -75,14 +74,14 @@ impl Default for DummyContextRule {
         DummyContextRule {
             context: Vec::new(),
             weight: 1.0,
-            persist: true,
+            persist: false,
             replacement: DummyReplacement::None,
             range: 5.0,
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub enum DummyReplacement {
     None,
     Simple(Vec<Identifier>),
@@ -130,6 +129,27 @@ pub struct DummyApplicationStrategy {
     pub every: usize,
     #[serde(default)]
     pub offset: Option<usize>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct DummyEnergy {
+    pub on_movement: super::energy::MovementEnergy,
+    pub on_zero: DummyZeroEnergy,
+    pub on_replication: super::energy::ReplicationEnergy,
+    pub for_offspring: super::energy::OffspringEnergy,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub enum DummyZeroEnergy {
+    Die,
+    Replace(u16, DummyReplacement),
+    Live,
+}
+
+impl Default for DummyZeroEnergy {
+    fn default() -> DummyZeroEnergy {
+        Self::Die
+    }
 }
 
 impl Identifier {

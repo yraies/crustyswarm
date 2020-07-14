@@ -74,7 +74,7 @@ fn main() {
 
         rnd
     } else {
-        15770484348065534092u64
+        3672820499107940204u64
     };
     println!("seed: {}", seed);
 
@@ -83,6 +83,8 @@ fn main() {
         let temp = crustswarm::io::genome_from_file(configfile);
         crustswarm::swarm::grammar::SwarmGrammar::from(temp, &mut rnd)
     };
+
+    //dbg!(&sg);
 
     let mut render_stats = VizStats::new();
     let mut sim_stats = VizStats::new();
@@ -196,9 +198,9 @@ fn main() {
                     for pos in buoys {
                         d3d.draw_cube(
                             Vector3::new(pos[0], pos[1], pos[2]),
-                            1.0,
+                            1.5,
                             0.2,
-                            1.0,
+                            1.5,
                             get_color(99),
                         );
                     }

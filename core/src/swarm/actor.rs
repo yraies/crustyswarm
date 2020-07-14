@@ -32,6 +32,12 @@ impl Actor {
             Actor::Artifact(artifact) => artifact.position,
         }
     }
+    pub fn has_energy(&self) -> bool {
+        match self {
+            Self::Agent(agent) => agent.has_energy(),
+            _ => true,
+        }
+    }
 }
 
 impl Into<SurroundingIndex> for Actor {
@@ -134,6 +140,10 @@ impl Agent {
             seed_center,
             uid,
         )
+    }
+
+    pub fn has_energy(&self) -> bool {
+        self.energy > 0.0
     }
 }
 

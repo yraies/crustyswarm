@@ -1,4 +1,5 @@
 pub mod dummies;
+pub mod energy;
 pub mod replacement;
 
 use cgmath::Vector3;
@@ -20,11 +21,11 @@ pub enum SurroundingIndex {
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Copy, Clone)]
 #[serde(transparent)]
-pub struct SpeciesIndex(pub(crate) usize);
+pub struct SpeciesIndex(pub usize);
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Copy, Clone)]
 #[serde(transparent)]
-pub struct ArtifactIndex(pub(crate) usize);
+pub struct ArtifactIndex(pub usize);
 
 impl Into<SurroundingIndex> for SpeciesIndex {
     fn into(self) -> SurroundingIndex {
@@ -77,24 +78,10 @@ pub struct Species {
     pub axis_constraint: Vector3<Factor>,
     pub influenced_by: HashMap<SurroundingIndex, InfluenceFactor>,
     pub noclip: bool,
-    pub offspring_energy: OffspringEnergy,
-    pub movement_energy: MovementEnergy,
-    pub zero_energy: ZeroEnergy,
+    pub energy: energy::Energy,
     pub hand_down_seed: bool,
     rules: Vec<ContextRule>,
     pub color_index: usize,
-}
-
-impl Species {
-    fn generate_agent(&self, parent: &Agent, new_index: SpeciesIndex) -> Agent {
-        let mut clone = parent.clone();
-        clone.species_index = new_index;
-        clone.energy = self.offspring_energy.get(parent.energy);
-        if self.hand_down_seed {
-            clone.seed_center = parent.position;
-        }
-        clone
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -105,43 +92,8 @@ enum Distribution {
     Grid(usize, f32, SurroundingIndex),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum MovementEnergy {
-    Constant(f32),
-    Distance(f32),
-    None,
-}
-
-impl MovementEnergy {
-    pub fn get(&self, velocity: f32) -> f32 {
-        match self {
-            Self::Constant(value) => *value,
-            Self::Distance(factor) => velocity * factor,
-            Self::None => 0.0,
-        }
-    }
-}
-
-impl Default for MovementEnergy {
-    fn default() -> MovementEnergy {
-        MovementEnergy::Constant(1.0)
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-pub enum ZeroEnergy {
-    Die,
-    Alive,
-}
-
-impl Default for ZeroEnergy {
-    fn default() -> ZeroEnergy {
-        ZeroEnergy::Die
-    }
-}
-
 impl SwarmGenome {
-    pub(crate) fn get_rules(&self, species_index: &SpeciesIndex) -> &Vec<ContextRule> {
+    pub fn get_rules(&self, species_index: &SpeciesIndex) -> &Vec<ContextRule> {
         &self.species_map[species_index.0].rules
     }
 
@@ -358,6 +310,9 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
             .map(|(a, b)| (b.to_owned(), a))
             .collect();
 
+        dbg!(&species_names);
+        dbg!(&artifact_names);
+
         let mut species_results: Vec<Result<Species, Self::Error>> =
             vec![Err("No species initialized".to_string()); species_names.len()];
 
@@ -407,6 +362,24 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
                 })
                 .collect::<Result<Vec<ContextRule>, Self::Error>>()?;
 
+            let zero: Result<energy::ZeroEnergy, String> = match &dummy_spec.energy.on_zero {
+                DummyZeroEnergy::Replace(energy, dummy_replacement) => {
+                    let replacement_result =
+                        convert_replacement(&species_names, &artifact_names, &dummy_replacement);
+                    let replacement = replacement_result?;
+                    Ok(energy::ZeroEnergy::Replace(*energy, replacement))
+                }
+                DummyZeroEnergy::Die => Ok(energy::ZeroEnergy::Die),
+                DummyZeroEnergy::Live => Ok(energy::ZeroEnergy::Live),
+            };
+
+            let energy = energy::Energy {
+                on_movement: dummy_spec.energy.on_movement,
+                for_offspring: dummy_spec.energy.for_offspring,
+                on_replication: dummy_spec.energy.on_replication,
+                on_zero: zero?,
+            };
+
             let species = Species {
                 alignment: dummy_spec.urges.alignment,
                 axis_constraint: Vector3::from(dummy_spec.axis_constraint),
@@ -417,21 +390,19 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
                 normal: dummy_spec.urges.normal,
                 pacekeeping: dummy_spec.urges.pacekeeping,
                 normal_speed: dummy_spec.normal_speed,
-                movement_energy: dummy_spec.movement_energy.clone(),
                 hand_down_seed: dummy_spec.hand_down_seed,
                 index: SpeciesIndex(*id),
                 influenced_by: influences,
-                offspring_energy: dummy_spec.offspring_energy.clone(),
                 floor: dummy_spec.urges.floor,
                 max_speed: dummy_spec.max_speed,
                 max_acceleration: dummy_spec.max_acceleration,
                 noclip: dummy_spec.noclip,
                 randomness: dummy_spec.urges.randomness,
                 rules,
+                energy,
                 sep_distance: dummy_spec.sep_distance,
                 separation: dummy_spec.urges.separation,
                 view_distance: dummy_spec.view_distance,
-                zero_energy: dummy_spec.zero_energy.clone(),
                 color_index: dummy_spec.color_index,
             };
 

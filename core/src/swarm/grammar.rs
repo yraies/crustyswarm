@@ -190,7 +190,8 @@ impl SwarmGrammar {
         out_agent.velocity = new_velocity;
         out_agent.position = clipped_new_position;
         out_agent.energy -= agent_species
-            .movement_energy
+            .energy
+            .on_movement
             .get(agent.velocity.magnitude());
         out_agent
     }
