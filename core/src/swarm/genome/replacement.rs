@@ -88,6 +88,7 @@ impl Replacement {
             clone.seed_center = parent.position;
         }
         clone.id = uid_gen.next();
+        clone.last = None;
         clone
     }
 
@@ -202,10 +203,13 @@ impl Replacement {
         if persist {
             let mut new_parent = parent.clone();
             new_parent.energy = new_parent_energy;
+            if new_artifacts.len() > 0 {
+                new_parent.last = Some(new_artifacts[0].id);
+            }
             new_agents.push(new_parent);
         }
 
-        (new_agents, new_artifacts)
+        dbg!(new_agents, new_artifacts)
     }
 }
 

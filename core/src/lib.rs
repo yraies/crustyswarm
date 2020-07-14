@@ -100,3 +100,33 @@ pub fn artifacts_to_arr2(grammar: &SwarmGrammar) -> Vec<([f32; 3], usize)> {
 
     out_vec
 }
+
+pub fn get_all_agents(
+    grammar: &SwarmGrammar,
+) -> Vec<(swarm::actor::Agent, &swarm::genome::Species)> {
+    grammar
+        .world
+        .get_all_agents()
+        .map(|ag| {
+            let spec = grammar.genome.get_species(ag);
+            (ag.clone(), spec)
+        })
+        .collect()
+}
+
+pub fn get_all_artifacts(
+    grammar: &SwarmGrammar,
+) -> Vec<(swarm::actor::Artifact, &swarm::genome::ArtifactType)> {
+    grammar
+        .world
+        .get_all_artifacts()
+        .map(|art| {
+            let spec = grammar.genome.get_artifact_type(art);
+            (art.clone(), spec)
+        })
+        .collect()
+}
+
+pub fn get_all_buoys(grammar: &SwarmGrammar) -> Vec<swarm::actor::Buoy> {
+    grammar.world.get_all_buoys().cloned().collect()
+}

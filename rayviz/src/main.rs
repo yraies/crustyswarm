@@ -19,8 +19,6 @@ use raylib::prelude::*;
 use clap::{App, Arg};
 
 fn main() {
-    let mut args = std::env::args();
-
     let matches = App::new("Crustswarm Visualizer")
         .version("1.0")
         .author("Yasin Raies <yasin.raies@gmail.com")
@@ -225,29 +223,55 @@ fn main() {
                 }
 
                 if conditionals_draws.agents {
-                    let agents = crustswarm::agents_to_arr2(&sg);
-                    for (pos, color_index) in agents {
-                        d3d.draw_cube(
-                            Vector3::new(pos[0], pos[1], pos[2]),
-                            1.0,
-                            1.0,
-                            1.0,
-                            get_color(color_index),
-                        );
-                    }
+                    crustswarm::get_all_agents(&sg)
+                        .iter()
+                        .for_each(|(ag, spec)| {
+                            d3d.draw_cube(
+                                Vector3::new(ag.position.x, ag.position.y, ag.position.z),
+                                1.0,
+                                1.0,
+                                1.0,
+                                get_color(spec.color_index),
+                            );
+                        });
                 }
 
                 if conditionals_draws.artifacts {
-                    let artifacts = crustswarm::artifacts_to_arr2(&sg);
-                    for (pos, color_index) in artifacts {
+                    let artifacts = crustswarm::get_all_artifacts(&sg);
+                    artifacts.iter().for_each(|(art, spec)| {
                         d3d.draw_cube(
-                            Vector3::new(pos[0], pos[1], pos[2]),
-                            0.66,
-                            0.66,
-                            0.66,
-                            get_color(color_index),
+                            Vector3::new(art.position.x, art.position.y, art.position.z),
+                            1.0,
+                            1.0,
+                            1.0,
+                            get_color(spec.color_index),
                         );
-                    }
+
+                        if let Some(preid) = art.pre {
+                            let (pre, _) = artifacts
+                                .iter()
+                                .find(|other| other.0.id.eq(&preid))
+                                .unwrap();
+
+                            for lerp in &[0.33, 0.66] {
+                                let mut lerpedpos = pre.position;
+                                lerpedpos += (art.position - lerpedpos) * *lerp;
+                                d3d.draw_cube(
+                                    Vector3::new(lerpedpos.x, lerpedpos.y, lerpedpos.z),
+                                    0.2,
+                                    0.2,
+                                    0.2,
+                                    get_color(spec.color_index),
+                                );
+                            }
+
+                            //                            d3d.draw_line_3d(
+                            //                                Vector3::new(pre.position.x, pre.position.y, pre.position.z),
+                            //                                Vector3::new(art.position.x, art.position.y, art.position.z),
+                            //                                get_color(spec.color_index),
+                            //                          );
+                        }
+                    });
                 }
 
                 if conditionals_draws.buoys {

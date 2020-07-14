@@ -88,7 +88,16 @@ impl ZeroEnergy {
     ) -> (Vec<Agent>, Vec<Artifact>) {
         match self {
             Self::Replace(energy, replacement) => {
-                replacement.replace_agent_unchecked(parent, parent_species, *energy as f32, uid_gen)
+                let mut reps = replacement.replace_agent_unchecked(
+                    parent,
+                    parent_species,
+                    *energy as f32,
+                    uid_gen,
+                );
+                for ag in &mut reps.0 {
+                    ag.last = None;
+                }
+                reps
             }
             _ => (vec![], vec![]),
         }

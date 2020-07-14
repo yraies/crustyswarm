@@ -75,8 +75,8 @@ impl fmt::Debug for Agent {
 
         write!(
             f,
-            "Agent P{} V{} E{} S{:?}",
-            pos, vel, self.energy, self.species_index
+            "Agent P{} V{} E{} Last{:?}  {:?}",
+            pos, vel, self.energy, self.last, self.species_index
         )
     }
 }
@@ -191,7 +191,11 @@ impl fmt::Debug for Artifact {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let v = &self.position;
         let pos = format!("({:.p$};{:.p$};{:.p$})", v.x, v.y, v.z, p = 2);
-        write!(f, "Artifact P{} T{:?}", pos, &self.artifact_index)
+        write!(
+            f,
+            "Artifact P{} T{:?} Id{:?} Pre{:?}",
+            pos, &self.artifact_index, self.id, self.pre
+        )
     }
 }
 
