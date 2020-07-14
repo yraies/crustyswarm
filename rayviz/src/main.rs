@@ -94,6 +94,7 @@ fn main() {
     let orbit_speed = 0.01;
 
     let mut conditionals_draws = ConditionalDraw::All;
+    let mut draw_grid = false;
 
     let font = rl
         .load_font(&thread, fontfile_path.to_str().unwrap())
@@ -117,6 +118,10 @@ fn main() {
 
             if rl.is_key_pressed(KeyboardKey::KEY_B) {
                 conditionals_draws = conditionals_draws.next();
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_G) {
+                draw_grid = !draw_grid;
             }
 
             if rl.is_key_pressed(KeyboardKey::KEY_O) {
@@ -165,7 +170,7 @@ fn main() {
                 d3d.draw_cube(Vector3::new(0.0, 1.0, 0.0), 0.5, 2.5, 0.5, Color::GREEN);
                 d3d.draw_cube(Vector3::new(0.0, 0.0, 1.0), 0.5, 0.5, 2.5, Color::BLUE);
 
-                if !conditionals_draws.draw_buoys() {
+                if draw_grid {
                     d3d.draw_grid(10, 10.0);
                 }
 
@@ -186,9 +191,9 @@ fn main() {
                 for (pos, color_index) in artifacts {
                     d3d.draw_cube(
                         Vector3::new(pos[0], pos[1], pos[2]),
-                        1.0,
-                        1.0,
-                        1.0,
+                        0.66,
+                        0.66,
+                        0.66,
                         get_color(color_index),
                     );
                 }
@@ -234,8 +239,9 @@ fn main() {
                 );
                 d.draw_text(
                     &format!(
-                        "Draw Mode: {}\nOrbiting: {}",
+                        "Draw Mode: {}\nGrid: {}\nOrbiting: {}",
                         conditionals_draws.mode(),
+                        draw_grid,
                         orbit
                     ),
                     d.get_screen_width() - 200,

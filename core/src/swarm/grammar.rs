@@ -150,6 +150,10 @@ impl SwarmGrammar {
             .world
             .get_gradient_and_normal(agent.position.x, agent.position.z);
 
+        let slope = self
+            .world
+            .get_slope(agent.position.x, agent.position.z, gradient);
+
         // 2.2. Actually Recalculate    ------------------
 
         let mut acceleration = (agent_species.separation * sep_norm)
@@ -159,6 +163,7 @@ impl SwarmGrammar {
             + (agent_species.randomness * rnd_norm)
             + (agent_species.floor * floor)
             + (agent_species.gradient * gradient)
+            + (agent_species.slope * slope)
             + (agent_species.normal * normal)
             + agent_species.bias;
 

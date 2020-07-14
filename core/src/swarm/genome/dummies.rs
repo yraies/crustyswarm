@@ -36,6 +36,7 @@ pub struct Urges {
     pub floor: Factor,
     pub gradient: Factor,
     pub normal: Factor,
+    pub slope: Factor,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

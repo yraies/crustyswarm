@@ -40,6 +40,7 @@ pub trait World {
     fn get_height(&self, agent: &Agent) -> f32;
     fn get_height_at(&self, x: f32, z: f32) -> f32;
     fn get_gradient_and_normal(&self, xpos: f32, zpos: f32) -> (Vector3<f32>, Vector3<f32>);
+    fn get_slope(&self, xpos: f32, zpos: f32, gradient: Vector3<f32>) -> Vector3<f32>;
 }
 
 impl World for ChunkedWorld {
@@ -243,6 +244,9 @@ impl World for ChunkedWorld {
     fn get_gradient_and_normal(&self, xpos: f32, zpos: f32) -> (Vector3<f32>, Vector3<f32>) {
         self.terrain.get_gradient_and_normal(xpos, zpos)
     }
+    fn get_slope(&self, xpos: f32, zpos: f32, gradient: Vector3<f32>) -> Vector3<f32> {
+        self.terrain.get_slope(xpos, zpos, gradient)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -295,9 +299,32 @@ impl Terrain {
         }
     }
 
+    fn get_slope(&self, xpos: f32, zpos: f32, gradient: Vector3<f32>) -> Vector3<f32> {
+        use cgmath::prelude::*;
+
+        if gradient.eq(&Vector3::zero()) {
+            return gradient;
+        }
+
+        let norm_grad = dbg!(gradient).normalize() * self.spacing * 0.5;
+
+        let h1 = self.get_height(xpos + norm_grad.x, zpos + norm_grad.z);
+        let h2 = self.get_height(xpos - norm_grad.x, zpos - norm_grad.z);
+
+        let diff = dbg!(h2 - h1);
+
+        if diff >= 0.0 {
+            Vector3::new(gradient.x, -diff, gradient.z)
+        } else {
+            -Vector3::new(gradient.x, -diff, gradient.z)
+        }
+    }
+
     fn get_gradient_and_normal(&self, xpos: f32, zpos: f32) -> (Vector3<f32>, Vector3<f32>) {
-        let diff_x = self.get_height(xpos + 0.5, zpos) - self.get_height(xpos - 0.5, zpos);
-        let diff_z = self.get_height(xpos, zpos + 0.5) - self.get_height(xpos, zpos - 0.5);
+        let offset = self.spacing * 0.5;
+
+        let diff_x = self.get_height(xpos + offset, zpos) - self.get_height(xpos - offset, zpos);
+        let diff_z = self.get_height(xpos, zpos + offset) - self.get_height(xpos, zpos - offset);
 
         let gradient = Vector3::new(diff_x, 0.0, diff_z);
         let normal = Vector3::new(0.0, diff_z, 1.0).cross(Vector3::new(1.0, diff_x, 0.0));
