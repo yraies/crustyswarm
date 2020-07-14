@@ -179,21 +179,10 @@ impl World for ChunkedWorld {
     }
 
     fn update_terrain(&mut self, influences: (&[f32], &[f32])) {
-        let spacing = self.terrain.spacing;
-        let buoys: Vec<&mut Buoy> = self
-            .terrain
-            .sample_points
-            .iter_mut()
-            .flat_map(|v| v.iter_mut())
-            .collect();
-        let agents: Vec<&Agent> = self
-            .agent_cells
-            .values()
-            .flat_map(|cell| cell.iter())
-            .collect();
+        use super::actor::*;
 
         fn update_buoy<'a>(
-            agents: &[&Agent],
+            actors: &[Actor],
             b: &mut Buoy,
             _spacing: f32,
             influences: (&[f32], &[f32]),
@@ -203,15 +192,20 @@ impl World for ChunkedWorld {
 
             let bpos = Vector2::new(b.position.x, b.position.z);
 
-            for other in agents {
-                let otherpos = Vector2::new(other.position.x, other.position.z);
-                let xzdist = bpos.distance(otherpos);
-                let influence = if influences.0[other.species_index.0] != 0.0 {
-                    1.0 / (1.0 + xzdist).powf(influences.0[other.species_index.0])
-                } else {
-                    0.0
+            for other in actors {
+                let (otherpos, influence_factor) = match other {
+                    Actor::Agent(ag) => (ag.position, influences.0[ag.species_index.0]),
+                    Actor::Artifact(art) => (art.position, influences.1[art.artifact_index.0]),
                 };
-                let ydist = other.position.y - b.position.y;
+
+                if influence_factor == 0.0 {
+                    continue;
+                }
+
+                let otherpos2d = Vector2::new(otherpos.x, otherpos.z);
+                let xzdist = bpos.distance(otherpos2d);
+                let influence = 1.0 / (1.0 + xzdist).powf(influence_factor);
+                let ydist = otherpos.y - b.position.y;
 
                 if !(influence.is_nan() || ydist.is_nan()) {
                     influecers += influence;
@@ -228,9 +222,31 @@ impl World for ChunkedWorld {
             b.position.y += vel;
         }
 
+        let spacing = self.terrain.spacing;
+        let buoys: Vec<&mut Buoy> = self
+            .terrain
+            .sample_points
+            .iter_mut()
+            .flat_map(|v| v.iter_mut())
+            .collect();
+        let agents = self
+            .agent_cells
+            .values()
+            .flat_map(|cell| cell.iter())
+            .filter(|ag| influences.0[ag.species_index.0] != 0.0)
+            .map(|ag| Actor::Agent(ag.clone()));
+        let all_actors: Vec<Actor> = self
+            .artifact_cells
+            .values()
+            .flat_map(|cell| cell.iter())
+            .filter(|art| influences.1[art.artifact_index.0] != 0.0)
+            .map(|art| Actor::Artifact(art.clone()))
+            .chain(agents)
+            .collect();
+
         buoys
             .into_iter()
-            .for_each(|b| update_buoy(&agents, b, spacing, influences));
+            .for_each(|b| update_buoy(&all_actors, b, spacing, influences));
     }
 
     fn get_height(&self, agent: &Agent) -> f32 {
@@ -306,12 +322,12 @@ impl Terrain {
             return gradient;
         }
 
-        let norm_grad = dbg!(gradient).normalize() * self.spacing * 0.5;
+        let norm_grad = gradient.normalize() * self.spacing * 0.5;
 
         let h1 = self.get_height(xpos + norm_grad.x, zpos + norm_grad.z);
         let h2 = self.get_height(xpos - norm_grad.x, zpos - norm_grad.z);
 
-        let diff = dbg!(h2 - h1);
+        let diff = h2 - h1;
 
         if diff >= 0.0 {
             Vector3::new(gradient.x, -diff, gradient.z)

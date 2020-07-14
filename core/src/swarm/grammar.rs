@@ -56,7 +56,7 @@ impl SwarmGrammar {
             .map(|a| (random_one(rnd), a))
             .collect();
         let mut recalculated: Vec<Agent> = agent_random_pairs
-            .iter()
+            .par_iter()
             .map(|a| self.move_agents(*a))
             .collect();
         recalculated.sort_by_key(|agent| agent.id);
@@ -208,7 +208,8 @@ impl SwarmGrammar {
     pub fn from(genome: SwarmGenome, mut rnd: &mut impl rand::Rng) -> SwarmGrammar {
         let mut uid_gen = crate::utils::UidGen::default();
         let (agents, artifacts) = genome.get_start(&mut rnd, &mut uid_gen);
-        let mut world = ChunkedWorld::new(agents, genome.terrain_size, 10.0, uid_gen);
+        let mut world =
+            ChunkedWorld::new(agents, genome.terrain_size, genome.terrain_spacing, uid_gen);
         world.insert_artifacts(artifacts);
 
         SwarmGrammar { genome, world }

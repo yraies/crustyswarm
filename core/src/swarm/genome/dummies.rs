@@ -20,6 +20,7 @@ pub struct DummySwarmGenome {
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct TerrainConfig {
     pub size: usize,
+    pub spacing: f32,
     pub influenced_by: HashMap<String, InfluenceFactor>,
 }
 
@@ -191,6 +192,7 @@ pub fn example_dummy_genome() -> DummySwarmGenome {
         artifact_map,
         terrain: TerrainConfig {
             size: 31,
+            spacing: 10.0,
             influenced_by: terrain_map,
         },
     }

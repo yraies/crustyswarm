@@ -93,8 +93,7 @@ fn main() {
     let mut orbit = false;
     let orbit_speed = 0.01;
 
-    let mut conditionals_draws = ConditionalDraw::All;
-    let mut draw_grid = false;
+    let mut conditionals_draws = ConditionalDraw::new();
 
     let font = rl
         .load_font(&thread, fontfile_path.to_str().unwrap())
@@ -116,12 +115,20 @@ fn main() {
                 calc_next = !calc_next;
             }
 
-            if rl.is_key_pressed(KeyboardKey::KEY_B) {
-                conditionals_draws = conditionals_draws.next();
+            if rl.is_key_pressed(KeyboardKey::KEY_F) {
+                conditionals_draws.artifacts = !conditionals_draws.artifacts;
             }
 
             if rl.is_key_pressed(KeyboardKey::KEY_G) {
-                draw_grid = !draw_grid;
+                conditionals_draws.grid = !conditionals_draws.grid;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_T) {
+                conditionals_draws.buoys = !conditionals_draws.buoys;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_N) {
+                conditionals_draws.agents = !conditionals_draws.agents;
             }
 
             if rl.is_key_pressed(KeyboardKey::KEY_O) {
@@ -170,11 +177,11 @@ fn main() {
                 d3d.draw_cube(Vector3::new(0.0, 1.0, 0.0), 0.5, 2.5, 0.5, Color::GREEN);
                 d3d.draw_cube(Vector3::new(0.0, 0.0, 1.0), 0.5, 0.5, 2.5, Color::BLUE);
 
-                if draw_grid {
+                if conditionals_draws.grid {
                     d3d.draw_grid(10, 10.0);
                 }
 
-                if conditionals_draws.draw_agents() {
+                if conditionals_draws.agents {
                     let agents = crustswarm::agents_to_arr2(&sg);
                     for (pos, color_index) in agents {
                         d3d.draw_cube(
@@ -187,18 +194,20 @@ fn main() {
                     }
                 }
 
-                let artifacts = crustswarm::artifacts_to_arr2(&sg);
-                for (pos, color_index) in artifacts {
-                    d3d.draw_cube(
-                        Vector3::new(pos[0], pos[1], pos[2]),
-                        0.66,
-                        0.66,
-                        0.66,
-                        get_color(color_index),
-                    );
+                if conditionals_draws.artifacts {
+                    let artifacts = crustswarm::artifacts_to_arr2(&sg);
+                    for (pos, color_index) in artifacts {
+                        d3d.draw_cube(
+                            Vector3::new(pos[0], pos[1], pos[2]),
+                            0.66,
+                            0.66,
+                            0.66,
+                            get_color(color_index),
+                        );
+                    }
                 }
 
-                if conditionals_draws.draw_buoys() {
+                if conditionals_draws.buoys {
                     let buoys = crustswarm::buoys_to_arr2(&sg);
                     for pos in buoys {
                         d3d.draw_cube(
@@ -238,12 +247,7 @@ fn main() {
                     Color::GRAY,
                 );
                 d.draw_text(
-                    &format!(
-                        "Draw Mode: {}\nGrid: {}\nOrbiting: {}",
-                        conditionals_draws.mode(),
-                        draw_grid,
-                        orbit
-                    ),
+                    &format!("{}\nOrbiting: {}", conditionals_draws, orbit),
                     d.get_screen_width() - 200,
                     10,
                     10,
@@ -336,43 +340,28 @@ impl VizStats {
     }
 }
 
-enum ConditionalDraw {
-    Buoy,
-    Agents,
-    All,
-    None,
+struct ConditionalDraw {
+    agents: bool,
+    buoys: bool,
+    artifacts: bool,
+    grid: bool,
 }
 impl ConditionalDraw {
-    fn next(&self) -> ConditionalDraw {
-        match self {
-            Self::All => Self::Agents,
-            Self::Agents => Self::None,
-            Self::None => Self::Buoy,
-            Self::Buoy => Self::All,
+    fn new() -> ConditionalDraw {
+        ConditionalDraw {
+            agents: true,
+            buoys: true,
+            artifacts: true,
+            grid: false,
         }
     }
-    fn draw_buoys(&self) -> bool {
-        match self {
-            Self::Buoy => true,
-            Self::Agents => false,
-            Self::All => true,
-            Self::None => false,
-        }
-    }
-    fn draw_agents(&self) -> bool {
-        match self {
-            Self::Buoy => false,
-            Self::Agents => true,
-            Self::All => true,
-            Self::None => false,
-        }
-    }
-    fn mode(&self) -> &'static str {
-        match self {
-            Self::Buoy => "Terrain+A",
-            Self::Agents => "Agents+A",
-            Self::All => "All",
-            Self::None => "Artifacts",
-        }
+}
+impl std::fmt::Display for ConditionalDraw {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Draw Modes:\nAge(n)ts: {}\nArti(f)acts: {}\n(T)errain: {}\n(G)rid: {})",
+            self.agents, self.artifacts, self.buoys, self.grid
+        )
     }
 }

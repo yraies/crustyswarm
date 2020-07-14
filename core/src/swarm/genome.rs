@@ -50,6 +50,7 @@ pub struct SwarmGenome {
     pub strategy: ApplicationStrategy,
     pub terrain_influences: (Vec<f32>, Vec<f32>),
     pub terrain_size: usize,
+    pub terrain_spacing: f32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -451,6 +452,7 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
             start_dist: convert_distribution(&species_names, &artifact_names, &dummy.start_dist)?,
             terrain_size: dummy.terrain.size,
             terrain_influences: (terrain_spec, terrain_art),
+            terrain_spacing: dummy.terrain.spacing,
         })
     }
 }
