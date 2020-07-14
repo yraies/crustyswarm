@@ -16,11 +16,52 @@ use rand::SeedableRng;
 
 use raylib::prelude::*;
 
+use clap::{App, Arg};
+
 fn main() {
     let mut args = std::env::args();
-    let configfile = args
-        .nth(1)
-        .unwrap_or_else(|| String::from("swarm_config.json"));
+
+    let matches = App::new("Crustswarm Visualizer")
+        .version("1.0")
+        .author("Yasin Raies <yasin.raies@gmail.com")
+        .about("Visualizes a multi species swarm agent simulation")
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("CONFIG")
+                .help("Setis a config file")
+                .takes_value(true)
+                .required(true)
+                .index(1),
+        )
+        .arg(
+            Arg::with_name("framerate")
+                .short("f")
+                .long("framerate")
+                .value_name("FPS")
+                .help("Sets the wanted framerate")
+                .default_value("30")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("baked_seed")
+                .short("b")
+                .long("baked_seed")
+                .help("Sets a fixed seed on every startup"),
+        )
+        .arg(
+            Arg::with_name("seed")
+                .short("s")
+                .long("seed")
+                .value_name("SEED")
+                .help("Sets a seed")
+                .takes_value(true)
+                .conflicts_with("random_seed"),
+        )
+        .get_matches();
+
+    let configfile = matches.value_of("config").unwrap();
     println!("Using config: {}", &configfile);
 
     let tmp_dir = TempDir::new().expect("TempDir could not be created");
@@ -48,9 +89,13 @@ fn main() {
 
     rl.set_camera_mode(&camera, CameraMode::CAMERA_THIRD_PERSON);
     rl.update_camera(&mut camera);
-    rl.set_target_fps(30);
+    rl.set_target_fps(matches.value_of("framerate").unwrap().parse().unwrap());
 
-    let seed = if false {
+    let seed = if matches.is_present("baked_seed") {
+        3672820499107940204u64
+    } else if let Some(seed_string) = matches.value_of("seed") {
+        seed_string.parse::<u64>().unwrap()
+    } else {
         let rnd = rand::random::<u64>();
         std::fs::OpenOptions::new()
             .create(true)
@@ -73,8 +118,6 @@ fn main() {
             .unwrap();
 
         rnd
-    } else {
-        3672820499107940204u64
     };
     println!("seed: {}", seed);
 

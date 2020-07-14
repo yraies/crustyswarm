@@ -245,7 +245,7 @@ impl World for ChunkedWorld {
             .collect();
 
         buoys
-            .into_iter()
+            .into_par_iter()
             .for_each(|b| update_buoy(&all_actors, b, spacing, influences));
     }
 

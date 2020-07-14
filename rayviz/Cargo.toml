@@ -10,6 +10,7 @@ raylib = "^1.0"
 rand = "^0.6"
 tempfile = "3.1.0"
 circular-queue = "^0.2"
+clap = "2.33.*"
 
 [dependencies.crustswarm]
 path = "../core"
