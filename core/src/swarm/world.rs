@@ -41,6 +41,8 @@ pub trait World {
     fn get_height_at(&self, x: f32, z: f32) -> f32;
     fn get_gradient_and_normal(&self, xpos: f32, zpos: f32) -> (Vector3<f32>, Vector3<f32>);
     fn get_slope(&self, xpos: f32, zpos: f32, gradient: Vector3<f32>) -> Vector3<f32>;
+
+    fn get_size(&self) -> (usize, usize, f32);
 }
 
 impl World for ChunkedWorld {
@@ -262,6 +264,14 @@ impl World for ChunkedWorld {
     }
     fn get_slope(&self, xpos: f32, zpos: f32, gradient: Vector3<f32>) -> Vector3<f32> {
         self.terrain.get_slope(xpos, zpos, gradient)
+    }
+
+    fn get_size(&self) -> (usize, usize, f32) {
+        (
+            self.terrain.x_size,
+            self.terrain.z_size,
+            self.terrain.spacing,
+        )
     }
 }
 

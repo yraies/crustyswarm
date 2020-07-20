@@ -209,7 +209,7 @@ impl Replacement {
             new_agents.push(new_parent);
         }
 
-        dbg!(new_agents, new_artifacts)
+        (new_agents, new_artifacts)
     }
 }
 

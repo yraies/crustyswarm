@@ -49,6 +49,11 @@ fn main() {
                 .help("Sets a fixed seed on every startup"),
         )
         .arg(
+            Arg::with_name("screenshots")
+                .long("screenshots")
+                .help("Creates screenshots each iteration"),
+        )
+        .arg(
             Arg::with_name("seed")
                 .short("s")
                 .long("seed")
@@ -140,6 +145,12 @@ fn main() {
         .load_font(&thread, fontfile_path.to_str().unwrap())
         .expect("Could not load font");
 
+    let mut terrain_model = rl
+        .load_model(&thread, "floor.obj")
+        .expect("Loading Model did not succed");
+
+    let mut iteration = 0;
+
     while !rl.window_should_close() {
         // Update World State
         {
@@ -147,12 +158,88 @@ fn main() {
                 sim_stats.start();
                 sg.step(&mut rnd);
                 sim_stats.stop();
+
+                iteration += 1;
+
+                if matches.is_present("screenshots") {
+                    rl.take_screenshot(
+                        &thread,
+                        &format!(
+                            "./{}_{}/{}.png",
+                            configfile.split('.').take(1).last().unwrap(),
+                            &seed,
+                            &iteration
+                        ),
+                    );
+                }
             }
         }
+
+        let tsize = sg.world.get_size();
+        let theight = 40.0;
+        let mut image_data = vec![0u8; tsize.0 * tsize.1];
+        let toffset = (((tsize.0 - 1) / 2) as f32, ((tsize.1 - 1) / 2) as f32);
+        for x in (0..tsize.0) {
+            for z in (0..tsize.1) {
+                let height = sg.world.get_height_at(
+                    (x as f32 - toffset.0) * tsize.2,
+                    (z as f32 - toffset.1) * tsize.2,
+                );
+                let mut factor = if height > theight {
+                    1.0
+                } else if height < -theight {
+                    0.0
+                } else {
+                    (height + theight) / (2.0 * theight)
+                };
+
+                let colval = (factor * 255.0) as u8;
+
+                image_data[x + z * tsize.0] = colval;
+            }
+        }
+
+        let image = raylib::texture::Image::load_image_pro(
+            &image_data,
+            tsize.0 as i32,
+            tsize.1 as i32,
+            PixelFormat::UNCOMPRESSED_GRAYSCALE,
+        )
+        .unwrap();
+
+        let mesh = raylib::models::Mesh::gen_mesh_heightmap(
+            &thread,
+            &image,
+            Vector3::new(
+                tsize.0 as f32 * tsize.2,
+                2.0 * theight,
+                tsize.1 as f32 * tsize.2,
+            ),
+        );
+
+        let model = unsafe { raylib::ffi::LoadModelFromMesh(*mesh.as_ref()) };
 
         // Handle Inputs
         {
             if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
+                if iteration == 0 && matches.is_present("screenshots") {
+                    std::fs::create_dir(&format!(
+                        "./{}_{}",
+                        configfile.split('.').take(1).last().unwrap(),
+                        &seed
+                    ))
+                    .unwrap();
+
+                    rl.take_screenshot(
+                        &thread,
+                        &format!(
+                            "./{}_{}/{}.png",
+                            configfile.split('.').take(1).last().unwrap(),
+                            &seed,
+                            &iteration
+                        ),
+                    );
+                }
                 calc_next = !calc_next;
             }
 
@@ -164,8 +251,12 @@ fn main() {
                 conditionals_draws.grid = !conditionals_draws.grid;
             }
 
-            if rl.is_key_pressed(KeyboardKey::KEY_T) {
+            if rl.is_key_pressed(KeyboardKey::KEY_B) {
                 conditionals_draws.buoys = !conditionals_draws.buoys;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_T) {
+                conditionals_draws.terrain = !conditionals_draws.terrain;
             }
 
             if rl.is_key_pressed(KeyboardKey::KEY_N) {
@@ -200,7 +291,7 @@ fn main() {
                 rl.update_camera(&mut camera);
                 camera
                     .position
-                    .rotate(dbg!(Quaternion::from_euler(0.0, orbit_speed, 0.0)));
+                    .rotate(Quaternion::from_euler(0.0, orbit_speed, 0.0));
                 camera.target = Vector3::zero();
             }
         }
@@ -208,15 +299,16 @@ fn main() {
         // Draw the Scene
         {
             render_stats.start();
+
             let mut d = rl.begin_drawing(&thread);
             d.clear_background(Color::BLACK);
 
             // Draw 3D Stuff
             {
                 let mut d3d = d.begin_mode_3D(camera);
-                d3d.draw_cube(Vector3::new(1.0, 0.0, 0.0), 2.5, 0.5, 0.5, Color::RED);
-                d3d.draw_cube(Vector3::new(0.0, 1.0, 0.0), 0.5, 2.5, 0.5, Color::GREEN);
-                d3d.draw_cube(Vector3::new(0.0, 0.0, 1.0), 0.5, 0.5, 2.5, Color::BLUE);
+                //d3d.draw_cube(Vector3::new(1.0, 0.0, 0.0), 2.5, 0.5, 0.5, Color::RED);
+                //d3d.draw_cube(Vector3::new(0.0, 1.0, 0.0), 0.5, 2.5, 0.5, Color::GREEN);
+                //d3d.draw_cube(Vector3::new(0.0, 0.0, 1.0), 0.5, 0.5, 2.5, Color::BLUE);
 
                 if conditionals_draws.grid {
                     d3d.draw_grid(10, 10.0);
@@ -253,7 +345,7 @@ fn main() {
                                 .find(|other| other.0.id.eq(&preid))
                                 .unwrap();
 
-                            for lerp in &[0.33, 0.66] {
+                            for lerp in &[0.50] {
                                 let mut lerpedpos = pre.position;
                                 lerpedpos += (art.position - lerpedpos) * *lerp;
                                 d3d.draw_cube(
@@ -279,10 +371,24 @@ fn main() {
                     for pos in buoys {
                         d3d.draw_cube(
                             Vector3::new(pos[0], pos[1], pos[2]),
-                            1.5,
-                            0.2,
-                            1.5,
-                            get_color(99),
+                            1.0,
+                            1.0,
+                            1.0,
+                            Color::WHITE,
+                        );
+                    }
+                }
+
+                if conditionals_draws.terrain {
+                    unsafe {
+                        raylib::ffi::DrawModelEx(
+                            model,
+                            Vector3::new(-toffset.0 * tsize.2, -theight, -toffset.1 * tsize.2)
+                                .into(),
+                            Vector3::up().into(),
+                            0.0,
+                            Vector3::new(1.0, 1.0, 1.0).into(),
+                            Color::GRAY.into(),
                         );
                     }
                 }
@@ -410,6 +516,7 @@ impl VizStats {
 struct ConditionalDraw {
     agents: bool,
     buoys: bool,
+    terrain: bool,
     artifacts: bool,
     grid: bool,
 }
@@ -418,6 +525,7 @@ impl ConditionalDraw {
         ConditionalDraw {
             agents: true,
             buoys: true,
+            terrain: false,
             artifacts: true,
             grid: false,
         }
@@ -427,8 +535,8 @@ impl std::fmt::Display for ConditionalDraw {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Draw Modes:\nAge(n)ts: {}\nArti(f)acts: {}\n(T)errain: {}\n(G)rid: {})",
-            self.agents, self.artifacts, self.buoys, self.grid
+            "Draw Modes:\nAge(n)ts: {}\nArti(f)acts: {}\n(B)uoys: {}\n(T)errain: {}\n(G)rid: {})",
+            self.agents, self.artifacts, self.buoys, self.terrain, self.grid
         )
     }
 }
