@@ -176,7 +176,7 @@ fn main() {
         }
 
         let tsize = sg.world.get_size();
-        let theight = 40.0;
+        let theight = 60.0;
         let mut image_data = vec![0u8; tsize.0 * tsize.1];
         let toffset = (((tsize.0 - 1) / 2) as f32, ((tsize.1 - 1) / 2) as f32);
         for x in (0..tsize.0) {
@@ -374,7 +374,7 @@ fn main() {
                             1.0,
                             1.0,
                             1.0,
-                            Color::WHITE,
+                            Color::GRAY,
                         );
                     }
                 }
@@ -388,7 +388,7 @@ fn main() {
                             Vector3::up().into(),
                             0.0,
                             Vector3::new(1.0, 1.0, 1.0).into(),
-                            Color::GRAY.into(),
+                            Color::DARKGRAY.into(),
                         );
                     }
                 }
@@ -433,7 +433,7 @@ fn main() {
 
     fn get_color(index: usize) -> Color {
         match index {
-            0 => Color::DARKGRAY,
+            0 => Color::WHITE,
             1 => Color::RED,
             2 => Color::GREEN,
             3 => Color::BLUE,
