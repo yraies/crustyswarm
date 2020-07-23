@@ -263,6 +263,10 @@ fn main() {
                 conditionals_draws.agents = !conditionals_draws.agents;
             }
 
+            if rl.is_key_pressed(KeyboardKey::KEY_Y) {
+                conditionals_draws.tweenz = !conditionals_draws.tweenz;
+            }
+
             if rl.is_key_pressed(KeyboardKey::KEY_O) {
                 if orbit {
                     orbit = false;
@@ -345,16 +349,18 @@ fn main() {
                                 .find(|other| other.0.id.eq(&preid))
                                 .unwrap();
 
-                            for lerp in &[0.50] {
-                                let mut lerpedpos = pre.position;
-                                lerpedpos += (art.position - lerpedpos) * *lerp;
-                                d3d.draw_cube(
-                                    Vector3::new(lerpedpos.x, lerpedpos.y, lerpedpos.z),
-                                    0.2,
-                                    0.2,
-                                    0.2,
-                                    get_color(spec.color_index),
-                                );
+                            if conditionals_draws.tweenz {
+                                for lerp in &[0.25, 0.5, 0.75] {
+                                    let mut lerpedpos = pre.position;
+                                    lerpedpos += (art.position - lerpedpos) * *lerp;
+                                    d3d.draw_cube(
+                                        Vector3::new(lerpedpos.x, lerpedpos.y, lerpedpos.z),
+                                        0.2,
+                                        0.2,
+                                        0.2,
+                                        get_color(spec.color_index),
+                                    );
+                                }
                             }
 
                             //                            d3d.draw_line_3d(
@@ -519,15 +525,17 @@ struct ConditionalDraw {
     terrain: bool,
     artifacts: bool,
     grid: bool,
+    tweenz: bool
 }
 impl ConditionalDraw {
     fn new() -> ConditionalDraw {
         ConditionalDraw {
             agents: true,
             buoys: true,
-            terrain: false,
+            terrain: true,
             artifacts: true,
             grid: false,
+            tweenz: false,
         }
     }
 }
@@ -535,8 +543,8 @@ impl std::fmt::Display for ConditionalDraw {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Draw Modes:\nAge(n)ts: {}\nArti(f)acts: {}\n(B)uoys: {}\n(T)errain: {}\n(G)rid: {})",
-            self.agents, self.artifacts, self.buoys, self.terrain, self.grid
+            "Draw Modes:\nAge(n)ts: {}\nArti(f)acts: {}\n(B)uoys: {}\n(T)errain: {}\nTween(z): {}\n(G)rid: {})",
+            self.agents, self.artifacts, self.buoys, self.terrain, self.tweenz, self.grid
         )
     }
 }
