@@ -6,3 +6,4 @@ Cargo.lock
 *.ply
 viz/src/gl.rs
 last_seed
+*.iml

@@ -1,0 +1,100 @@
+{
+  "species_map": {
+    "seed": {
+      "urges": {
+        "bias": [ 0.0, 0.0, 0.0 ],
+        "separation": 0,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 0,
+        "center": 0,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 0,
+      "max_speed": 0,
+      "max_acceleration": 0,
+      "view_distance": 20,
+      "sep_distance": 5,
+      "axis_constraint": [ 0, 0, 0 ],
+      "influenced_by": { },
+      "noclip": true,
+      "energy": {
+        "for_offspring": {"Constant": 2},
+        "on_movement": "None",
+        "on_zero": "Live",
+        "on_replication": "None"
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 1,
+          "persist": true
+        },
+        { "weight": 1,
+          "range": 19,
+          "context": ["seed", "seed"],
+          "persist": true,
+          "replacement": {
+            "Simple": ["viz"]
+          }
+        }
+      ],
+      "color_index": 1
+    },
+    "viz": {
+      "urges": {
+        "bias": [ 0.0, 0.0, 0.0 ],
+        "separation": 0,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 1,
+        "center": 0.02,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 0,
+      "max_speed": 1,
+      "max_acceleration": 1,
+      "view_distance": 50,
+      "sep_distance": 10,
+      "axis_constraint": [ 1, 1, 1 ],
+      "influenced_by": {"viz": 1.0},
+      "noclip": true,
+      "energy": {
+        "on_movement": {"Constant": 1},
+        "on_zero": "Die",
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": false,
+      "rules": [
+        { "weight":1,
+          "persist": true
+        }
+      ],
+      "color_index": 4
+    }
+  },
+  "artifact_map": {
+  },
+  "terrain": {
+    "size": 31,
+    "spacing": 10,
+    "influenced_by": {
+    }
+  },
+  "start_dist": {
+    "Multi" : [
+      {"Grid": [10, 9, "seed"]}
+    ]
+  },
+  "strategy": {
+    "every" :  2
+  }
+}

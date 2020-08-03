@@ -1,0 +1,59 @@
+{
+  "species_map": {
+    "seed": {
+      "urges": {
+        "bias": [ 0.0, 0.0, 0.0 ],
+        "separation": 0,
+        "alignment": 0,
+        "cohesion": 1,
+        "randomness": 0.1,
+        "center": 1,
+        "floor": 0.01,
+        "pacekeeping": 0,
+        "normal": 2,
+        "gradient": 1,
+        "slope": 0
+      },
+      "normal_speed": 0,
+      "max_speed": 2,
+      "max_acceleration": 0.5,
+      "view_distance": 100,
+      "sep_distance": 5,
+      "axis_constraint": [ 1, 1, 1 ],
+      "influenced_by": { },
+      "noclip": false,
+      "energy": {
+        "on_movement": "None",
+        "on_zero": "Die",
+        "on_replication": "None",
+        "for_offspring": {"Constant": 100}
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 1,
+          "persist": true,
+          "replacement": "None"
+        }
+      ],
+      "color_index": 4
+    }
+  },
+  "artifact_map": {
+    "marker":{"color_index":5}
+  },
+  "terrain": {
+    "size": 31,
+    "spacing": 10,
+    "influenced_by": {
+
+    }
+  },
+  "start_dist": {
+    "Multi" : [
+      {"Grid": [1, 100, "seed"]}
+    ]
+  },
+  "strategy": {
+    "every" :  2
+  }
+}
