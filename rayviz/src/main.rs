@@ -18,6 +18,9 @@ use raylib::prelude::*;
 
 use clap::{App, Arg};
 
+const TERRAIN_FS_SHADER: &str = include_str!("shaders/terrain.glsl.fs");
+const TERRAIN_VS_SHADER: &str = include_str!("shaders/terrain.glsl.vs");
+
 fn main() {
     let matches = App::new("Crustswarm Visualizer")
         .version("1.0")
@@ -135,6 +138,7 @@ fn main() {
     let mut render_stats = VizStats::new();
     let mut sim_stats = VizStats::new();
     let mut calc_next = false;
+    let mut calc_one = false;
 
     let mut orbit = false;
     let orbit_speed = 0.01;
@@ -145,16 +149,17 @@ fn main() {
         .load_font(&thread, fontfile_path.to_str().unwrap())
         .expect("Could not load font");
 
-    let mut terrain_model = rl
-        .load_model(&thread, "floor.obj")
-        .expect("Loading Model did not succed");
+    let mut shader = rl.load_shader_code(&thread, Some(TERRAIN_VS_SHADER), Some(TERRAIN_FS_SHADER));
+    let loc_draw_height_lines = shader.get_shader_location("drawHeightLines");
+    shader.set_shader_value(loc_draw_height_lines, 1);
 
     let mut iteration = 0;
 
     while !rl.window_should_close() {
         // Update World State
         {
-            if calc_next {
+            if calc_next || calc_one {
+                calc_one = false;
                 sim_stats.start();
                 sg.step(&mut rnd);
                 sim_stats.stop();
@@ -219,28 +224,44 @@ fn main() {
 
         let model = unsafe { raylib::ffi::LoadModelFromMesh(*mesh.as_ref()) };
 
+        unsafe {
+            let materials = std::slice::from_raw_parts_mut(
+                model.materials as *mut Material,
+                model.materialCount as usize,
+            );
+            materials[0].shader = *shader.as_ref();
+        }
+
         // Handle Inputs
         {
             if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
-                if iteration == 0 && matches.is_present("screenshots") {
-                    std::fs::create_dir(&format!(
-                        "./{}_{}",
-                        configfile.split('.').take(1).last().unwrap(),
-                        &seed
-                    ))
-                    .unwrap();
-
-                    rl.take_screenshot(
-                        &thread,
-                        &format!(
-                            "./{}_{}/{}.png",
-                            configfile.split('.').take(1).last().unwrap(),
-                            &seed,
-                            &iteration
-                        ),
-                    );
-                }
                 calc_next = !calc_next;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_X) {
+                calc_one = true;
+            }
+
+            if (rl.is_key_pressed(KeyboardKey::KEY_SPACE) || rl.is_key_pressed(KeyboardKey::KEY_X))
+                && iteration == 0
+                && matches.is_present("screenshots")
+            {
+                std::fs::create_dir(&format!(
+                    "./{}_{}",
+                    configfile.split('.').take(1).last().unwrap(),
+                    &seed
+                ))
+                .unwrap();
+
+                rl.take_screenshot(
+                    &thread,
+                    &format!(
+                        "./{}_{}/{}.png",
+                        configfile.split('.').take(1).last().unwrap(),
+                        &seed,
+                        &iteration
+                    ),
+                );
             }
 
             if rl.is_key_pressed(KeyboardKey::KEY_F) {
@@ -252,6 +273,7 @@ fn main() {
             }
 
             if rl.is_key_pressed(KeyboardKey::KEY_B) {
+                shader.set_shader_value(loc_draw_height_lines, conditionals_draws.buoys as i32);
                 conditionals_draws.buoys = !conditionals_draws.buoys;
             }
 
@@ -377,9 +399,9 @@ fn main() {
                     for pos in buoys {
                         d3d.draw_cube(
                             Vector3::new(pos[0], pos[1], pos[2]),
-                            1.0,
-                            1.0,
-                            1.0,
+                            0.5,
+                            0.5,
+                            0.5,
                             Color::GRAY,
                         );
                     }
@@ -419,14 +441,16 @@ fn main() {
 - Mouse to look around
 - WASD to move around
 - EQ to move up and down
-- Shift to increase movement speed",
+- Shift to increase movement speedi
+- X to simulate a single step
+- Space to run and pause the simulation",
                     10,
                     d.get_screen_height() - 100,
                     10,
                     Color::GRAY,
                 );
                 d.draw_text(
-                    &format!("{}\nOrbiting: {}", conditionals_draws, orbit),
+                    &format!("{}\n(O)rbiting: {}", conditionals_draws, orbit),
                     d.get_screen_width() - 200,
                     10,
                     10,
@@ -525,13 +549,13 @@ struct ConditionalDraw {
     terrain: bool,
     artifacts: bool,
     grid: bool,
-    tweenz: bool
+    tweenz: bool,
 }
 impl ConditionalDraw {
     fn new() -> ConditionalDraw {
         ConditionalDraw {
             agents: true,
-            buoys: true,
+            buoys: false,
             terrain: true,
             artifacts: true,
             grid: false,

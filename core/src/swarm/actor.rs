@@ -57,6 +57,7 @@ pub struct Agent {
     pub species_index: SpeciesIndex,
     pub seed_center: Vector3<f32>,
     pub id: Uid,
+    pub iteration: usize,
     pub last: Option<Uid>,
 }
 
@@ -88,6 +89,7 @@ impl Agent {
         velocity: Vector3<f32>,
         energy: f32,
         species_index: SpeciesIndex,
+        iteration: usize,
         uid: Uid,
     ) -> Agent {
         Agent {
@@ -98,6 +100,7 @@ impl Agent {
             seed_center: Vector3::new(0.0, 0.0, 0.0),
             last: None,
             id: uid,
+            iteration,
         }
     }
 
@@ -107,6 +110,7 @@ impl Agent {
         energy: f32,
         species_index: SpeciesIndex,
         seed_center: Vector3<f32>,
+        iteration: usize,
         uid: Uid,
     ) -> Result<Agent, &'static str> {
         if energy > 0.0 {
@@ -117,6 +121,7 @@ impl Agent {
                 species_index,
                 seed_center,
                 last: None,
+                iteration,
                 id: uid,
             })
         } else {
@@ -130,6 +135,7 @@ impl Agent {
         species_index: SpeciesIndex,
         rnd: &mut impl Rng,
         seed_center: Vector3<f32>,
+        iteration: usize,
         uid: Uid,
     ) -> Result<Agent, &'static str> {
         Agent::mk_new(
@@ -138,6 +144,7 @@ impl Agent {
             energy,
             species_index,
             seed_center,
+            iteration,
             uid,
         )
     }
@@ -185,6 +192,7 @@ pub struct Artifact {
     pub artifact_index: ArtifactIndex,
     pub id: Uid,
     pub pre: Option<Uid>,
+    pub iteration: usize,
 }
 
 impl fmt::Debug for Artifact {

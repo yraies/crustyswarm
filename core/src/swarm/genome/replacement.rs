@@ -88,7 +88,7 @@ impl Replacement {
             clone.seed_center = parent.position;
         }
         clone.id = uid_gen.next();
-        clone.last = None;
+        clone.iteration += 1;
         clone
     }
 
@@ -123,6 +123,7 @@ impl Replacement {
                                 id: uid_gen.next(),
                                 position: parent.position,
                                 pre: parent.last,
+                                iteration: parent.iteration + 1,
                             };
                             new_artifacts.push(new_artifact);
                         }
@@ -206,6 +207,7 @@ impl Replacement {
             if new_artifacts.len() > 0 {
                 new_parent.last = Some(new_artifacts[0].id);
             }
+            new_parent.iteration += 1;
             new_agents.push(new_parent);
         }
 

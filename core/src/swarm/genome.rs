@@ -202,6 +202,7 @@ impl SwarmGenome {
                     10.0,
                     species_index,
                     pos,
+                    0,
                     uid,
                 )
                 .unwrap(),
@@ -211,6 +212,7 @@ impl SwarmGenome {
                 id: uid,
                 position: pos,
                 artifact_index,
+                iteration: 0,
             }),
         }
     }
