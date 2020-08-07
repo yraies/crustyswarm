@@ -48,6 +48,7 @@ pub struct DummySpecies {
     pub max_acceleration: Factor,
     pub view_distance: Factor,
     pub sep_distance: Factor,
+    pub view_angle: Factor,
     #[serde(default = "crate::utils::unit")]
     pub axis_constraint: [Factor; 3],
     pub influenced_by: HashMap<Identifier, InfluenceFactor>,

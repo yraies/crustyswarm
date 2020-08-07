@@ -76,6 +76,7 @@ pub struct Species {
     pub max_acceleration: Factor,
     pub pacekeeping: Factor,
     pub view_distance: Factor,
+    pub view_angle: Factor,
     pub sep_distance: Factor,
     pub axis_constraint: Vector3<Factor>,
     pub influenced_by: HashMap<SurroundingIndex, InfluenceFactor>,
@@ -408,6 +409,7 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
                 sep_distance: dummy_spec.sep_distance,
                 separation: dummy_spec.urges.separation,
                 view_distance: dummy_spec.view_distance,
+                view_angle: dummy_spec.view_angle,
                 color_index: dummy_spec.color_index,
             };
 

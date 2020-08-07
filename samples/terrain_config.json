@@ -18,6 +18,7 @@
       "max_speed": 2,
       "max_acceleration": 0.5,
       "view_distance": 100,
+      "view_angle": 170,
       "sep_distance": 5,
       "axis_constraint": [ 1, 0.5, 1 ],
       "influenced_by": { },

@@ -102,7 +102,7 @@ impl SwarmGrammar {
                         let solid_angle =
                             agent.velocity.angle(other.get_position() - agent.position);
 
-                        if solid_angle > Rad::from(Deg(170.0)) {
+                        if solid_angle > Rad::from(Deg(agent_species.view_angle)) {
                             continue;
                         }
 
