@@ -124,6 +124,7 @@ impl Replacement {
                                 position: parent.position,
                                 pre: parent.last,
                                 iteration: parent.iteration + 1,
+                                energy: parent.energy,
                             };
                             new_artifacts.push(new_artifact);
                         }
@@ -206,6 +207,8 @@ impl Replacement {
             new_parent.energy = new_parent_energy;
             if new_artifacts.len() > 0 {
                 new_parent.last = Some(new_artifacts[0].id);
+
+                new_agents.iter_mut().for_each(|a| a.last = new_parent.last);
             }
             new_parent.iteration += 1;
             new_agents.push(new_parent);

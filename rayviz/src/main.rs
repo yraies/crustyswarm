@@ -17,6 +17,7 @@ use rand::SeedableRng;
 use raylib::prelude::*;
 
 use clap::{App, Arg};
+use regex;
 
 const TERRAIN_FS_SHADER: &str = include_str!("shaders/terrain.glsl.fs");
 const TERRAIN_VS_SHADER: &str = include_str!("shaders/terrain.glsl.vs");
@@ -38,8 +39,7 @@ fn main() {
         )
         .arg(
             Arg::with_name("framerate")
-                .short("f")
-                .long("framerate")
+                .long("fps")
                 .value_name("FPS")
                 .help("Sets the wanted framerate")
                 .default_value("30")
@@ -54,7 +54,15 @@ fn main() {
         .arg(
             Arg::with_name("screenshots")
                 .long("screenshots")
-                .help("Creates screenshots each iteration"),
+                .default_value("1")
+                .takes_value(true)
+                .help("Creates screenshots every x iterations"),
+        )
+        .arg(
+            Arg::with_name("instant")
+                .long("instant")
+                .short("i")
+                .help("Instantly start the simulation"),
         )
         .arg(
             Arg::with_name("seed")
@@ -64,6 +72,69 @@ fn main() {
                 .help("Sets a seed")
                 .takes_value(true)
                 .conflicts_with("random_seed"),
+        )
+        .arg(
+            Arg::with_name("fixed-camera")
+                .long("fixed-camera")
+                .help("Wether the camera starts fixed"),
+        )
+        .arg(
+            Arg::with_name("camera-height")
+                .long("camera-height")
+                .short("y")
+                .allow_hyphen_values(true)
+                .takes_value(true)
+                .help("Y position of the simulation camera."),
+        )
+        .arg(
+            Arg::with_name("camera-x")
+                .long("camera-x")
+                .short("x")
+                .allow_hyphen_values(true)
+                .takes_value(true)
+                .help("X position of the simulation camera."),
+        )
+        .arg(
+            Arg::with_name("camera-z")
+                .long("camera-z")
+                .short("z")
+                .allow_hyphen_values(true)
+                .takes_value(true)
+                .help("Z position of the simulation camera."),
+        )
+        .arg(
+            Arg::with_name("camera-target")
+                .long("camera-target")
+                .short("t")
+                .allow_hyphen_values(true)
+                .takes_value(true)
+                .help("Position the camera will look at."),
+        )
+        .arg(
+            Arg::with_name("orbit-speed")
+                .short("o")
+                .long("orbit-speed")
+                .allow_hyphen_values(true)
+                .takes_value(true)
+                .help("Set the orbiting speed."),
+        )
+        .arg(
+            Arg::with_name("max-iteration")
+                .short("m")
+                .long("max-iteration")
+                .takes_value(true)
+                .help("Iteration to run up to."),
+        )
+        .arg(
+            Arg::with_name("no-ui")
+                .long("no-ui")
+                .help("Disables the UI"),
+        )
+        .arg(
+            Arg::with_name("fullscreen")
+                .short("f")
+                .long("fullscreen")
+                .help("Wether to run fullscreen"),
         )
         .get_matches();
 
@@ -79,16 +150,41 @@ fn main() {
         //.write_all(include_bytes!("../anonymous-pro/AnonymousPro-Regular.ttf"))
         .unwrap();
 
-    let (mut rl, thread) = raylib::init()
-        .size(1270, 720)
-        .title("Hello World this is window speaking")
-        .msaa_4x()
-        .resizable()
-        .build();
+    let (mut rl, thread) = if matches.is_present("fullscreen") {
+        raylib::init()
+            .title("Hello World this is window speaking")
+            .msaa_4x()
+            .resizable()
+            .vsync()
+            .size(1920, 1080)
+            .fullscreen()
+            .build()
+    } else {
+        raylib::init()
+            .size(1270, 720)
+            .title("Hello World this is window speaking")
+            .vsync()
+            .msaa_4x()
+            .resizable()
+            .build()
+    };
+
+    let camera_height = matches
+        .value_of("camera-height")
+        .map_or(40.0, |h| h.parse().unwrap());
+    let camera_x = matches
+        .value_of("camera-x")
+        .map_or(100.0, |h| h.parse().unwrap());
+    let camera_z = matches
+        .value_of("camera-z")
+        .map_or(100.0, |h| h.parse().unwrap());
+    let camera_target = matches
+        .value_of("camera-target")
+        .map_or(10.0, |h| h.parse().unwrap());
 
     let mut camera = Camera3D::perspective(
-        Vector3::new(-105.0, 1.0, -105.0),
-        Vector3::new(0.0, 1.0, 0.0),
+        Vector3::new(camera_x, camera_height, camera_z),
+        Vector3::new(0.0, camera_target, 0.0),
         Vector3::new(0.0, 1.0, 0.0),
         60.0,
     );
@@ -135,13 +231,35 @@ fn main() {
 
     //dbg!(&sg);
 
+    let regex = regex::Regex::new(r"^(.+)\.json$").unwrap();
+    let basename = format!(
+        "{}_{}",
+        regex
+            .captures(&configfile)
+            .unwrap()
+            .get(1)
+            .unwrap()
+            .as_str(),
+        &seed
+    );
+    let screenshot_path = format!("./{}", &basename);
+    if matches.occurrences_of("screenshots") > 0 {
+        std::fs::create_dir(&screenshot_path).unwrap();
+    }
+    let screenshot_modulo = matches
+        .value_of("screenshots")
+        .map(|s| s.parse::<i32>().unwrap())
+        .unwrap();
+
     let mut render_stats = VizStats::new();
     let mut sim_stats = VizStats::new();
-    let mut calc_next = false;
+    let mut calc_next = matches.is_present("instant");
     let mut calc_one = false;
 
-    let mut orbit = false;
-    let orbit_speed = 0.01;
+    let mut orbit = matches.is_present("fixed-camera");
+    let mut orbit_speed = matches
+        .value_of("orbit-speed")
+        .map_or(0.01, |o| o.parse().unwrap());
 
     let mut conditionals_draws = ConditionalDraw::new();
 
@@ -153,30 +271,97 @@ fn main() {
     let loc_draw_height_lines = shader.get_shader_location("drawHeightLines");
     shader.set_shader_value(loc_draw_height_lines, 1);
 
-    let mut iteration = 0;
+    let mut iteration = -1;
+    let max_iteration = matches
+        .value_of("max-iteration")
+        .map_or(std::i32::MAX, |i| i.parse::<i32>().unwrap());
 
     while !rl.window_should_close() {
+        if iteration > max_iteration {
+            break;
+        }
+
+        // Handle Inputs
+        {
+            if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
+                calc_next = !calc_next;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_X) {
+                calc_one = true;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_F) {
+                conditionals_draws.artifacts = !conditionals_draws.artifacts;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_G) {
+                conditionals_draws.grid = !conditionals_draws.grid;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_B) {
+                //shader.set_shader_value(loc_draw_height_lines, conditionals_draws.buoys as i32);
+                conditionals_draws.buoys = !conditionals_draws.buoys;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_T) {
+                conditionals_draws.terrain = !conditionals_draws.terrain;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_N) {
+                conditionals_draws.agents = !conditionals_draws.agents;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_Y) {
+                conditionals_draws.tweenz = !conditionals_draws.tweenz;
+            }
+
+            if rl.is_key_pressed(KeyboardKey::KEY_O) {
+                if orbit {
+                    orbit = false;
+                } else {
+                    if rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
+                        orbit_speed = 0.01;
+                    } else if rl.is_key_down(KeyboardKey::KEY_LEFT_ALT) {
+                        orbit_speed = 0.0;
+                    }
+                    orbit = true;
+                }
+            }
+
+            if !orbit {
+                let old_position = camera.position;
+                rl.update_camera(&mut camera);
+                let camera_movement = camera.position - old_position;
+                let leftshift = rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT);
+                let leftalt = rl.is_key_down(KeyboardKey::KEY_LEFT_ALT);
+                if leftshift && leftalt {
+                    camera.position += camera_movement * 5.0;
+                    camera.target += camera_movement * 5.0;
+                } else if leftshift || leftalt {
+                    camera.position += camera_movement * 100.0;
+                    camera.target += camera_movement * 100.0;
+                } else {
+                    camera.position += camera_movement * 25.0;
+                    camera.target += camera_movement * 20.0;
+                }
+            } else {
+                rl.update_camera(&mut camera);
+                camera
+                    .position
+                    .rotate(Quaternion::from_euler(0.0, orbit_speed, 0.0));
+                camera.target = Vector3::new(0.0, camera_target, 0.0);
+            }
+        }
+
         // Update World State
         {
             if calc_next || calc_one {
-                calc_one = false;
                 sim_stats.start();
                 sg.step(&mut rnd);
                 sim_stats.stop();
 
                 iteration += 1;
-
-                if matches.is_present("screenshots") {
-                    rl.take_screenshot(
-                        &thread,
-                        &format!(
-                            "./{}_{}/{}.png",
-                            configfile.split('.').take(1).last().unwrap(),
-                            &seed,
-                            &iteration
-                        ),
-                    );
-                }
             }
         }
 
@@ -232,102 +417,12 @@ fn main() {
             materials[0].shader = *shader.as_ref();
         }
 
-        // Handle Inputs
-        {
-            if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
-                calc_next = !calc_next;
-            }
-
-            if rl.is_key_pressed(KeyboardKey::KEY_X) {
-                calc_one = true;
-            }
-
-            if (rl.is_key_pressed(KeyboardKey::KEY_SPACE) || rl.is_key_pressed(KeyboardKey::KEY_X))
-                && iteration == 0
-                && matches.is_present("screenshots")
-            {
-                std::fs::create_dir(&format!(
-                    "./{}_{}",
-                    configfile.split('.').take(1).last().unwrap(),
-                    &seed
-                ))
-                .unwrap();
-
-                rl.take_screenshot(
-                    &thread,
-                    &format!(
-                        "./{}_{}/{}.png",
-                        configfile.split('.').take(1).last().unwrap(),
-                        &seed,
-                        &iteration
-                    ),
-                );
-            }
-
-            if rl.is_key_pressed(KeyboardKey::KEY_F) {
-                conditionals_draws.artifacts = !conditionals_draws.artifacts;
-            }
-
-            if rl.is_key_pressed(KeyboardKey::KEY_G) {
-                conditionals_draws.grid = !conditionals_draws.grid;
-            }
-
-            if rl.is_key_pressed(KeyboardKey::KEY_B) {
-                shader.set_shader_value(loc_draw_height_lines, conditionals_draws.buoys as i32);
-                conditionals_draws.buoys = !conditionals_draws.buoys;
-            }
-
-            if rl.is_key_pressed(KeyboardKey::KEY_T) {
-                conditionals_draws.terrain = !conditionals_draws.terrain;
-            }
-
-            if rl.is_key_pressed(KeyboardKey::KEY_N) {
-                conditionals_draws.agents = !conditionals_draws.agents;
-            }
-
-            if rl.is_key_pressed(KeyboardKey::KEY_Y) {
-                conditionals_draws.tweenz = !conditionals_draws.tweenz;
-            }
-
-            if rl.is_key_pressed(KeyboardKey::KEY_O) {
-                if orbit {
-                    orbit = false;
-                } else {
-                    orbit = true;
-                }
-            }
-
-            if !orbit {
-                let old_position = camera.position;
-                rl.update_camera(&mut camera);
-                let camera_movement = camera.position - old_position;
-                let leftshift = rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT);
-                let leftalt = rl.is_key_down(KeyboardKey::KEY_LEFT_ALT);
-                if leftshift && leftalt {
-                    camera.position += camera_movement * 5.0;
-                    camera.target += camera_movement * 5.0;
-                } else if leftshift || leftalt {
-                    camera.position += camera_movement * 100.0;
-                    camera.target += camera_movement * 100.0;
-                } else {
-                    camera.position += camera_movement * 25.0;
-                    camera.target += camera_movement * 20.0;
-                }
-            } else {
-                rl.update_camera(&mut camera);
-                camera
-                    .position
-                    .rotate(Quaternion::from_euler(0.0, orbit_speed, 0.0));
-                camera.target = Vector3::zero();
-            }
-        }
-
         // Draw the Scene
         {
             render_stats.start();
 
             let mut d = rl.begin_drawing(&thread);
-            d.clear_background(Color::BLACK);
+            d.clear_background(Color::color_from_hsv(Vector3::new(0.0, 0.0, 0.9)));
 
             // Draw 3D Stuff
             {
@@ -357,12 +452,18 @@ fn main() {
                 if conditionals_draws.artifacts {
                     let artifacts = crustswarm::get_all_artifacts(&sg);
                     artifacts.iter().for_each(|(art, spec)| {
+                        let base_color = get_color(spec.color_index).color_to_hsv();
+                        let new_color = Color::color_from_hsv(Vector3::new(
+                            base_color.x,
+                            base_color.y,
+                            (f32::max(0.0, f32::min(1.0, art.energy / 10.0))) * 0.8 + 0.1,
+                        ));
                         d3d.draw_cube(
                             Vector3::new(art.position.x, art.position.y, art.position.z),
                             1.0,
                             1.0,
                             1.0,
-                            get_color(spec.color_index),
+                            new_color,
                         );
 
                         if let Some(preid) = art.pre {
@@ -380,7 +481,7 @@ fn main() {
                                         0.2,
                                         0.2,
                                         0.2,
-                                        get_color(spec.color_index),
+                                        new_color,
                                     );
                                 }
                             }
@@ -423,7 +524,7 @@ fn main() {
             }
 
             // Draw UI Stuff
-            {
+            if ! matches.is_present("no-ui") {
                 let stat_info = format!(
                     "FPS: {:2}\n{}\n{}\nAgents: {:4}\nArts:   {:4}\nBuoys:  {:4}",
                     d.get_fps(),
@@ -458,6 +559,19 @@ fn main() {
                 );
             }
             render_stats.stop();
+        }
+
+        // Screenshot
+        {
+            if calc_next || calc_one {
+                calc_one = false;
+                if matches.occurrences_of("screenshots") > 0 && iteration % screenshot_modulo == 0 {
+                    rl.take_screenshot(
+                        &thread,
+                        &format!("{}/{}_{:04}.png", &screenshot_path, &basename, &iteration),
+                    );
+                }
+            }
         }
     }
 
@@ -555,11 +669,11 @@ impl ConditionalDraw {
     fn new() -> ConditionalDraw {
         ConditionalDraw {
             agents: true,
-            buoys: false,
+            buoys: true,
             terrain: true,
             artifacts: true,
             grid: false,
-            tweenz: false,
+            tweenz: true,
         }
     }
 }

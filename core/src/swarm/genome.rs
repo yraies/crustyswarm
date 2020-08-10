@@ -214,6 +214,7 @@ impl SwarmGenome {
                 position: pos,
                 artifact_index,
                 iteration: 0,
+                energy: 10.0,
             }),
         }
     }

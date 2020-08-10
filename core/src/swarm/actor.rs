@@ -191,6 +191,7 @@ pub struct Artifact {
     pub position: Vector3<f32>,
     pub artifact_index: ArtifactIndex,
     pub id: Uid,
+    pub energy: f32,
     pub pre: Option<Uid>,
     pub iteration: usize,
 }
