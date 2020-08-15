@@ -39,3 +39,9 @@ do
   ln -fs "$(pwd)"/mont_"$p".jpg "$linkfoo"/links/mont_"$p".jpg
 done
 
+for p in $(ls -1 *1000.jpg | awk -F '_' '{print $2 "_" $3 "_" $4}' | uniq)
+do
+  montage conv_"${p}"_*_1000.jpg -tile 6x -geometry x600 mont_1000_"$p".jpg
+  ln -fs "$(pwd)"/mont_1000_"$p".jpg "$linkfoo"/links/mont_1000_"$p".jpg
+done
+

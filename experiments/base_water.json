@@ -21,7 +21,8 @@
       "sep_distance": 15,
       "axis_constraint": [ 1, 1, 1 ],
       "influenced_by": {
-        "drop": 1.0
+        "drop": 1.0,
+        "sea": 0.0
       },
       "noclip": false,
       "energy": {
