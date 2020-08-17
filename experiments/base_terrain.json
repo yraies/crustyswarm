@@ -5,11 +5,11 @@
         "bias": [ 0.0, 0.0, 0.0 ],
         "separation": 0,
         "alignment": 0,
-        "cohesion": 1,
+        "cohesion": 2,
         "randomness": 0.2,
-        "center": 0.002,
+        "center": 0.001,
         "floor": 0.00,
-        "pacekeeping": 0.2,
+        "pacekeeping": 0.1,
         "normal": 0,
         "gradient": 0,
         "slope": 0
@@ -17,21 +17,21 @@
       "normal_speed": 1,
       "max_speed": 2,
       "max_acceleration": 0.5,
-      "view_distance": 100,
-      "view_angle": 170,
+      "view_distance": 200,
+      "view_angle": 210,
       "sep_distance": 5,
       "axis_constraint": [ 1, 0.5, 1 ],
-      "influenced_by": { },
+      "influenced_by": {"terrain_marker": 3.0 },
       "noclip": true,
       "energy": {
-        "on_movement": {"Constant": 0.1},
+        "on_movement": {"Constant": 0.03},
         "on_zero": "Die",
         "on_replication": "None",
         "for_offspring": {"Constant": 100}
       },
       "hand_down_seed": true,
       "rules": [
-        { "weight": 11,
+        { "weight": 16,
           "persist": true,
           "replacement": "None"
         },
@@ -44,6 +44,7 @@
     }
   },
   "artifact_map": {
+    "terrain_marker":{"color_index":7},
     "formant":{"color_index":0}
   },
   "terrain": {
@@ -55,7 +56,11 @@
   },
   "start_dist": {
     "Multi" : [
-      {"Grid": [2, 100, "seed"]}
+      {"Grid": [2, 100, "seed"]},
+      {"Single": [[0,30,30], "terrain_marker"]},
+      {"Single": [[30,30,30], "terrain_marker"]},
+      {"Single": [[0,0,0], "terrain_marker"]},
+      {"Single": [[30,-30,-30], "terrain_marker"]}
     ]
   },
   "strategy": {

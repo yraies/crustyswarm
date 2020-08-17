@@ -456,7 +456,7 @@ fn main() {
                         let new_color = Color::color_from_hsv(Vector3::new(
                             base_color.x,
                             base_color.y,
-                            (f32::max(0.0, f32::min(1.0, art.energy / 10.0))) * 0.8 + 0.1,
+                            ((0f32.max(1f32.min(art.energy / 10.0))) * 0.8 + 0.1) * base_color.z,
                         ));
                         d3d.draw_cube(
                             Vector3::new(art.position.x, art.position.y, art.position.z),
@@ -466,13 +466,13 @@ fn main() {
                             new_color,
                         );
 
-                        if let Some(preid) = art.pre {
-                            let (pre, _) = artifacts
-                                .iter()
-                                .find(|other| other.0.id.eq(&preid))
-                                .unwrap();
+                        if conditionals_draws.tweenz {
+                            if let Some(preid) = art.pre {
+                                let (pre, _) = artifacts
+                                    .iter()
+                                    .find(|other| other.0.id.eq(&preid))
+                                    .unwrap();
 
-                            if conditionals_draws.tweenz {
                                 for lerp in &[0.25, 0.5, 0.75] {
                                     let mut lerpedpos = pre.position;
                                     lerpedpos += (art.position - lerpedpos) * *lerp;
@@ -484,13 +484,13 @@ fn main() {
                                         new_color,
                                     );
                                 }
-                            }
 
-                            //                            d3d.draw_line_3d(
-                            //                                Vector3::new(pre.position.x, pre.position.y, pre.position.z),
-                            //                                Vector3::new(art.position.x, art.position.y, art.position.z),
-                            //                                get_color(spec.color_index),
-                            //                          );
+                                //                            d3d.draw_line_3d(
+                                //                                Vector3::new(pre.position.x, pre.position.y, pre.position.z),
+                                //                                Vector3::new(art.position.x, art.position.y, art.position.z),
+                                //                                get_color(spec.color_index),
+                                //                          );
+                            }
                         }
                     });
                 }
@@ -524,7 +524,7 @@ fn main() {
             }
 
             // Draw UI Stuff
-            if ! matches.is_present("no-ui") {
+            if !matches.is_present("no-ui") {
                 let stat_info = format!(
                     "FPS: {:2}\n{}\n{}\nAgents: {:4}\nArts:   {:4}\nBuoys:  {:4}",
                     d.get_fps(),
@@ -587,6 +587,7 @@ fn main() {
             7 => Color::BROWN,
             8 => Color::DARKGREEN,
             9 => Color::DARKBLUE,
+            10 => Color::GRAY,
             _ => Color::WHITE,
         }
     }
