@@ -369,13 +369,13 @@ fn main() {
         let theight = 60.0;
         let mut image_data = vec![0u8; tsize.0 * tsize.1];
         let toffset = (((tsize.0 - 1) / 2) as f32, ((tsize.1 - 1) / 2) as f32);
-        for x in (0..tsize.0) {
-            for z in (0..tsize.1) {
+        for x in 0..tsize.0 {
+            for z in 0..tsize.1 {
                 let height = sg.world.get_height_at(
                     (x as f32 - toffset.0) * tsize.2,
                     (z as f32 - toffset.1) * tsize.2,
                 );
-                let mut factor = if height > theight {
+                let factor = if height > theight {
                     1.0
                 } else if height < -theight {
                     0.0

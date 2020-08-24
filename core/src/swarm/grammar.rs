@@ -95,7 +95,9 @@ impl SwarmGrammar {
                 Some(&influence) => {
                     if dist < agent_species.view_distance {
                         if dist < agent_species.sep_distance {
-                            sep_vec += other.get_position() * influence;
+                            let d = agent.position - other.get_position();
+                            let rev = d * (agent_species.sep_distance - d.magnitude());
+                            sep_vec += rev * influence;
                             sep_counter += 1.0 * influence.abs();
                         }
 
@@ -124,13 +126,8 @@ impl SwarmGrammar {
             }
         }
 
-        let sep_temp = safe_devide_mean(sep_vec, sep_counter);
+        let sep_norm = safe_devide_mean(sep_vec, sep_counter);
 
-        let sep_norm = -(if sep_temp.is_zero() {
-            sep_temp
-        } else {
-            sep_temp - agent.position
-        });
         let (ali_norm, coh_norm) = if view_counter > 0.0 {
             let an = safe_devide_mean(ali_vec, view_counter);
             let cn =
