@@ -31,7 +31,7 @@
       },
       "hand_down_seed": true,
       "rules": [
-        { "weight": 16,
+        { "weight": 11,
           "persist": true,
           "replacement": "None"
         },
@@ -56,11 +56,7 @@
   },
   "start_dist": {
     "Multi" : [
-      {"Grid": [2, 100, "seed"]},
-      {"Single": [[0,30,30], "terrain_marker"]},
-      {"Single": [[30,30,30], "terrain_marker"]},
-      {"Single": [[0,0,0], "terrain_marker"]},
-      {"Single": [[30,-30,-30], "terrain_marker"]}
+      {"Grid": [2, 100, "seed"]}
     ]
   },
   "strategy": {

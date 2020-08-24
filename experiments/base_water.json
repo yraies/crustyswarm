@@ -103,8 +103,8 @@
     "formant":{"color_index":0}
   },
   "terrain": {
-    "size": 151,
-    "spacing": 5,
+    "size": 51,
+    "spacing": 10,
     "influenced_by": {
       "formant": 2.0
     }

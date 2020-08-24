@@ -71,7 +71,7 @@
         "on_movement": {"Distance": 0.25},
         "on_zero": {"Replace": [35,{"Simple": ["wood"]}]},
         "on_replication": "None",
-        "for_offspring": {"Inherit": 0.8}
+        "for_offspring": {"Inherit": 0.85}
       },
       "hand_down_seed": false,
       "rules": [
