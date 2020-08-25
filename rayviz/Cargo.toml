@@ -7,7 +7,6 @@ default-run = "viz"
 
 [dependencies]
 raylib = "^1.0"
-raylib-sys = "^1.0"
 rand = "^0.6"
 tempfile = "3.1.0"
 circular-queue = "^0.2"

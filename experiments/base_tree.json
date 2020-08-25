@@ -25,7 +25,7 @@
       "noclip": false,
       "energy": {
         "on_movement": {"Distance": 0.2},
-        "on_zero": {"Replace": [35,{"Simple": ["wood"]}]},
+        "on_zero": {"Replace": [10,{"Simple": ["wood"]}]},
         "on_replication": "None",
         "for_offspring": {"Inherit": 0.85}
       },
@@ -37,13 +37,7 @@
             "Simple": ["wood"]
           }
         },
-        { "weight":2,
-          "persist": true,
-          "replacement": {
-            "Simple": ["twig","wood"]
-          }
-        },
-        { "weight":1,
+        { "weight":3,
           "persist": true,
           "replacement": {
             "Simple": ["twig","wood"]

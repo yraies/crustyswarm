@@ -136,6 +136,17 @@ fn main() {
                 .long("fullscreen")
                 .help("Wether to run fullscreen"),
         )
+        .arg(
+            Arg::with_name("square")
+                .long("square")
+                .conflicts_with("fullscreen")
+                .help("Runs the simulation with a square aspect ratio"),
+        )
+        .arg(
+            Arg::with_name("no-buoys")
+                .long("no-buoys")
+                .help("Shows no buoys initially"),
+        )
         .get_matches();
 
     let configfile = matches.value_of("config").unwrap();
@@ -152,12 +163,19 @@ fn main() {
 
     let (mut rl, thread) = if matches.is_present("fullscreen") {
         raylib::init()
-            .title("Hello World this is window speaking")
+            .title("Hello World this is fullscreen window speaking")
             .msaa_4x()
             .resizable()
             .vsync()
             .size(1920, 1080)
             .fullscreen()
+            .build()
+    } else if matches.is_present("square") {
+        raylib::init()
+            .title("Hello World this is square window speaking")
+            .msaa_4x()
+            .vsync()
+            .size(1500, 1500)
             .build()
     } else {
         raylib::init()
@@ -262,14 +280,25 @@ fn main() {
         .map_or(0.01, |o| o.parse().unwrap());
 
     let mut conditionals_draws = ConditionalDraw::new();
+    conditionals_draws.buoys = !matches.is_present("no-buoys");
 
     let font = rl
         .load_font(&thread, fontfile_path.to_str().unwrap())
         .expect("Could not load font");
 
     let mut shader = rl.load_shader_code(&thread, Some(TERRAIN_VS_SHADER), Some(TERRAIN_FS_SHADER));
-    let loc_draw_height_lines = shader.get_shader_location("drawHeightLines");
+
+    let loc_draw_height_lines = dbg!(shader.get_shader_location("drawHeightLines"));
     shader.set_shader_value(loc_draw_height_lines, 1);
+    let loc_viewpos = dbg!(shader.get_shader_location("viewPos"));
+    shader.set_shader_value_v(loc_draw_height_lines, &[1.0, 1.0, 1.0]);
+
+    let shader = unsafe {
+        let matmod = dbg!(shader.get_shader_location("matModel"));
+        let mut unsafe_shader = shader.unwrap();
+        unsafe_shader.locs[raylib::consts::ShaderLocationIndex::LOC_MATRIX_MODEL as usize] = matmod;
+        unsafe_shader
+    };
 
     let mut iteration = -1;
     let max_iteration = matches
@@ -278,6 +307,7 @@ fn main() {
 
     while !rl.window_should_close() {
         if iteration > max_iteration {
+            println!("{:?}", camera);
             break;
         }
 
@@ -352,6 +382,16 @@ fn main() {
                     .rotate(Quaternion::from_euler(0.0, orbit_speed, 0.0));
                 camera.target = Vector3::new(0.0, camera_target, 0.0);
             }
+
+            unsafe {
+                raylib::ffi::SetShaderValueV(
+                    shader,
+                    loc_viewpos,
+                    camera.position.to_array().as_ptr() as *const ::std::os::raw::c_void,
+                    (raylib::ffi::ShaderUniformDataType::UNIFORM_VEC3 as u32) as i32,
+                    3,
+                );
+            }
         }
 
         // Update World State
@@ -366,7 +406,7 @@ fn main() {
         }
 
         let tsize = sg.world.get_size();
-        let theight = 60.0;
+        let theight = 96.0;
         let mut image_data = vec![0u8; tsize.0 * tsize.1];
         let toffset = (((tsize.0 - 1) / 2) as f32, ((tsize.1 - 1) / 2) as f32);
         for x in 0..tsize.0 {
@@ -397,7 +437,7 @@ fn main() {
         )
         .unwrap();
 
-        let mesh = raylib::models::Mesh::gen_mesh_heightmap(
+        let mut mesh = raylib::models::Mesh::gen_mesh_heightmap(
             &thread,
             &image,
             Vector3::new(
@@ -407,6 +447,9 @@ fn main() {
             ),
         );
 
+        mesh.mesh_tangents();
+        mesh.mesh_binormals();
+
         let model = unsafe { raylib::ffi::LoadModelFromMesh(*mesh.as_ref()) };
 
         unsafe {
@@ -414,7 +457,7 @@ fn main() {
                 model.materials as *mut Material,
                 model.materialCount as usize,
             );
-            materials[0].shader = *shader.as_ref();
+            materials[0].shader = shader;
         }
 
         // Draw the Scene
@@ -456,7 +499,7 @@ fn main() {
                         let new_color = Color::color_from_hsv(Vector3::new(
                             base_color.x,
                             base_color.y,
-                            ((0f32.max(1f32.min(art.energy / 10.0))) * 0.8 + 0.1) * base_color.z,
+                            ((0f32.max(1f32.min(art.energy / 10.0))) * 0.7 + 0.3) * base_color.z,
                         ));
                         d3d.draw_cube(
                             Vector3::new(art.position.x, art.position.y, art.position.z),
@@ -570,6 +613,10 @@ fn main() {
                         &thread,
                         &format!("{}/{}_{:04}.png", &screenshot_path, &basename, &iteration),
                     );
+                    image.export_image(&format!(
+                        "{}/heightmap_{}_{:04}.png",
+                        &screenshot_path, &basename, &iteration
+                    ));
                 }
             }
         }

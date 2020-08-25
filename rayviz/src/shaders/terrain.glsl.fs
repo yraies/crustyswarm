@@ -2,18 +2,15 @@
 // vim: ft=glsl
 
 // Input vertex attributes (from vertex shader)
-in vec2 fragTexCoord;
 in vec4 fragColor;
-smooth in vec3 fragPosition;
+in vec3 fragPosition;
 in vec3 fragNormal;
 
 uniform bool drawHeightLines;
+uniform vec3 viewPos;
 
 // Output fragment color
 out vec4 finalColor;
-
-
-
 
 void main() {
 

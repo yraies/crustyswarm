@@ -1,55 +1,70 @@
 {
   "base_terrain": {
-    "cfg": "--fullscreen --orbit-speed 0 --instant --fixed-camera --max-iteration 101 -x -60 -z -50 -y 40 -t 20 --screenshots 10 --seed 1337",
+    "cfg": "--square --orbit-speed 0 --instant --fixed-camera --max-iteration 201 -x -120 -y 50 -z -190 -t 20 --screenshots 10 --no-ui --no-buoys ",
+    "seeds": ["1337"],
     "single": {
-      "terrain.influenced_by.formant": ["influence", "rng(6,1,1)"],
-      "species_map.seed.urges.pacekeeping": ["pace", "rng(6,0,0.1)"],
-      "species_map.seed.urges.floor": ["floor", "rng(6,0,0.1)"],
-      "species_map.seed.urges.center": ["center", "rng(6,0,0.1)"],
-      "species_map.seed.urges.bias.1": ["y-bias", "rng(6,-0.2,0.1)" ],
-      "species_map.seed.axis_constraint.1": ["y-constraint", "rng(6,0.2,0.2)" ]
+      "terrain.influenced_by.formant": ["influence", "rng(10,0.5,0.5)"],
+      "species_map.seed.urges.pacekeeping": ["pace", "rng(10,0,0.1)"],
+      "species_map.seed.urges.center": ["center", "rng(10,-0.02,0.005)"],
+      "species_map.seed.urges.randomness": ["random", "rng(10,0,0.05)"],
+      "species_map.seed.axis_constraint.1": ["y-constraint", "rng(5,0.2,0.2)" ],
+      "species_map.seed.axis_constraint.0": ["x-constraint", "rng(5,0.2,0.2)" ]
+    }
+  },
+  "base_tter": {
+    "cfg": " --square --orbit-speed 0 --instant --fixed-camera --max-iteration 201 -x -120 -y 50 -z -190 -t 20 --screenshots 10 --no-ui --no-buoys ",
+    "seeds": ["1337", "1338", "1339", "1340", "1341"],
+    "single": {
+      "species_map.seed.urges.pacekeeping": ["pace", "rng(3,0,0.1)"]
     }
   },
   "base_tree": {
-    "cfg": "--fullscreen --orbit-speed 0 --instant --fixed-camera --max-iteration 111 --screenshots 10 --seed 1234 -y 20 -t 21 -x 40 -z 60",
+    "cfg": "--square --orbit-speed 0 --instant --fixed-camera --max-iteration 111 --screenshots 10 -y 20 -t 21 -x 60 -z 20 --no-ui  ",
+    "seeds": ["1234"],
     "single": {
-      "species_map.twig.urges.separation": ["separation-urge", "rng(11,0,0.1)", "rng(7,1.5,0.5)", "rng(6,5,1)"],
-      "species_map.twig.urges.alignment": ["alignment-urge", "rng(11,0,0.1)", "rng(7,1.5,0.5)", "rng(6,5,1)"],
-      "species_map.twig.urges.cohesion": ["cohesion-urge", "rng(11,0,0.1)", "rng(7,1.5,0.5)", "rng(6,5,1)"],
-      "species_map.twig.urges.pacekeeping": ["pacekeeping-urge", "rng(11,0,0.1)"],
-      "species_map.twig.urges.randomness": ["randomness-urge", "rng(6,0,0.01)", "rng(5,0.1,0.1)", "[1]"],
-      "species_map.twig.urges.floor": ["floor-urge", "[-0.01]", "rng(17,-0.004,0.0005)"],
-      "species_map.twig.urges.center": ["center-urge", "rng(18,-0.04,0.005)"],
+      "species_map.twig.urges.separation": ["separation-urge", "rng(6,0,0.1)",  "rng(4,1,1)"],
+      "species_map.twig.urges.alignment": ["alignment-urge", "rng(10,0.2,0.2)", "rng(5,2,2)"],
+      "species_map.twig.urges.cohesion": ["cohesion-urge", "rng(8,-0.4,0.2)", "[2, 7]"],
+      "species_map.twig.urges.pacekeeping": ["pacekeeping-urge", "rng(10,0,0.1)"],
+      "species_map.twig.urges.randomness": ["randomness-urge", "[0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]"],
+      "species_map.twig.urges.floor": ["floor-urge", "rng(17,-0.005,0.0005)"],
+      "species_map.twig.urges.center": ["center-urge", "rng(10,-0.08,0.02)"],
+      "species_map.twig.urges.bias.2": ["z-bias", "rng(5,-0.02,0.01)"],
+      "species_map.twig.urges.bias.1": ["y-bias", "rng(10,0,0.01)"],
       "species_map.twig.max_speed": ["max-speed", "rng(12,0.1,0.1)"],
       "species_map.twig.max_acceleration": ["max-accel", "rng(12,0.05,0.05)"],
-      "species_map.twig.view_distance": ["view-dist", "rng(5,1,1)", "[8]", "rng(6,10,5)"],
-      "species_map.twig.view_angle": ["view-angle", "rng(11,30,30)", "[359]"],
-      "species_map.twig.sep_distance": ["sep-dist", "rng(12,2,2)"],
-      "species_map.twig.influenced_by.twig": ["self-influece", "rng(11,0,0.1)", "[1.5]"],
-      "species_map.twig.influenced_by.wood": ["wood-influece", "rng(11,0,0.1)", "[1.5]"],
-      "species_map.twig.energy.on_movement.Distance": ["move-energy", "rng(5,0.1,0.1)", "[1.0]"],
-      "species_map.twig.energy.for_offspring.Inherit": ["offspring-energy", "rng(12,0.1,0.1)"]
+      "species_map.twig.view_distance": ["view-dist", "rng(5,1,1)", "rng(5,10,10)"],
+      "species_map.twig.view_angle": ["view-angle", "rng(9,36,36)", "[359.9]"],
+      "species_map.twig.sep_distance": ["sep-dist", "rng(10,2,2)"],
+      "species_map.twig.influenced_by.twig": ["self-influece", "[0, 0.1, 0.5, 1, 5]"],
+      "species_map.twig.influenced_by.wood": ["wood-influece", "rng(10,0,0.05)"],
+      "species_map.twig.energy.on_movement.Distance": ["move-energy", "[0.1, 0.5, 0.8, 1.0, 1.2]"],
+      "species_map.twig.energy.for_offspring.Inherit": ["offspring-energy", "rng(10,0.2,0.1)"],
+      "species_map.twig.rules.1.weight": ["rule-weight", "rng(5,1,1)"]
     }
   },
   "base_water": {
-    "cfg": "--fullscreen --orbit-speed 0 --instant --fixed-camera -x -70 -y 160 -z 150 -t 00 --seed 12345 --max-iteration 1001 --screenshots 100",
+    "cfg": "--square --orbit-speed 0 --instant --fixed-camera -x -70 -y 160 -z 150 -t 00 --max-iteration 1001 --screenshots 100 --no-ui  ",
+    "seeds": ["12345"],
     "single": {
-      "species_map.drop.urges.separation": ["separation-urge", "rng(18,0,0.1)"],
-      "species_map.drop.urges.alignment": ["alignment-urge", "rng(6,0,0.02)", "rng(6,0.2,0.1)"],
-      "species_map.drop.urges.cohesion": ["cohesion-urge", "rng(5,0,0.02)", "rng(7,0.1,0.1)"],
+      "species_map.drop.urges.separation": ["separation-urge", "[0, 0.1, 0.2, 0.3, 0.4, 0.5, 1, 2.5, 5, 7.5]"],
+      "species_map.drop.urges.alignment": ["alignment-urge", "rng(10,0.1,0.1)"],
+      "species_map.drop.urges.cohesion": ["cohesion-urge", "rng(5,0,0.05)", "rng(5,0.3,0.5)"],
       "species_map.drop.urges.pacekeeping": ["pacekeeping-urge", "rng(11,0,0.1)"],
-      "species_map.drop.urges.randomness": ["randomness-urge", "rng(11,0,0.1)", "[1.5]"],
-      "species_map.drop.urges.floor": ["floor-urge", "rng(6,0,0.01)", "rng(5,0.1,0.1)", "[1]"],
-      "species_map.drop.urges.slope": ["slope-urge", "rng(6,0,0.01)", "rng(5,0.1,0.1)", "[1]"],
-      "species_map.drop.normal_speed": ["norm-speed", "rng(12,0.2,0.2)"],
-      "species_map.drop.max_speed": ["max-speed", "rng(12,0.2,0.2)"],
-      "species_map.drop.max_acceleration": ["max-accel", "rng(12,0.05,0.05)"],
-      "species_map.drop.view_distance": ["view-dist", "rng(5,1,1)", "[8]", "rng(6,10,5)"],
-      "species_map.drop.view_angle": ["view-angle", "rng(11,30,30)", "[359]"],
-      "species_map.drop.sep_distance": ["sep-dist", "rng(12,2,2)"],
-      "species_map.drop.influenced_by.sea": ["sea-influece", "rng(6,0,0.1)"],
-      "species_map.drop.energy.on_movement.Constant": ["move-energy-const", "rng(6,0.01,0.01)"],
-      "species_map.drop.energy.on_movement": ["move-energy-dist", "rngobj('Distance',6,0.01,0.01)"]
+      "species_map.drop.urges.randomness": ["randomness-urge", "[0, 0.1, 0.5, 1, 5]"],
+      "species_map.drop.urges.slope": ["slope-urge", "rng(5,0.02,0.02)", "rng(4,0.1,0.1)", "[1]"],
+      "species_map.drop.normal_speed": ["norm-speed", "rng(5,0,0.25)"],
+      "species_map.drop.max_speed": ["max-speed", "rng(10,0.25,0.25)"],
+      "species_map.drop.max_acceleration": ["max-accel", "[0.01]", "rng(4,0.5,0.05)"],
+      "species_map.drop.view_distance": ["view-dist", "rng(5,2,2)", "rng(5,20,10)"],
+      "species_map.drop.view_angle": ["view-angle", "rng(5,10,10)", "rng(5, 60, 30)"],
+      "species_map.drop.sep_distance": ["sep-dist", "rng(5,2,3)"],
+      "species_map.drop.influenced_by.sea": ["sea-influece", "[0, 0.125, 0.3, 0.6, 1]"],
+      "species_map.drop.influenced_by.drop": ["drop-influece", "[0, 0.125, 0.3, 0.6, 1]"],
+      "species_map.drop.energy.on_movement.Constant": ["move-energy-const", "rng(5,0.01,0.01)"],
+      "species_map.drop.energy.on_movement": ["move-energy-dist", "rngobj('Distance',6,0.01,0.01)"],
+      "species_map.drop.rules.2.weight": ["rule-weight", "rng(5,1,1)"],
+      "terrain.influenced_by.formant": ["formant-influence", "rng(5,0.5,0.5)"]
     }
   }
 }

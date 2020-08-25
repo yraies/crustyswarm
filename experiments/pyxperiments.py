@@ -6,6 +6,7 @@ import json
 import hashlib
 
 resultdir="exps"
+versionstring="1"
 
 def debug(string):
     if False:
@@ -35,7 +36,7 @@ def change_in(old_base, str_path, value):
     return base
 
 def norm(string):
-    return string.replace('_','-')
+    return string.replace('_','-').replace(' ','-')
 
 def customHash(string):
     sha = hashlib.sha1()
@@ -69,8 +70,10 @@ for base_config_name in configurations:
     print("Creating " + base_config_name + " configs")
     cargo_params = configurations[base_config_name]["cfg"]
     base_cfg = json.loads(open(base_config_name + '.json', 'r').read())
+    seeds = configurations[base_config_name]["seeds"]
+    cargo_muxes = [cargo_params + " --seed " + seed for seed in seeds]
     # calculate hashes
-    hashes[base_config_name]=customHash(json.dumps(base_cfg))
+    hashes[base_config_name]=customHash(json.dumps(base_cfg)+json.dumps(cargo_muxes)+versionstring)
     base_hash_changed=False
     if hasHashChanged(old_hashes, base_config_name, hashes[base_config_name]):
         base_hash_changed=True
@@ -84,11 +87,12 @@ for base_config_name in configurations:
         all_script +=  "./" + basename + ".sh \n"
         # look up hashes
         hashpath = base_config_name + "." + experiment_name
-        newhash = customHash(json.dumps(experiment))
+        newhash = customHash(json.dumps(experiment)+versionstring)
         hashes[hashpath] = newhash
+        changed=True
         if not hasHashChanged(old_hashes, hashpath, newhash) and not base_hash_changed:
             print("Config for " + hashpath + " already exist")
-            continue
+            changed=False
         loc_script="#!/bin/bash\n"
         loc_script+= "rm -rf " + basename + "*/ \n"
         # Generate parameters
@@ -105,18 +109,22 @@ for base_config_name in configurations:
                 print()
             params=temparams
         except:
-            print("Could not uniquify/sort parameters in:")
-        print(experiment_name.ljust(35,' ') + "\t" + str(len(params)) + "\t" + str(params) + "\t")
+            if changed:
+                print("Could not uniquify/sort parameters in:")
+        if changed:
+            print(experiment_name.ljust(35,' ') + "\t" + str(len(params)) + "\t" + str(params) + "\t")
         for param_index in range(0,len(params)):
-            filename = basename + '_' + str(param_index).rjust(2,'0') + '_' + norm(str(params[param_index])) + '.json'
-            loc_script+="echo 'Running " + filename + "'\n sleep 1\ncargo run " + filename + " " + cargo_params + "\n"
-            with open(resultdir + "/" + filename, 'w') as out_cfg:
-                out_cfg.write(json.dumps(change_in(base_cfg, experiment_name, params[param_index])))
-            total_counter += 1
-            debug(loc_script)
+            for cargo_mux in cargo_muxes:
+                filename = basename + '_' + str(param_index).rjust(2,'0') + '_' + norm(str(params[param_index])) + '.json'
+                loc_script+="echo 'Running " + filename + "'\n sleep 1\ncargo run " + filename + " " + cargo_mux + "\n"
+                with open(resultdir + "/" + filename, 'w') as out_cfg:
+                    out_cfg.write(json.dumps(change_in(base_cfg, experiment_name, params[param_index])))
+                total_counter += 1
+                debug(loc_script)
         with open(resultdir + "/" + basename + ".sh", 'w') as out_sh:
             out_sh.write(loc_script)
-        global_script += "./" + basename + ".sh \n"
+        if changed:
+            global_script += "./" + basename + ".sh \n"
     print()
 
 global_script+="cd ..\n"
