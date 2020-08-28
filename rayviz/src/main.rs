@@ -406,7 +406,7 @@ fn main() {
         }
 
         let tsize = sg.world.get_size();
-        let theight = 96.0;
+        let theight = 70.0;
         let mut image_data = vec![0u8; tsize.0 * tsize.1];
         let toffset = (((tsize.0 - 1) / 2) as f32, ((tsize.1 - 1) / 2) as f32);
         for x in 0..tsize.0 {

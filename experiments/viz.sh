@@ -72,14 +72,15 @@ if [[ "$CMD" == "montages"  || "$CMD" == "all" ]] ; then
     text=$(echo "$f" | sed 's/\.png//' | awk -F '_' '{print $4;}')
     convert "$f" \
     -resize 700x700 \
-    -font Fira-Mono -pointsize 45 \
-    -gravity SouthWest -stroke white -strokewidth 10 -annotate +10+5 "$text" \
-    -stroke none -fill black -annotate +10+5 "$text" \
+    -font Fira-Mono -pointsize 70 \
+    -gravity SouthWest -stroke white -strokewidth 15 -annotate +15+5 "$text" \
+    -stroke none -fill black -annotate +15+5 "$text" \
     -quality 90 -format jpg \
     mini_"${f//\.png/}".jpg &
   done
   )
   wait
+  sleep 1
 
   N=4
   (
@@ -88,7 +89,7 @@ if [[ "$CMD" == "montages"  || "$CMD" == "all" ]] ; then
     ((i=i%N)); ((i++==0)) && wait
     echo "montaging mont_$p"
     glob=$(echo $p | awk -F '_' '{print $1 "_" $2 "*" $3 "_" $4}')
-    montage mini_${glob} -tile 5x -geometry x400 mont_"$p"
+    montage mini_${glob} -tile 5x -geometry x600 -quality 90 mont_"$p"
     ln -fs "$(pwd)"/mont_"$p" "$linkdir"/mont_"$p"
   done
   )
@@ -107,7 +108,7 @@ if [[ "$CMD" == "heightmaps"  || "$CMD" == "all" ]] ; then
     p="${p//\.png/}"
     echo "montaging hmap_${p}.jpg"
     glob=$(echo $p | awk -F '_' '{print $1 "_" $2 "*" $3 "_" $4}')
-    montage heightmap_${glob}.png -tile 5x -border 0 -interpolate 'Nearest' -geometry 400x400^ hmap_"${p}".jpg
+    montage heightmap_${glob}.png -tile 5x -border 0 -interpolate 'Nearest' -geometry 400x400^ -rotate 180 hmap_"${p}".jpg
     echo "converting hmap_${glob}.jpg to normmap_${p}.jpg"
     convert hmap_"${p}".jpg -contrast-stretch 0x0 normmap_"${p}".jpg
     ln -fs "$(pwd)"/normmap_"$p".jpg "$linkdir"/normmap_"$p".jpg
