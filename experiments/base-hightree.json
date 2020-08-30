@@ -1,0 +1,123 @@
+{
+  "species_map": {
+    "twig2": {
+      "urges": {
+        "bias": [ 0.0, 0.5, 0.0 ],
+        "separation": 0.9,
+        "alignment": 1,
+        "cohesion": 0,
+        "randomness": 0.1,
+        "center": 0.0001,
+        "floor": -0.002,
+        "pacekeeping": 0.1,
+        "normal": 0.1,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 0.4,
+      "max_speed": 0.6,
+      "max_acceleration": 0.2,
+      "view_distance": 20,
+      "view_angle": 170,
+      "sep_distance": 5,
+      "axis_constraint": [ 0.9, 1.0, 0.9 ],
+      "influenced_by": {"twig" : 1.0, "twig2" : 1.0,"wood": 0.1},
+      "noclip": false,
+      "energy": {
+        "on_movement": {"Distance": 0.05},
+        "on_zero": {"Replace": [10,{"Simple": ["wood2"]}]},
+        "on_replication": {"PropConst": 0},
+        "for_offspring": {"PropConst": [0,0.5]}
+      },
+      "hand_down_seed": false,
+      "rules": [
+        { "weight":10,
+          "persist": true,
+          "replacement": {
+            "Simple": ["wood2"]
+          }
+        },
+        { "weight":3,
+          "persist": true,
+          "replacement": {
+            "Simple": ["twig","wood2"]
+          }
+        },
+        { "weight":2,
+          "persist": true,
+          "replacement": {
+            "Simple": ["twig","twig","wood2"]
+          }
+        }
+
+      ],
+      "color_index": 6
+    },
+    "twig": {
+      "urges": {
+        "bias": [ 0.0, 0.3, 0.0 ],
+        "separation": 0.9,
+        "alignment": 1,
+        "cohesion": 0,
+        "randomness": 0.1,
+        "center": 0.0001,
+        "floor": -0.002,
+        "pacekeeping": 0.1,
+        "normal": 0.1,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 0.4,
+      "max_speed": 0.6,
+      "max_acceleration": 0.2,
+      "view_distance": 20,
+      "view_angle": 170,
+      "sep_distance": 5,
+      "axis_constraint": [ 0.9, 1.0, 0.9 ],
+      "influenced_by": {"twig" : 1.0, "twig2" : 1.0, "wood": 0.1},
+      "noclip": false,
+      "energy": {
+        "on_movement": {"Distance": 0.05},
+        "on_zero": {"Replace": [10,{"Simple": ["wood"]}]},
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 0.8}
+      },
+      "hand_down_seed": false,
+      "rules": [
+        { "weight":6,
+          "persist": true,
+          "replacement": {
+            "Simple": ["wood"]
+          }
+        },
+        { "weight":3,
+          "persist": true,
+          "replacement": {
+            "Simple": ["twig","wood"]
+          }
+        }
+      ],
+      "color_index": 6
+    }
+  },
+  "artifact_map": {
+    "wood":{"color_index":1},
+    "wood2":{"color_index":2},
+    "formant":{"color_index":0}
+  },
+  "terrain": {
+    "size": 31,
+    "spacing": 5,
+    "influenced_by": {
+      "formant": 3
+    }
+  },
+  "start_dist": {
+    "Multi" : [
+      {"Single": [[0,0,0], "twig2"]}
+    ]
+  },
+  "strategy": {
+    "every" :  3
+  }
+}
