@@ -291,7 +291,7 @@ fn main() {
     let loc_draw_height_lines = dbg!(shader.get_shader_location("drawHeightLines"));
     shader.set_shader_value(loc_draw_height_lines, 1);
     let loc_viewpos = dbg!(shader.get_shader_location("viewPos"));
-    shader.set_shader_value_v(loc_draw_height_lines, &[1.0, 1.0, 1.0]);
+    shader.set_shader_value_v(loc_viewpos, &camera.position.to_array());
 
     let shader = unsafe {
         let matmod = dbg!(shader.get_shader_location("matModel"));
@@ -383,13 +383,14 @@ fn main() {
                 camera.target = Vector3::new(0.0, camera_target, 0.0);
             }
 
+            let mut foo = camera.position;
+
             unsafe {
-                raylib::ffi::SetShaderValueV(
+                raylib::ffi::SetShaderValue(
                     shader,
                     loc_viewpos,
-                    camera.position.to_array().as_ptr() as *const ::std::os::raw::c_void,
+                    foo.to_array().as_ptr() as *const ::std::os::raw::c_void,
                     (raylib::ffi::ShaderUniformDataType::UNIFORM_VEC3 as u32) as i32,
-                    3,
                 );
             }
         }
@@ -447,8 +448,21 @@ fn main() {
             ),
         );
 
+        let terrain_offset = if false {
+            mesh = raylib::models::Mesh::gen_mesh_sphere(&thread, 10.0, 32, 32);
+            Vector3::new(0.0, 0.0, 0.0)
+        } else {
+            Vector3::new(-toffset.0 * tsize.2, -theight, -toffset.1 * tsize.2)
+        };
+
         mesh.mesh_tangents();
         mesh.mesh_binormals();
+
+        mesh.normals().iter().for_each(|n| {
+            if !n.eq(&Vector3::up()) {
+                println!("{:?}", n)
+            }
+        });
 
         let model = unsafe { raylib::ffi::LoadModelFromMesh(*mesh.as_ref()) };
 
@@ -555,8 +569,7 @@ fn main() {
                     unsafe {
                         raylib::ffi::DrawModelEx(
                             model,
-                            Vector3::new(-toffset.0 * tsize.2, -theight, -toffset.1 * tsize.2)
-                                .into(),
+                            terrain_offset.into(),
                             Vector3::up().into(),
                             0.0,
                             Vector3::new(1.0, 1.0, 1.0).into(),

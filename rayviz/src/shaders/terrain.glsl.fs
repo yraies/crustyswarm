@@ -5,14 +5,20 @@
 in vec4 fragColor;
 in vec3 fragPosition;
 in vec3 fragNormal;
+in vec3 viewDirection;
 
 uniform bool drawHeightLines;
-uniform vec3 viewPos;
 
 // Output fragment color
 out vec4 finalColor;
 
 void main() {
+    //vec3 normal = normalize(fragNormal);
+    //vec3 view = normalize(viewPos - fragPosition);
+    //vec3 refl = reflect(-view, normal);
+
+    float newOpacity = min(1.0, 0.7 / abs(dot(viewDirection, fragNormal)));
+    float lightness = 0.6 + 0.4 * smoothstep(0,1,fragNormal.y);
 
     float val = 0.3;
 
@@ -35,7 +41,12 @@ void main() {
         val = 0.2;
       }
     }
+    //val = val * lightness;
+
+    //vec3 myColor = vec3(lightness,lightness,lightness);
+    //vec3 myColor = fragTangent;
+    vec3 myColor = vec3(newOpacity*val*lightness);
 
     // Calculate final fragment color
-    finalColor = vec4(val,val,val, 1.0);
+    finalColor = vec4(myColor,  1.0);
 }
