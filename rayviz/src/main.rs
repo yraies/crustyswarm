@@ -334,6 +334,10 @@ fn main() {
                 conditionals_draws.artifacts = !conditionals_draws.artifacts;
             }
 
+            if rl.is_key_pressed(KeyboardKey::KEY_I) {
+                conditionals_draws.ignores = !conditionals_draws.ignores;
+            }
+
             if rl.is_key_pressed(KeyboardKey::KEY_G) {
                 conditionals_draws.grid = !conditionals_draws.grid;
             }
@@ -518,6 +522,9 @@ fn main() {
                 if conditionals_draws.artifacts {
                     let artifacts = crustswarm::get_all_artifacts(&sg);
                     artifacts.iter().for_each(|(art, spec)| {
+                        if spec.color_index == 10 && !conditionals_draws.ignores {
+                            return;
+                        }
                         let base_color = get_color(spec.color_index).color_to_hsv();
                         let new_color = Color::color_from_hsv(Vector3::new(
                             base_color.x,
@@ -734,6 +741,7 @@ struct ConditionalDraw {
     artifacts: bool,
     grid: bool,
     tweenz: bool,
+    ignores: bool,
 }
 impl ConditionalDraw {
     fn new() -> ConditionalDraw {
@@ -744,6 +752,7 @@ impl ConditionalDraw {
             artifacts: true,
             grid: false,
             tweenz: true,
+            ignores: false,
         }
     }
 }
@@ -751,8 +760,8 @@ impl std::fmt::Display for ConditionalDraw {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Draw Modes:\nAge(n)ts: {}\nArti(f)acts: {}\n(B)uoys: {}\n(T)errain: {}\nTween(z): {}\n(G)rid: {})",
-            self.agents, self.artifacts, self.buoys, self.terrain, self.tweenz, self.grid
+            "Draw Modes:\nAge(n)ts: {}\nArti(f)acts: {}\n(B)uoys: {}\n(T)errain: {}\nTween(z): {}\n(G)rid: {}\n(I)gnores: {}",
+            self.agents, self.artifacts, self.buoys, self.terrain, self.tweenz, self.grid, self.ignores
         )
     }
 }
