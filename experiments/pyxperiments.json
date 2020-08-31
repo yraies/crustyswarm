@@ -46,27 +46,16 @@
     }
   },
   "base_water": {
-    "cfg": "--square --orbit-speed 0 --instant --fixed-camera -x -70 -y 160 -z 150 -t 00 --max-iteration 1001 --screenshots 100 --no-ui  ",
+    "cfg": "--square --orbit-speed 0 --instant --fixed-camera -x -175 -y 175 -z 0 -t 00 --max-iteration 1601 --screenshots 200 --no-ui",
     "seeds": ["12345"],
     "single": {
-      "species_map.drop.urges.separation": ["separation-urge", "[0, 0.1, 0.2, 0.3, 0.4, 0.5, 1, 2.5, 5, 7.5]"],
-      "species_map.drop.urges.alignment": ["alignment-urge", "rng(10,0.1,0.1)"],
-      "species_map.drop.urges.cohesion": ["cohesion-urge", "rng(5,0,0.05)", "rng(5,0.3,0.5)"],
-      "species_map.drop.urges.pacekeeping": ["pacekeeping-urge", "rng(11,0,0.1)"],
+      "species_map.drop.urges.separation": ["separation-urge", "[0, 0.1, 0.5, 1, 5]"],
+      "species_map.drop.urges.cohesion": ["cohesion-urge", "rng(5,0,0.1)"],
       "species_map.drop.urges.randomness": ["randomness-urge", "[0, 0.1, 0.5, 1, 5]"],
-      "species_map.drop.urges.slope": ["slope-urge", "rng(5,0.02,0.02)", "rng(4,0.1,0.1)", "[1]"],
+      "species_map.drop.urges.slope": ["slope-urge", "rng(5,0,0.25)"],
       "species_map.drop.normal_speed": ["norm-speed", "rng(5,0,0.25)"],
-      "species_map.drop.max_speed": ["max-speed", "rng(10,0.25,0.25)"],
-      "species_map.drop.max_acceleration": ["max-accel", "[0.01]", "rng(4,0.5,0.05)"],
-      "species_map.drop.view_distance": ["view-dist", "rng(5,2,2)", "rng(5,20,10)"],
-      "species_map.drop.view_angle": ["view-angle", "rng(5,10,10)", "rng(5, 60, 30)"],
-      "species_map.drop.sep_distance": ["sep-dist", "rng(5,2,3)"],
-      "species_map.drop.influenced_by.sea": ["sea-influece", "[0, 0.125, 0.3, 0.6, 1]"],
-      "species_map.drop.influenced_by.drop": ["drop-influece", "[0, 0.125, 0.3, 0.6, 1]"],
-      "species_map.drop.energy.on_movement.Constant": ["move-energy-const", "rng(5,0.01,0.01)"],
-      "species_map.drop.energy.on_movement": ["move-energy-dist", "rngobj('Distance',6,0.01,0.01)"],
-      "species_map.drop.rules.2.weight": ["rule-weight", "rng(5,1,1)"],
-      "terrain.influenced_by.formant": ["formant-influence", "rng(5,0.5,0.5)"]
+      "species_map.drop.influenced_by.sea": ["sea-influence", "[0, 0.125, 0.3, 0.6, 1]"],
+      "terrain.influenced_by.formant": ["formant-influence", "rng(5,0.6,0.6)"]
     }
   }
 }

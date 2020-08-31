@@ -25,7 +25,7 @@ const TERRAIN_VS_SHADER: &str = include_str!("shaders/terrain.glsl.vs");
 fn main() {
     let matches = App::new("Crustswarm Visualizer")
         .version("1.0")
-        .author("Yasin Raies <yasin.raies@gmail.com")
+        .author("Yasin Raies <yasin.raies@gmail.com>")
         .about("Visualizes a multi species swarm agent simulation")
         .arg(
             Arg::with_name("config")
@@ -163,7 +163,10 @@ fn main() {
 
     let (mut rl, thread) = if matches.is_present("fullscreen") {
         raylib::init()
-            .title("Hello World this is fullscreen window speaking")
+            .title(&format!(
+                "Hello World this is fullscreen window speaking - {}",
+                &configfile
+            ))
             .msaa_4x()
             .resizable()
             .vsync()
@@ -172,7 +175,10 @@ fn main() {
             .build()
     } else if matches.is_present("square") {
         raylib::init()
-            .title("Hello World this is square window speaking")
+            .title(&format!(
+                "Hello World this is square window speaking - {}",
+                &configfile
+            ))
             .msaa_4x()
             .vsync()
             .size(1500, 1500)
@@ -180,7 +186,10 @@ fn main() {
     } else {
         raylib::init()
             .size(1270, 720)
-            .title("Hello World this is window speaking")
+            .title(&format!(
+                "Hello World this is window speaking - {}",
+                &configfile
+            ))
             .vsync()
             .msaa_4x()
             .resizable()

@@ -1,0 +1,265 @@
+{
+  "species_map": {
+    "formant": {
+      "urges": {
+        "bias": [ 0.0, 0, 0.0 ],
+        "separation": 1,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 3,
+        "center": -0.5,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+
+      },
+      "normal_speed": 1,
+      "max_speed": 1,
+      "max_acceleration": 1,
+      "view_distance": 200,
+      "view_angle": 359,
+      "sep_distance": 60,
+      "axis_constraint": [ 1, 0.2, 1 ],
+      "influenced_by": {"marker": 1.0},
+      "noclip": true,
+      "energy": {
+        "on_movement": {"Distance": 0.12},
+        "on_zero": {"Replace": [10, {"Simple": ["f1","formant_stage2"]}]},
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 1,
+          "persist": true
+        }
+      ],
+      "color_index": 1
+    },
+    "formant_stage2": {
+      "urges": {
+        "bias": [ 0.0, -2.5, 0.0 ],
+        "separation": 0.1,
+        "alignment": 0,
+        "cohesion": 0.1,
+        "randomness": 1,
+        "center": 0.001,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+
+      },
+      "normal_speed": 1,
+      "max_speed": 1,
+      "max_acceleration": 1,
+      "view_distance": 100,
+      "view_angle": 170,
+      "sep_distance": 20,
+      "axis_constraint": [ 1, 1, 1 ],
+      "influenced_by": { "formant_stage2": 1.0, "f1": 0.01, "f2": 0.01 },
+      "noclip": true,
+      "energy": {
+        "on_movement": {"Distance": 0.2},
+        "on_zero": {"Replace": [10, {"Simple": ["f2","formant_stage3"]}]},
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 50,
+          "persist": true
+        },
+        { "weight": 1
+        }
+      ],
+      "color_index": 1
+    },
+    "formant_stage3": {
+      "urges": {
+        "bias": [ 0.0, 0.0, 0.0 ],
+        "separation": 0.04,
+        "alignment": 0,
+        "cohesion": 0.01,
+        "randomness": 0.3,
+        "center": -0.1,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 1,
+      "max_speed": 1,
+      "max_acceleration": 1,
+      "view_distance": 60,
+      "view_angle": 359,
+      "sep_distance": 30,
+      "axis_constraint": [ 1, 0.3, 1 ],
+      "influenced_by": { "f2": 0.05, "f1": 1.0 },
+      "noclip": true,
+      "energy": {
+        "on_movement": {"Distance": 1.0},
+        "on_zero": {"Replace": [10, {"Simple": ["f3"]}]},
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 50,
+          "persist": true
+        }
+      ],
+      "color_index": 1
+    },
+    "well": {
+      "urges": {
+        "bias": [ 0.0, 0.0, 0.0 ],
+        "separation": 0.1,
+        "alignment": 0,
+        "cohesion": 0.0,
+        "randomness": 0.3,
+        "center": 0,
+        "floor": 0.01,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0.7,
+        "slope": 0.1
+      },
+      "normal_speed": 1,
+      "max_speed": 1.5,
+      "max_acceleration": 0.5,
+      "view_distance": 60,
+      "view_angle": 359,
+      "sep_distance": 10,
+      "axis_constraint": [ 1, 0.3, 1 ],
+      "influenced_by": { "well": 1.0, "f1": 0.0 },
+      "noclip": false,
+      "energy": {
+        "on_movement": {"Distance": 0.04},
+        "on_zero": {"Replace": [10, {"Simple": ["river"]}]},
+        "on_replication": "None",
+        "for_offspring": {"Constant": 10}
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 1,
+          "persist": true
+        }
+      ],
+      "color_index": 2
+    },
+    "river": {
+      "urges": {
+        "bias": [ 0.0, 0.0, 0.0 ],
+        "separation": 1.0,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 0.3,
+        "center": 0,
+        "floor": 0.3,
+        "pacekeeping": 0.1,
+        "normal": 0,
+        "gradient": -1.4,
+        "slope": 0.2
+      },
+      "normal_speed": 1,
+      "max_speed": 1,
+      "max_acceleration": 0.5,
+      "view_distance": 60,
+      "view_angle": 359,
+      "sep_distance": 10,
+      "axis_constraint": [ 1, 1, 1 ],
+      "influenced_by": { "river_builder": 1.0, "r1": 0.1 },
+      "noclip": false,
+      "energy": {
+        "on_movement": {"Distance": 0.2},
+        "on_zero": {"Replace": [10, {"Simple": []}]},
+        "on_replication": "None",
+        "for_offspring": {"Constant": 10}
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 1,
+          "persist": true,
+          "replacement": {
+            "Simple": ["river_builder"]
+          }
+        }
+      ],
+      "color_index": 2
+    },
+    "river_builder": {
+      "urges": {
+        "bias": [ 0.0, -2, 0.0 ],
+        "separation": 0,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 0.5,
+        "center": 0,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 1,
+      "max_speed": 1,
+      "max_acceleration": 1,
+      "view_distance": 60,
+      "view_angle": 359,
+      "sep_distance": 30,
+      "axis_constraint": [ 0, 1, 0 ],
+      "influenced_by": { },
+      "noclip": true,
+      "energy": {
+        "on_movement": {"Constant": 1},
+        "on_zero": {"Replace": [10, {"Simple": ["r1"]}]},
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 1,
+          "persist": true
+        }
+      ],
+      "color_index": 2
+    }
+
+  },
+  "artifact_map": {
+    "f1": {"color_index": 10},
+    "f2": {"color_index": 10},
+    "f3": {"color_index": 10},
+    "r1": {"color_index": 3},
+    "marker": {"color_index": 7}
+  },
+  "terrain": {
+    "size":100,
+    "spacing": 3,
+    "influenced_by": {
+      "f1": 3,
+      "f2": 3.2,
+      "f3": 3.2,
+      "r1": 6
+    }
+  },
+  "start_dist": {
+    "Multi" : [
+      {"Grid": [5, 40, "formant"]},
+      {"Grid": [5, 20, "well"]},
+      {"Single": [[ 100,-50,-50],   "marker"] },
+      {"Single": [[-100,50,50],   "marker"] },
+      {"Single": [[ 50,0,0],   "marker"] },
+      {"Single": [[-50,0,0],   "marker"] },
+      {"Single": [[0,0,0],   "marker"] }
+    ]
+  },
+  "strategy": {
+    "every" :  2
+  }
+}

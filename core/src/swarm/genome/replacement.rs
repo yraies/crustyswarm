@@ -124,7 +124,7 @@ impl Replacement {
                                 position: parent.position,
                                 pre: parent.last,
                                 iteration: parent.iteration + 1,
-                                energy: parent.energy,
+                                energy: energy,
                             };
                             new_artifacts.push(new_artifact);
                         }

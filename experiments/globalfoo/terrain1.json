@@ -1,0 +1,62 @@
+{
+  "species_map": {
+    "formant": {
+      "urges": {
+        "bias": [ 0.0, -0.4, 0.0 ],
+        "separation": 0,
+        "alignment": 0,
+        "cohesion": 1,
+        "randomness": 3,
+        "center": -0.5,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+
+      },
+      "normal_speed": 1,
+      "max_speed": 1,
+      "max_acceleration": 1,
+      "view_distance": 100,
+      "view_angle": 170,
+      "sep_distance": 1,
+      "axis_constraint": [ 1, 0.5, 1 ],
+      "influenced_by": { "f2" : 1.0, "f1": 0.5},
+      "noclip": true,
+      "energy": {
+        "on_movement": {"Distance": 1},
+        "on_zero": {"Replace": [10, {"Simple": ["f2"]}]},
+        "on_replication": "None",
+        "for_offspring": {"Constant": 10}
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 1,
+          "persist": true
+        }      ],
+      "color_index": 1
+    }
+  },
+  "artifact_map": {
+    "f1": {"color_index": 0},
+    "f2": {"color_index": 9}
+  },
+  "terrain": {
+    "size": 51,
+    "spacing": 5,
+    "influenced_by": {
+      "f1": 3,
+      "f2": 2
+    }
+  },
+  "start_dist": {
+    "Multi" : [
+      {"Grid": [9, 25, "f1"]},
+      {"Grid": [9, 25, "formant"]}
+    ]
+  },
+  "strategy": {
+    "every" :  2
+  }
+}
