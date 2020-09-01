@@ -1,0 +1,317 @@
+{
+  "species_map": {
+    "planter": {
+      "urges": {
+        "bias": [ 5, 0, 0 ],
+        "separation": 0,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 0,
+        "center": 0,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+
+      },
+      "normal_speed": 1,
+      "max_speed": 5,
+      "max_acceleration": 5,
+      "view_distance": 10,
+      "view_angle": 270,
+      "sep_distance": 10,
+      "axis_constraint": [ 1, 0, 0 ],
+      "influenced_by": { },
+      "noclip": false,
+      "energy": {
+        "on_movement": {"Distance": 0.02},
+        "on_zero": "Die",
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": false,
+      "rules": [
+        { "weight": 9999,
+          "context": ["wood"],
+          "range": 50,
+          "persist": true,
+          "replacement": { "Simple": [] }
+        },
+        { "weight": 9999,
+          "context": ["twig"],
+          "range": 50,
+          "persist": true,
+          "replacement": { "Simple": [] }
+        },
+        { "weight": 9999,
+          "context": ["twig_biaser"],
+          "range": 50,
+          "persist": true,
+          "replacement": { "Simple": [] }
+        },
+        { "weight": 1,
+          "persist": true,
+          "replacement": { "Simple": ["twig_biaser","guide_biaser"] }
+        }
+      ],
+      "color_index": 1
+    },
+    "twig_biaser": {
+      "urges": {
+        "bias": [ 0, 1, 0 ],
+        "separation": 0,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 0,
+        "center": 0,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+
+      },
+      "normal_speed": 1,
+      "max_speed": 0.1,
+      "max_acceleration": 0.1,
+      "view_distance": 100,
+      "view_angle": 359,
+      "sep_distance": 10,
+      "axis_constraint": [ 0, 1, 0 ],
+      "influenced_by": { },
+      "noclip": false,
+      "energy": {
+        "on_movement": "None",
+        "on_zero": "Die",
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": false,
+      "rules": [
+        { "weight": 1,
+          "persist": false,
+          "replacement": { "Simple": ["twig"] }
+        }
+      ],
+      "color_index": 1
+    },
+    "guide_biaser": {
+      "urges": {
+        "bias": [ 0, 10, 0 ],
+        "separation": 0,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 3,
+        "center": 0,
+        "floor": 0,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+
+      },
+      "normal_speed": 1,
+      "max_speed": 6,
+      "max_acceleration": 10,
+      "view_distance": 100,
+      "view_angle": 359,
+      "sep_distance": 10,
+      "axis_constraint": [ 0.01, 1, 0.01 ],
+      "influenced_by": { },
+      "noclip": false,
+      "energy": {
+        "on_movement": "None",
+        "on_zero": "Die",
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": false,
+      "rules": [
+        { "weight": 1,
+          "persist": false,
+          "replacement": { "Simple": ["guide"] }
+        }
+      ],
+      "color_index": 1
+    },
+    "guide": {
+      "urges": {
+        "bias": [ 0, 0.8, 0 ],
+        "separation": 0.1,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 2,
+        "center": 0,
+        "floor": 0,
+        "pacekeeping": 0.3,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 0.5,
+      "max_speed": 1,
+      "max_acceleration": 0.5,
+      "view_distance": 100,
+      "view_angle": 359,
+      "sep_distance": 40,
+      "axis_constraint": [ 1, 1.4, 1 ],
+      "influenced_by": { "twig": 1 },
+      "noclip": false,
+      "energy": {
+        "on_movement": {"Constant": 0.1},
+        "on_zero": "Die",
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": false,
+      "rules": [
+        { "weight": 1,
+          "persist": true
+        }
+      ],
+      "color_index": 4
+    },
+    "twig": {
+      "urges": {
+        "bias": [0,1.5,0],
+        "separation": 0.6,
+        "alignment": 0.2,
+        "cohesion": 0.5,
+        "randomness": 0.1,
+        "center": 0.0001,
+        "floor": -0.002,
+        "pacekeeping": 0.1,
+        "normal": 0.1,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 0.4,
+      "max_speed": 0.6,
+      "max_acceleration": 0.2,
+      "view_distance": 30,
+      "view_angle": 270,
+      "sep_distance": 10,
+      "axis_constraint": [0.9,1,0.9],
+      "influenced_by": {"guide": 1, "twig": 1, "wood": 0.1 },
+      "noclip": false,
+      "energy": {
+        "on_movement": { "Distance": 0.16 },
+        "on_zero": {"Replace": [1, { "Simple": ["wood2", "twig2"]}]},
+        "on_replication": "None",
+        "for_offspring": { "Inherit": 0.8 }
+      },
+      "hand_down_seed": false,
+      "rules": [{
+          "weight": 0.1,
+          "context": ["wood", "wood", "wood", "wood", "wood"],
+          "range": 5,
+          "persist": true,
+          "replacement": { "Simple": [ "wood", "twig2" ] }
+        },
+        {
+          "weight": 17,
+          "persist": true,
+          "replacement": { "Simple": [ "wood" ] }
+        },
+        {
+          "weight": 3,
+          "persist": true,
+          "replacement": { "Simple": [ "twig", "wood" ] }
+        }
+      ],
+      "color_index": 6
+    },
+    "twig2": {
+      "urges": {
+        "bias": [0,0.5,0],
+        "separation": 0.9,
+        "alignment": 0.1,
+        "cohesion": 0,
+        "randomness": 0.1,
+        "center": 0.0001,
+        "floor": -0.001,
+        "pacekeeping": 0.1,
+        "normal": 0.1,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 0.4,
+      "max_speed": 0.6,
+      "max_acceleration": 0.2,
+      "view_distance": 20,
+      "view_angle": 170,
+      "sep_distance": 10,
+      "axis_constraint": [0.9,1,0.9],
+      "influenced_by": { "twig": 1, "wood": 0.1, "wood2": 0.001},
+      "noclip": false,
+      "energy": {
+        "on_movement": { "Distance": 0.2 },
+        "on_zero": "Die",
+        "on_replication": "None",
+        "for_offspring": { "Inherit": 0.6 }
+      },
+      "hand_down_seed": false,
+      "rules": [
+        {
+          "weight": 9,
+          "persist": true,
+          "replacement": { "Simple": [ "wood2" ] }
+        },
+        {
+          "weight": 1,
+          "persist": true,
+          "replacement": { "Simple": ["twig2", "wood2"] }
+        }
+      ],
+      "color_index": 6
+    }
+  },
+  "artifact_map": {
+    "wood": {"color_index": 1},
+    "wood2": {"color_index": 2},
+    "formant": {"color_index": 3}
+  },
+  "terrain": {
+    "size": 53,
+    "spacing": 10,
+    "influenced_by": { "formant": 3 }
+  },
+  "start_dist": {
+    "Multi" : [
+      {"Single": [[-250,50,220], "formant"]},
+      {"Single": [[-200,50,220], "formant"]},
+      {"Single": [[-150,50,220], "formant"]},
+      {"Single": [[-100,50,220], "formant"]},
+      {"Single": [[ -50,50,220], "formant"]},
+      {"Single": [[   0,50,220], "formant"]},
+      {"Single": [[ 250,50,220], "formant"]},
+      {"Single": [[ 200,50,220], "formant"]},
+      {"Single": [[ 150,50,220], "formant"]},
+      {"Single": [[ 100,50,220], "formant"]},
+      {"Single": [[  50,50,220], "formant"]},
+      {"Single": [[-250,0,-40], "formant"]},
+      {"Single": [[-200,0,-40], "formant"]},
+      {"Single": [[-150,0,-40], "formant"]},
+      {"Single": [[-100,0,-40], "formant"]},
+      {"Single": [[ -50,0,-40], "formant"]},
+      {"Single": [[   0,0,-40], "formant"]},
+      {"Single": [[ 250,0,-40], "formant"]},
+      {"Single": [[ 200,0,-40], "formant"]},
+      {"Single": [[ 150,0,-40], "formant"]},
+      {"Single": [[ 100,0,-40], "formant"]},
+      {"Single": [[  50,0,-40], "formant"]},
+
+      {"Single": [[-250,1,210], "planter"]},
+      {"Single": [[-250,1,140], "planter"]},
+      {"Single": [[-250,1,70], "planter"]},
+      {"Single": [[-250,1,0], "planter"]},
+      {"Single": [[-250,1,-70], "planter"]},
+      {"Single": [[-250,1,-140], "planter"]},
+      {"Single": [[-250,1,-210], "planter"]}
+    ]
+  },
+  "strategy": {
+    "every" :  2
+  }
+}

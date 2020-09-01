@@ -147,6 +147,11 @@ fn main() {
                 .long("no-buoys")
                 .help("Shows no buoys initially"),
         )
+        .arg(
+            Arg::with_name("no-tweenz")
+                .long("no-tweenz")
+                .help("Shows no tweenz initially"),
+        )
         .get_matches();
 
     let configfile = matches.value_of("config").unwrap();
@@ -205,13 +210,17 @@ fn main() {
     let camera_z = matches
         .value_of("camera-z")
         .map_or(100.0, |h| h.parse().unwrap());
-    let camera_target = matches
-        .value_of("camera-target")
-        .map_or(10.0, |h| h.parse().unwrap());
+    let mut camera_target = Vector3::new(
+        0.0,
+        matches
+            .value_of("camera-target")
+            .map_or(10.0, |h| h.parse().unwrap()),
+        0.0,
+    );
 
     let mut camera = Camera3D::perspective(
         Vector3::new(camera_x, camera_height, camera_z),
-        Vector3::new(0.0, camera_target, 0.0),
+        camera_target,
         Vector3::new(0.0, 1.0, 0.0),
         60.0,
     );
@@ -290,6 +299,7 @@ fn main() {
 
     let mut conditionals_draws = ConditionalDraw::new();
     conditionals_draws.buoys = !matches.is_present("no-buoys");
+    conditionals_draws.tweenz = !matches.is_present("no-tweenz");
 
     let font = rl
         .load_font(&thread, fontfile_path.to_str().unwrap())
@@ -359,12 +369,16 @@ fn main() {
                 conditionals_draws.tweenz = !conditionals_draws.tweenz;
             }
 
+            if rl.is_key_pressed(KeyboardKey::KEY_L) {
+                camera_target = camera.target;
+            }
+
             if rl.is_key_pressed(KeyboardKey::KEY_O) {
                 if orbit {
                     orbit = false;
                 } else {
                     if rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
-                        orbit_speed = 0.01;
+                        orbit_speed = 0.005;
                     } else if rl.is_key_down(KeyboardKey::KEY_LEFT_ALT) {
                         orbit_speed = 0.0;
                     }
@@ -393,7 +407,7 @@ fn main() {
                 camera
                     .position
                     .rotate(Quaternion::from_euler(0.0, orbit_speed, 0.0));
-                camera.target = Vector3::new(0.0, camera_target, 0.0);
+                camera.target = camera_target;
             }
 
             let mut foo = camera.position;

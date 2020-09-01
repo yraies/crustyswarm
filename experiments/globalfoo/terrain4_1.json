@@ -186,7 +186,7 @@
         { "weight": 1,
           "persist": true,
           "replacement": {
-            "Simple": ["river_builder"]
+            "Simple": ["r1"]
           }
         }
       ],
@@ -229,6 +229,7 @@
       ],
       "color_index": 3
     }
+
   },
   "artifact_map": {
     "f1": {"color_index": 4},

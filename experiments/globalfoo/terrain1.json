@@ -3,9 +3,9 @@
     "formant": {
       "urges": {
         "bias": [ 0.0, -0.4, 0.0 ],
-        "separation": 0,
+        "separation": 0.2,
         "alignment": 0,
-        "cohesion": 1,
+        "cohesion": 0,
         "randomness": 3,
         "center": -0.5,
         "floor": 0,
@@ -20,12 +20,12 @@
       "max_acceleration": 1,
       "view_distance": 100,
       "view_angle": 170,
-      "sep_distance": 1,
+      "sep_distance": 20,
       "axis_constraint": [ 1, 0.5, 1 ],
-      "influenced_by": { "f2" : 1.0, "f1": 0.5},
+      "influenced_by": { "f2" : 1.0, "f1": 0.5, "formant": 0.1},
       "noclip": true,
       "energy": {
-        "on_movement": {"Distance": 1},
+        "on_movement": {"Distance": 0.25},
         "on_zero": {"Replace": [10, {"Simple": ["f2"]}]},
         "on_replication": "None",
         "for_offspring": {"Constant": 10}
