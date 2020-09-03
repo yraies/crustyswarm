@@ -43,8 +43,8 @@
     "f2": {"color_index": 9}
   },
   "terrain": {
-    "size": 51,
-    "spacing": 5,
+    "size": 300,
+    "spacing": 1,
     "influenced_by": {
       "f1": 3,
       "f2": 2

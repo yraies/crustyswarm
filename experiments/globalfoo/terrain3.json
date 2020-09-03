@@ -117,9 +117,9 @@
     }
   },
   "artifact_map": {
-    "f1": {"color_index": 4},
-    "f2": {"color_index": 5},
-    "f3": {"color_index": 6},
+    "f1": {"color_index": 0},
+    "f2": {"color_index": 9},
+    "f3": {"color_index": 8},
     "marker": {"color_index": 7}
   },
   "terrain": {

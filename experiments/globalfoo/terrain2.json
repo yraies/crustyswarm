@@ -86,8 +86,8 @@
     "marker": {"color_index": 4}
   },
   "terrain": {
-    "size": 81,
-    "spacing": 3,
+    "size": 300,
+    "spacing": 1,
     "influenced_by": {
       "f2": 3,
       "f3": 3.2

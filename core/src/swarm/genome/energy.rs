@@ -114,7 +114,7 @@ impl OffspringEnergy {
                 (current - offset) / newcount as f32
             }
             OffspringEnergy::PropConst(offset, ammount) => {
-                f32::min(*ammount, (current - offset) / count as f32)
+                dbg!(f32::min(*ammount, (current - offset) / count as f32))
             }
         }
     }
