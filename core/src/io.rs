@@ -1,14 +1,32 @@
-use std::fs;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Error;
 use std::io::Read;
 use std::io::Write;
 use std::path::Path;
+use std::{convert::TryFrom, fs};
 use swarm::genome::SwarmGenome;
 use swarm::world::World;
 
+use crate::swarm::genome::dummies::DummySwarmGenome;
+
 pub fn genome_from_file(path: impl AsRef<Path>) -> SwarmGenome {
+    let mut file = File::open(&path)
+        .map_err(|e| {
+            format!(
+                "Error while opening json from {}! \nError: {}",
+                path.as_ref().display(),
+                e
+            )
+        })
+        .unwrap();
+    let mut json_str = String::new();
+    file.read_to_string(&mut json_str).unwrap();
+    let foo: DummySwarmGenome = serde_json::from_str(&json_str).unwrap();
+    SwarmGenome::try_from(foo).unwrap()
+}
+
+pub fn raw_genome_from_file(path: impl AsRef<Path>) -> SwarmGenome {
     let mut file = File::open(&path)
         .map_err(|e| {
             format!(

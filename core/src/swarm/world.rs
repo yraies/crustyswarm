@@ -466,6 +466,7 @@ impl ChunkedWorld {
             .filter(move |(&cell_pos, _)| self.is_cell_included(range, cell_pos, center_pos))
             .flat_map(|(_, cell)| cell.iter())
     }
+    #[allow(dead_code)]
     fn get_artifacts_at_least_within(
         &self,
         range: f32,

@@ -224,10 +224,10 @@ impl Default for Replacement {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
 pub struct ApplicationStrategy {
-    every: usize,
-    offset: usize,
+    pub every: usize,
+    pub offset: usize,
 }
 
 impl ApplicationStrategy {

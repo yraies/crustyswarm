@@ -152,6 +152,11 @@ fn main() {
                 .long("no-tweenz")
                 .help("Shows no tweenz initially"),
         )
+        .arg(
+            Arg::with_name("raw")
+                .long("raw")
+                .help("specifies whether to interpret the configuration raw or nice"),
+        )
         .get_matches();
 
     let configfile = matches.value_of("config").unwrap();
@@ -261,7 +266,11 @@ fn main() {
 
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
     let mut sg = {
-        let temp = crustswarm::io::genome_from_file(configfile);
+        let temp = if matches.is_present("raw") {
+            crustswarm::io::raw_genome_from_file(configfile)
+        } else {
+            crustswarm::io::genome_from_file(configfile)
+        };
         crustswarm::swarm::grammar::SwarmGrammar::from(temp, &mut rnd)
     };
 

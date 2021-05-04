@@ -13,10 +13,81 @@ use self::replacement::*;
 
 use crate::utils::{Uid, UidGen};
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 pub enum SurroundingIndex {
     Agent(SpeciesIndex),
     Artifact(ArtifactIndex),
+}
+
+impl Serialize for SurroundingIndex {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let string = match self {
+            SurroundingIndex::Agent(idx) => {
+                format!("g{}", idx.0)
+            }
+            SurroundingIndex::Artifact(idx) => {
+                format!("r{}", idx.0)
+            }
+        };
+        serializer.serialize_str(&string)
+    }
+}
+
+struct StrVisitor;
+
+impl<'de> serde::de::Visitor<'de> for StrVisitor {
+    type Value = String;
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(value.to_owned())
+    }
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("Expecting string '[rg][0-9]+'")
+    }
+}
+
+impl<'de> Deserialize<'de> for SurroundingIndex {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let foo = deserializer.deserialize_str(StrVisitor)?;
+        let mut string = foo.chars();
+        match string
+            .next()
+            .ok_or(serde::de::Error::custom("String has to be non empty"))?
+        {
+            'g' => string
+                .collect::<String>()
+                .parse::<usize>()
+                .map(|idx| SurroundingIndex::Agent(SpeciesIndex(idx)))
+                .map_err(|_| serde::de::Error::custom("Usize could not be parsed")),
+            'r' => string
+                .collect::<String>()
+                .parse::<usize>()
+                .map(|idx| SurroundingIndex::Artifact(ArtifactIndex(idx)))
+                .map_err(|_| serde::de::Error::custom("Usize could not be parsed")),
+            _ => Err(serde::de::Error::custom(
+                "String has to start with 'r' or 'g'",
+            )),
+        }
+    }
+
+    fn deserialize_in_place<D>(deserializer: D, place: &mut Self) -> Result<(), D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // Default implementation just delegates to `deserialize` impl.
+        *place = Deserialize::deserialize(deserializer)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Copy, Clone)]
@@ -42,25 +113,24 @@ type Factor = f32;
 type InfluenceFactor = Factor;
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(try_from = "DummySwarmGenome")]
 pub struct SwarmGenome {
-    species_map: Vec<Species>,
-    artifact_map: Vec<ArtifactType>,
-    start_dist: Distribution,
+    pub species_map: Vec<Species>,
+    pub artifact_map: Vec<ArtifactType>,
+    pub start_dist: Distribution,
     pub strategy: ApplicationStrategy,
     pub terrain_influences: (Vec<f32>, Vec<f32>),
     pub terrain_size: usize,
     pub terrain_spacing: f32,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, PartialEq)]
 pub struct ArtifactType {
     pub color_index: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Species {
-    index: SpeciesIndex,
+    pub index: SpeciesIndex,
     pub separation: Factor,
     pub alignment: Factor,
     pub cohesion: Factor,
@@ -83,12 +153,12 @@ pub struct Species {
     pub noclip: bool,
     pub energy: energy::Energy,
     pub hand_down_seed: bool,
-    rules: Vec<ContextRule>,
+    pub rules: Vec<ContextRule>,
     pub color_index: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-enum Distribution {
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum Distribution {
     Multi(Vec<Distribution>),
     Single(Vector3<f32>, SurroundingIndex),
     Singularity(Vector3<f32>, Vec<(usize, SurroundingIndex)>),
