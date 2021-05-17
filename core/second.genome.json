@@ -1,0 +1,348 @@
+{
+  "species_map": [
+    {
+      "index": 0,
+      "separation": 1.2350954,
+      "alignment": 0.39070588,
+      "cohesion": 0.2699392,
+      "randomness": 1.1204134,
+      "center": 0.12997033,
+      "floor": 0.6299847,
+      "bias": {
+        "x": 1.6298144,
+        "y": 1.6407695,
+        "z": 1.9801075
+      },
+      "gradient": 1.6943352,
+      "normal": 1.5457828,
+      "slope": 0.75532186,
+      "normal_speed": 1.1235582,
+      "max_speed": 1.8523064,
+      "max_acceleration": 1.1392096,
+      "pacekeeping": 1.2112387,
+      "view_distance": 1.3767618,
+      "view_angle": 1.0981637,
+      "sep_distance": 1.7606232,
+      "axis_constraint": {
+        "x": 1.4705225,
+        "y": 1.3481153,
+        "z": 0.013361456
+      },
+      "influenced_by": {
+        "r1": 0.0,
+        "g1": 0.0,
+        "r0": 0.0,
+        "g0": 0.0
+      },
+      "noclip": true,
+      "energy": {
+        "on_movement": {
+          "Distance": 2.2837605
+        },
+        "on_zero": {
+          "Replace": [
+            7,
+            {
+              "Simple": [
+                "r2",
+                "r1",
+                "g0"
+              ]
+            }
+          ]
+        },
+        "on_replication": {
+          "PropConst": 8.701225
+        },
+        "for_offspring": {
+          "PropConst": [
+            0.0,
+            5.187791
+          ]
+        }
+      },
+      "hand_down_seed": true,
+      "rules": [
+        {
+          "context": [
+            "r1"
+          ],
+          "range": 12.740444,
+          "weight": 6.0813913,
+          "persist": false,
+          "replacement": {
+            "Simple": [
+              "r1"
+            ]
+          }
+        },
+        {
+          "context": [],
+          "range": 0.7163645,
+          "weight": 14.338018,
+          "persist": true,
+          "replacement": {
+            "Simple": []
+          }
+        },
+        {
+          "context": [],
+          "range": 4.8257847,
+          "weight": 99.85514,
+          "persist": false,
+          "replacement": {
+            "Simple": []
+          }
+        },
+        {
+          "context": [
+            "r1"
+          ],
+          "range": 14.730925,
+          "weight": 46.873814,
+          "persist": true,
+          "replacement": {
+            "Simple": [
+              "r1"
+            ]
+          }
+        },
+        {
+          "context": [
+            "g0"
+          ],
+          "range": 2.4104729,
+          "weight": 70.84751,
+          "persist": true,
+          "replacement": {
+            "Simple": [
+              "g0"
+            ]
+          }
+        },
+        {
+          "context": [
+            "r1"
+          ],
+          "range": 8.832931,
+          "weight": 4.966129,
+          "persist": true,
+          "replacement": {
+            "Simple": [
+              "r1"
+            ]
+          }
+        },
+        {
+          "context": [],
+          "range": 8.2583685,
+          "weight": 92.205696,
+          "persist": false,
+          "replacement": {
+            "Simple": []
+          }
+        },
+        {
+          "context": [
+            "g0"
+          ],
+          "range": 7.1847982,
+          "weight": 49.4603,
+          "persist": true,
+          "replacement": {
+            "Simple": [
+              "g0"
+            ]
+          }
+        }
+      ],
+      "color_index": 12
+    },
+    {
+      "index": 0,
+      "separation": 0.9629458,
+      "alignment": 0.7270122,
+      "cohesion": 1.6358733,
+      "randomness": 0.0076982984,
+      "center": 0.19452599,
+      "floor": 0.4043389,
+      "bias": {
+        "x": 0.1316414,
+        "y": 1.8499546,
+        "z": 1.7220702
+      },
+      "gradient": 0.70101815,
+      "normal": 1.8273785,
+      "slope": 1.7218313,
+      "normal_speed": 0.39158422,
+      "max_speed": 0.5633767,
+      "max_acceleration": 1.1589023,
+      "pacekeeping": 0.67669255,
+      "view_distance": 0.2656987,
+      "view_angle": 0.22919562,
+      "sep_distance": 1.4864806,
+      "axis_constraint": {
+        "x": 1.0217406,
+        "y": 1.8118157,
+        "z": 1.004062
+      },
+      "influenced_by": {
+        "g1": 0.0,
+        "r0": 0.0,
+        "g0": 0.0,
+        "r1": 0.0
+      },
+      "noclip": false,
+      "energy": {
+        "on_movement": {
+          "Distance": 2.3109522
+        },
+        "on_zero": {
+          "Replace": [
+            1,
+            {
+              "Simple": [
+                "r2"
+              ]
+            }
+          ]
+        },
+        "on_replication": {
+          "PropConst": 9.468446
+        },
+        "for_offspring": {
+          "PropConst": [
+            0.0,
+            2.2963657
+          ]
+        }
+      },
+      "hand_down_seed": true,
+      "rules": [
+        {
+          "context": [],
+          "range": 13.0712,
+          "weight": 78.81586,
+          "persist": true,
+          "replacement": {
+            "Simple": []
+          }
+        },
+        {
+          "context": [],
+          "range": 4.6020365,
+          "weight": 49.337658,
+          "persist": false,
+          "replacement": {
+            "Simple": []
+          }
+        },
+        {
+          "context": [],
+          "range": 6.340462,
+          "weight": 46.874268,
+          "persist": false,
+          "replacement": {
+            "Simple": []
+          }
+        },
+        {
+          "context": [],
+          "range": 14.934272,
+          "weight": 2.5877242,
+          "persist": true,
+          "replacement": {
+            "Simple": []
+          }
+        },
+        {
+          "context": [
+            "g1"
+          ],
+          "range": 0.5631835,
+          "weight": 29.903584,
+          "persist": true,
+          "replacement": {
+            "Simple": [
+              "g1"
+            ]
+          }
+        },
+        {
+          "context": [
+            "g1"
+          ],
+          "range": 9.065591,
+          "weight": 23.189215,
+          "persist": true,
+          "replacement": {
+            "Simple": [
+              "g1"
+            ]
+          }
+        },
+        {
+          "context": [],
+          "range": 0.78736794,
+          "weight": 9.24914,
+          "persist": false,
+          "replacement": {
+            "Simple": []
+          }
+        },
+        {
+          "context": [
+            "r2"
+          ],
+          "range": 13.352482,
+          "weight": 13.76362,
+          "persist": false,
+          "replacement": {
+            "Simple": [
+              "r2"
+            ]
+          }
+        }
+      ],
+      "color_index": 13
+    }
+  ],
+  "artifact_map": [
+    {
+      "color_index": 1
+    },
+    {
+      "color_index": 4
+    },
+    {
+      "color_index": 8
+    }
+  ],
+  "start_dist": {
+    "Single": [
+      {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "g0"
+    ]
+  },
+  "strategy": {
+    "every": 2,
+    "offset": 1
+  },
+  "terrain_influences": [
+    [
+      0.0,
+      0.0
+    ],
+    [
+      4.222875,
+      2.0478745,
+      3.2203712
+    ]
+  ],
+  "terrain_size": 20,
+  "terrain_spacing": 5.0
+}

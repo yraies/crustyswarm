@@ -76,14 +76,14 @@ impl BoolCell<usize> {
 
     fn scale(&self, factor: f32) -> Self {
         Self {
-            active: self.active,
+            active: if factor == 0.0 { false } else { self.active },
             value: (self.value as f32 * factor).ceil() as usize,
         }
     }
     fn opposite(&self, index_count: usize) -> Self {
         Self {
             active: !self.active,
-            value: index_count - self.value,
+            value: index_count - self.value - 1,
         }
     }
 
@@ -116,14 +116,14 @@ impl BoolCell<f32> {
         Self {
             active: self.active ^ other.active,
             value: BoundedFactor::new(lower_bound, upper_bound, self.value)
-                .difference(&BoundedFactor::new(0.0, upper_bound, other.value))
+                .difference(&BoundedFactor::new(lower_bound, upper_bound, other.value))
                 .get_value(),
         }
     }
 
     fn scale(&self, factor: f32, lower_bound: f32, upper_bound: f32) -> Self {
         Self {
-            active: self.active,
+            active: if factor == 0.0 { self.active } else { false },
             value: BoundedFactor::new(lower_bound, upper_bound, self.value)
                 .scale(factor)
                 .get_value(),
@@ -162,15 +162,15 @@ impl BoundedIdxVec {
         }
     }
 
-    fn flatten_into_surrounding_vec(&self, oide_genome: &OIDESwarmGenome) -> Vec<SurroundingIndex> {
-        self.vec
+    fn flatten_into_surrounding_vec(&self, species_count: usize) -> Vec<SurroundingIndex> {
+        let foobar = self
+            .vec
             .iter()
             .flat_map(|bar| {
                 if bar.active {
-                    if bar.value >= oide_genome.species_count {
-                        Some(SurroundingIndex::Artifact(ArtifactIndex(
-                            bar.value - oide_genome.species_count,
-                        )))
+                    if bar.value >= species_count {
+                        let art_id = bar.value - species_count;
+                        Some(SurroundingIndex::Artifact(ArtifactIndex(art_id)))
                     } else {
                         Some(SurroundingIndex::Agent(SpeciesIndex(bar.value)))
                     }
@@ -178,7 +178,12 @@ impl BoundedIdxVec {
                     None
                 }
             })
-            .collect()
+            .collect();
+        foobar
+    }
+
+    fn get_activation_vec(&self) -> Vec<bool> {
+        self.vec.iter().map(|bar| bar.active).collect()
     }
 
     fn random(&self, rng: &mut impl Rng) -> Self {
@@ -226,7 +231,7 @@ impl BoundedFactorVec {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct OIDESwarmGenome {
     species_count: usize,
     artifact_count: usize,
@@ -286,20 +291,20 @@ impl OIDESpecies {
             center: BoundedFactor::new(0.0, 2.0, 0.0),
             floor: BoundedFactor::new(0.0, 2.0, 0.0),
             bias: Vector3::new(
-                BoundedFactor::new(0.0, 2.0, 0.0),
-                BoundedFactor::new(0.0, 2.0, 0.0),
-                BoundedFactor::new(0.0, 2.0, 0.0),
+                BoundedFactor::new(-1.0, 1.0, 0.0),
+                BoundedFactor::new(-1.0, 1.0, 0.0),
+                BoundedFactor::new(-1.0, 1.0, 0.0),
             ),
             gradient: BoundedFactor::new(0.0, 2.0, 0.0),
             normal: BoundedFactor::new(0.0, 2.0, 0.0),
             slope: BoundedFactor::new(0.0, 2.0, 0.0),
-            normal_speed: BoundedFactor::new(0.0, 2.0, 0.0),
-            max_speed: BoundedFactor::new(0.0, 2.0, 0.0),
-            max_acceleration: BoundedFactor::new(0.0, 2.0, 0.0),
+            normal_speed: BoundedFactor::new(0.0, 2.0, 0.5),
+            max_speed: BoundedFactor::new(0.0, 2.0, 1.0),
+            max_acceleration: BoundedFactor::new(0.0, 2.0, 1.0),
             pacekeeping: BoundedFactor::new(0.0, 2.0, 0.0),
-            view_distance: BoundedFactor::new(0.0, 2.0, 0.0),
-            view_angle: BoundedFactor::new(0.0, 2.0, 0.0),
-            sep_distance: BoundedFactor::new(0.0, 2.0, 0.0),
+            view_distance: BoundedFactor::new(0.0, 200.0, 50.0),
+            view_angle: BoundedFactor::new(1.0, 359.9, 270.0),
+            sep_distance: BoundedFactor::new(0.0, 50.0, 10.0),
             axis_constraint: Vector3::new(
                 BoundedFactor::new(0.0, 2.0, 0.0),
                 BoundedFactor::new(0.0, 2.0, 0.0),
@@ -493,7 +498,7 @@ impl OIDESwarmGenome {
                 );
                 spec_count
             ],
-            artifact_map: BoundedIdxVec::new(15, art_count),
+            artifact_map: BoundedIdxVec::new(15, art_count), // colors
             start_dist: Distribution::Single(
                 Vector3::new(0.0, 0.0, 0.0),
                 SurroundingIndex::Agent(SpeciesIndex(0)),
@@ -534,8 +539,8 @@ impl OIDESwarmGenome {
     }
 }
 
-impl From<OIDESwarmGenome> for SwarmGenome {
-    fn from(oide_genome: OIDESwarmGenome) -> Self {
+impl From<&OIDESwarmGenome> for SwarmGenome {
+    fn from(oide_genome: &OIDESwarmGenome) -> Self {
         let species_map = oide_genome
             .species_map
             .iter()
@@ -551,7 +556,7 @@ impl From<OIDESwarmGenome> for SwarmGenome {
                                 .energy
                                 .on_zero
                                 .1
-                                .flatten_into_surrounding_vec(&oide_genome),
+                                .flatten_into_surrounding_vec(oide_genome.species_count),
                         ),
                     ),
                     on_replication: ReplicationEnergy::PropConst(
@@ -567,14 +572,21 @@ impl From<OIDESwarmGenome> for SwarmGenome {
                     .rules
                     .rules
                     .iter()
-                    .map(|oide_rule| ContextRule {
-                        context: oide_rule.context.flatten_into_surrounding_vec(&oide_genome),
-                        range: oide_rule.range,
-                        weight: oide_rule.weight,
-                        persist: oide_rule.persist,
-                        replacement: Replacement::Simple(
-                            oide_rule.context.flatten_into_surrounding_vec(&oide_genome),
-                        ),
+                    .map(|oide_rule| {
+                        let foo = ContextRule {
+                            context: oide_rule
+                                .context
+                                .flatten_into_surrounding_vec(oide_genome.species_count),
+                            range: oide_rule.range,
+                            weight: oide_rule.weight,
+                            persist: oide_rule.persist,
+                            replacement: Replacement::Simple(
+                                oide_rule
+                                    .replacement
+                                    .flatten_into_surrounding_vec(oide_genome.species_count),
+                            ),
+                        };
+                        foo
                     })
                     .collect();
 
@@ -641,7 +653,7 @@ impl From<OIDESwarmGenome> for SwarmGenome {
                     color_index: entry.value,
                 })
                 .collect(),
-            start_dist: oide_genome.start_dist,
+            start_dist: oide_genome.start_dist.clone(),
             strategy: oide_genome.strategy,
             terrain_influences: (
                 oide_genome.terrain_influences.0.into_f32_vec(),
@@ -1227,6 +1239,7 @@ impl Differentiable for BoundedFactor {
         self.clone()
     }
 }
+
 #[cfg(test)]
 mod testbounded_factors {
     use super::*;
@@ -1372,5 +1385,102 @@ mod testbounded_factors {
                 factor1.get_value() - testfac.get_value()
             );
         });
+    }
+}
+
+#[cfg(test)]
+mod testidxvec {
+    use super::*;
+    use rand::{prelude::*, SeedableRng};
+    use std::fmt::{Display, Write};
+
+    impl Display for BoundedIdxVec {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_char('[')?;
+            f.write_str(
+                &self
+                    .vec
+                    .iter()
+                    .map(|cell| {
+                        return format!(
+                            "[{} {:2}]",
+                            if cell.active { "O" } else { "X" },
+                            cell.value
+                        );
+                    })
+                    .fold(Vec::<String>::new(), |mut acc, elem| {
+                        acc.push(elem);
+                        acc
+                    })
+                    .join(", "),
+            )?;
+            f.write_char(']')?;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn add() {
+        let mut rng = StdRng::seed_from_u64(1237919273);
+        let total_size = 20;
+        for total_count in 1..20 {
+            let v1 = BoundedIdxVec::new(total_count, total_size);
+            for _i in 0..2000 {
+                let v1 = v1.random(&mut rng);
+                let v2 = v1.random(&mut rng);
+                let f1 = |v: &BoundedIdxVec| v.vec.iter().any(|cell| cell.value >= total_count);
+                let spec_count = rng.gen_range(0, total_count);
+                let f2 = |v: &BoundedIdxVec| {
+                    v.flatten_into_surrounding_vec(spec_count)
+                        .iter()
+                        .any(|idx| match idx {
+                            SurroundingIndex::Agent(SpeciesIndex(i)) => i >= &spec_count,
+                            SurroundingIndex::Artifact(ArtifactIndex(i)) => {
+                                i >= &(total_count - &spec_count)
+                            }
+                        })
+                };
+
+                println!("v1  : {} {} {}:{}", &v1, f1(&v1), spec_count, f2(&v1));
+                assert!(!f1(&v1));
+                assert!(!f2(&v1));
+
+                println!("v2  : {} {} {}:{}", &v2, f1(&v2), spec_count, f2(&v2));
+                assert!(!f1(&v2));
+                assert!(!f2(&v2));
+
+                let o1 = v1.opposite();
+                println!("o1 : {} {} {}:{}", o1, f1(&o1), spec_count, f2(&o1));
+                assert!(!f1(&o1));
+                assert!(!f2(&o1));
+
+                let o2 = v2.opposite();
+                println!("o2 : {} {} {}:{}", o2, f1(&o2), spec_count, f2(&o2));
+                assert!(!f1(&o2));
+                assert!(!f2(&o2));
+
+                let s1 = v1.scale(0.5);
+                println!("s1 : {} {} {}:{}", s1, f1(&s1), spec_count, f2(&s1));
+                assert!(!f1(&s1));
+                assert!(!f2(&s1));
+
+                let s2 = v2.scale(0.5);
+                println!("s2 : {} {} {}:{}", s2, f1(&s2), spec_count, f2(&s2));
+                assert!(!f1(&s2));
+                assert!(!f2(&s2));
+
+                let v3 = v1.add(&v2);
+                println!("add : {} {} {}:{}", v3, f1(&v3), spec_count, f2(&v3));
+                assert!(!f1(&v3));
+                assert!(!f2(&v3));
+
+                let v4 = v1.difference(&v2);
+                println!("diff: {} {} {}:{}", v4, f1(&v4), spec_count, f2(&v4));
+                assert!(!f1(&v4));
+                assert!(!f2(&v4));
+
+                println!();
+            }
+        }
     }
 }

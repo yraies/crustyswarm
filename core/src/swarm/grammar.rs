@@ -27,18 +27,25 @@ impl SwarmGrammar {
         // Spawn Artifacts
         // Recalc Buoys
 
-        println!("{} Agents", self.world.get_all_agents().count());
+        let mut printfoo: Vec<String> = vec![format!(
+            "{:5} Agents {:5} Artifacts:",
+            self.world.get_all_agents().count(),
+            self.world.get_all_artifacts().count()
+        )];
 
         // 1. Replace by Rules          -------------------------------------
         self.genome.tick();
         let mut start = Instant::now();
         self.world.replace_by(&self.genome, rnd);
-        println!("replacement {:3.1?}", start.elapsed());
+        printfoo.push(format!(
+            "replacement {:>7} ",
+            format!("{:.1?}", start.elapsed())
+        ));
 
         // 2. Recalculate Velocities    -------------------------------------
         start = Instant::now();
         self.recalc_agent(rnd);
-        println!("recalc      {:3.1?}", start.elapsed());
+        printfoo.push(format!("recalc {:>7} ", format!("{:.1?}", start.elapsed())));
 
         // 3. Recalculate Buoys         -------------------------------------
         start = Instant::now();
@@ -46,7 +53,12 @@ impl SwarmGrammar {
             &self.genome.terrain_influences.0,
             &self.genome.terrain_influences.1,
         ));
-        println!("buoys rec   {:3.1?}", start.elapsed());
+        printfoo.push(format!(
+            "buoys rec {:>7} ",
+            format!("{:.1?}", start.elapsed())
+        ));
+        let pr = printfoo.join(" ");
+        println!("{}", pr);
     }
 
     pub fn recalc_agent(&mut self, rnd: &mut impl Rng) {

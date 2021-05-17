@@ -8,7 +8,7 @@ use std::{convert::TryFrom, fs};
 use swarm::genome::SwarmGenome;
 use swarm::world::World;
 
-use crate::swarm::genome::dummies::DummySwarmGenome;
+use crate::swarm::{genome::dummies::DummySwarmGenome, oide_genome::OIDESwarmGenome};
 
 pub fn genome_from_file(path: impl AsRef<Path>) -> SwarmGenome {
     let mut file = File::open(&path)
@@ -43,6 +43,21 @@ pub fn raw_genome_from_file(path: impl AsRef<Path>) -> SwarmGenome {
 
 pub fn genome_to_file(template: &SwarmGenome, path: impl AsRef<Path>) -> Option<Error> {
     fs::write(&path, serde_json::to_string_pretty(&template).unwrap()).err()
+}
+
+pub fn oide_genome_from_file(path: impl AsRef<Path>) -> OIDESwarmGenome {
+    let mut file = File::open(&path)
+        .map_err(|e| {
+            format!(
+                "Error while opening json from {}! \nError: {}",
+                path.as_ref().display(),
+                e
+            )
+        })
+        .unwrap();
+    let mut json_str = String::new();
+    file.read_to_string(&mut json_str).unwrap();
+    serde_json::from_str(&json_str).unwrap()
 }
 
 #[allow(dead_code)]

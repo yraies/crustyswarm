@@ -1,29 +1,39 @@
 extern crate crustswarm_lib as crustswarm;
-use std::{convert::TryFrom, fs::File, io::Read};
+
+use std::env;
+
+use crustswarm::swarm::oide_genome::OIDESwarmGenome;
 
 fn main() {
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&crustswarm::swarm::genome::dummies::example_dummy_genome())
-            .unwrap()
-    );
-    println!("##########");
-    println!(
-        "{:?}",
-        &serde_json::to_string_pretty(&crustswarm::swarm::genome::SwarmGenome::try_from(
-            crustswarm::swarm::genome::dummies::example_dummy_genome()
-        ))
-    );
-    println!("##########");
+    let cmd = env::args().skip(1).next();
 
-    let mut file = File::open("new_config.json").unwrap();
-    let mut json_str = String::new();
-    file.read_to_string(&mut json_str).unwrap();
-    let genome: crustswarm::swarm::genome::SwarmGenome = serde_json::from_str(&json_str).unwrap();
-    println!("\n# From ###\n\n");
-    println!("{}", &json_str);
-    println!("\n# To #####\n\n");
-    println!("{:#?}", &genome);
+    match cmd.as_ref().map(String::as_str) {
+        Some("convert") => {
+            let oide_path = env::args()
+                .skip(2)
+                .next()
+                .expect("Oide config to convert required!");
+            println!("converting {} to concrete genome", oide_path);
+            crustswarm::io::genome_to_file(
+                &crustswarm::swarm::genome::SwarmGenome::from(
+                    &crustswarm::io::oide_genome_from_file(oide_path),
+                ),
+                "converted.genome.json",
+            )
+            .map(|err| println!("Error occured while converting: {:?}", err));
+        }
+        Some("generate_zero") => {
+            std::fs::write(
+                "zero.oide.json",
+                serde_json::to_string_pretty(&OIDESwarmGenome::new(2, 3, 3, 2, 4)).unwrap(),
+            )
+            .unwrap();
+        }
+        Some(a) => print!("Command {} unknown", a),
+        None => {
+            println!("Please provide some command")
+        }
+    };
 
     return;
 }
@@ -47,7 +57,7 @@ fn oide_genome() {
     .map_err(|e| e.to_string())
     .unwrap();
 
-    let oideresult = crustswarm::swarm::genome::SwarmGenome::from(oidegnome);
+    let oideresult = crustswarm::swarm::genome::SwarmGenome::from(&oidegnome);
 
     let mut file2 = std::fs::File::create("result.genome.json")
         .map_err(|e| e.to_string())

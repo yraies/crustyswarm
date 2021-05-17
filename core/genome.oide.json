@@ -1,0 +1,844 @@
+{
+  "species_count": 2,
+  "artifact_count": 3,
+  "rule_count": 8,
+  "species_map": [
+    {
+      "index": 0,
+      "separation": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.5620306
+      },
+      "alignment": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.41455394
+      },
+      "cohesion": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.21645477
+      },
+      "randomness": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.72920686
+      },
+      "center": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.2280611
+      },
+      "floor": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.3140687
+      },
+      "bias": {
+        "x": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 0.93941414
+        },
+        "y": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 1.5895967
+        },
+        "z": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 0.32496455
+        }
+      },
+      "gradient": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.349161
+      },
+      "normal": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.1817242
+      },
+      "slope": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.7672676
+      },
+      "normal_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.07587958
+      },
+      "max_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.0083786
+      },
+      "max_acceleration": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.1701616
+      },
+      "pacekeeping": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.3853992
+      },
+      "view_distance": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.7581421
+      },
+      "view_angle": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.57475406
+      },
+      "sep_distance": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.6786399
+      },
+      "axis_constraint": {
+        "x": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 0.75053394
+        },
+        "y": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 1.4606954
+        },
+        "z": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 0.013955595
+        }
+      },
+      "influenced_by": [
+        {
+          "vec": [
+            {
+              "active": true,
+              "value": 1.4377017
+            },
+            {
+              "active": false,
+              "value": -1.2041758
+            }
+          ],
+          "upper_bound": 2.0,
+          "lower_bound": -2.0
+        },
+        {
+          "vec": [
+            {
+              "active": true,
+              "value": -1.4587078
+            },
+            {
+              "active": false,
+              "value": -0.9148406
+            },
+            {
+              "active": false,
+              "value": 1.5699005
+            }
+          ],
+          "upper_bound": 2.0,
+          "lower_bound": -2.0
+        }
+      ],
+      "noclip": true,
+      "energy": {
+        "on_movement": {
+          "base": 0.0,
+          "range": 10.0,
+          "val": 8.753195
+        },
+        "on_zero": [
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "val": 9.794337
+          },
+          {
+            "vec": [
+              {
+                "active": true,
+                "value": 1
+              },
+              {
+                "active": false,
+                "value": 4
+              },
+              {
+                "active": false,
+                "value": 4
+              }
+            ],
+            "index_count": 5
+          }
+        ],
+        "on_replication": {
+          "base": 0.0,
+          "range": 10.0,
+          "val": 1.5467621
+        },
+        "for_offspring": {
+          "base": 0.0,
+          "range": 10.0,
+          "val": 3.7766747
+        }
+      },
+      "hand_down_seed": false,
+      "rules": {
+        "rules": [
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 3
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 8.227077,
+            "weight": 32.180374,
+            "persist": false,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 3
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 1
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 14.30998,
+            "weight": 97.624695,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 1
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 11.65237,
+            "weight": 44.9678,
+            "persist": false,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 10.000455,
+            "weight": 0.9825112,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 1
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 10.722486,
+            "weight": 26.934353,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 12.429645,
+            "weight": 58.12919,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 1
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 13.439033,
+            "weight": 70.36697,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 1
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 10.383456,
+            "weight": 98.915344,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            }
+          }
+        ],
+        "upper_weight_bound": 100.0,
+        "upper_range_bound": 15.0
+      },
+      "color_index": 12
+    },
+    {
+      "index": 0,
+      "separation": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.39923102
+      },
+      "alignment": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.8186697
+      },
+      "cohesion": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.4237274
+      },
+      "randomness": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.7882233
+      },
+      "center": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.1659688
+      },
+      "floor": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.099649444
+      },
+      "bias": {
+        "x": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 1.2509936
+        },
+        "y": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 1.2205788
+        },
+        "z": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 0.6800409
+        }
+      },
+      "gradient": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.74348503
+      },
+      "normal": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.28823307
+      },
+      "slope": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.6352735
+      },
+      "normal_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.4210895
+      },
+      "max_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.19652656
+      },
+      "max_acceleration": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.084612854
+      },
+      "pacekeeping": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.1222118
+      },
+      "view_distance": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.6706576
+      },
+      "view_angle": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.044988
+      },
+      "sep_distance": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.7684743
+      },
+      "axis_constraint": {
+        "x": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 0.98126113
+        },
+        "y": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 0.21748593
+        },
+        "z": {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 1.0439216
+        }
+      },
+      "influenced_by": [
+        {
+          "vec": [
+            {
+              "active": true,
+              "value": 1.3318992
+            },
+            {
+              "active": false,
+              "value": 1.367661
+            }
+          ],
+          "upper_bound": 2.0,
+          "lower_bound": -2.0
+        },
+        {
+          "vec": [
+            {
+              "active": false,
+              "value": -1.5896721
+            },
+            {
+              "active": true,
+              "value": 0.29644942
+            },
+            {
+              "active": true,
+              "value": 1.5962062
+            }
+          ],
+          "upper_bound": 2.0,
+          "lower_bound": -2.0
+        }
+      ],
+      "noclip": false,
+      "energy": {
+        "on_movement": {
+          "base": 0.0,
+          "range": 10.0,
+          "val": 1.1398793
+        },
+        "on_zero": [
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "val": 3.627452
+          },
+          {
+            "vec": [
+              {
+                "active": true,
+                "value": 0
+              },
+              {
+                "active": true,
+                "value": 1
+              },
+              {
+                "active": false,
+                "value": 4
+              }
+            ],
+            "index_count": 5
+          }
+        ],
+        "on_replication": {
+          "base": 0.0,
+          "range": 10.0,
+          "val": 6.7667346
+        },
+        "for_offspring": {
+          "base": 0.0,
+          "range": 10.0,
+          "val": 0.6248606
+        }
+      },
+      "hand_down_seed": true,
+      "rules": {
+        "rules": [
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 6.228351,
+            "weight": 33.17409,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 1
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 2
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 5.4945273,
+            "weight": 21.660032,
+            "persist": false,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 2
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 3
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 13.21015,
+            "weight": 16.69245,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 1
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 0.8677287,
+            "weight": 84.39579,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 3
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 14.826873,
+            "weight": 92.11455,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 11.612702,
+            "weight": 40.75609,
+            "persist": false,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 3.2129579,
+            "weight": 93.28742,
+            "persist": false,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 3
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 1
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 11.54031,
+            "weight": 96.63941,
+            "persist": false,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 4
+                }
+              ],
+              "index_count": 5
+            }
+          }
+        ],
+        "upper_weight_bound": 100.0,
+        "upper_range_bound": 15.0
+      },
+      "color_index": 5
+    }
+  ],
+  "artifact_map": {
+    "vec": [
+      {
+        "active": true,
+        "value": 10
+      },
+      {
+        "active": true,
+        "value": 12
+      },
+      {
+        "active": true,
+        "value": 1
+      }
+    ],
+    "index_count": 15
+  },
+  "start_dist": {
+    "Single": [
+      {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "g0"
+    ]
+  },
+  "strategy": {
+    "every": 2,
+    "offset": 1
+  },
+  "terrain_influences": [
+    {
+      "vec": [
+        {
+          "active": false,
+          "value": 4.4194255
+        },
+        {
+          "active": true,
+          "value": 2.0480719
+        }
+      ],
+      "upper_bound": 5.0,
+      "lower_bound": 0.0
+    },
+    {
+      "vec": [
+        {
+          "active": false,
+          "value": 3.801059
+        },
+        {
+          "active": false,
+          "value": 1.0168005
+        },
+        {
+          "active": false,
+          "value": 2.6633391
+        }
+      ],
+      "upper_bound": 5.0,
+      "lower_bound": 0.0
+    }
+  ],
+  "terrain_size": 20,
+  "terrain_spacing": 5.0
+}

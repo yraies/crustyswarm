@@ -1,2 +1,2 @@
 [workspace]
-members = ["core","rayviz"]
+members = ["core","rayviz","evoviz"]

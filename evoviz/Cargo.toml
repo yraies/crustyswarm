@@ -1,0 +1,18 @@
+[package]
+name = "evoviz"
+version = "0.1.0"
+authors = ["Yasin Raies <yasin.raies@gmail.de>"]
+edition = "2018"
+default-run = "evoviz"
+
+[dependencies]
+raylib = "^1.0"
+rand = "^0.6"
+tempfile = "3.1.0"
+circular-queue = "^0.2"
+clap = "2.33.*"
+regex = "^1.3"
+
+[dependencies.crustswarm]
+path = "../core"
+

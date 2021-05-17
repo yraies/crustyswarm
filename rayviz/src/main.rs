@@ -419,7 +419,7 @@ fn main() {
                 camera.target = camera_target;
             }
 
-            let mut foo = camera.position;
+            let foo = camera.position;
 
             unsafe {
                 raylib::ffi::SetShaderValue(

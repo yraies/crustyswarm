@@ -79,7 +79,7 @@ impl World for ChunkedWorld {
                 .collect();
 
             let weight_sum: f32 = applicable_rules.iter().map(|rule| rule.weight).sum();
-            let threshold = rnd.gen_range(0.0, weight_sum);
+            let threshold = rnd.gen_range(0.0, weight_sum + f32::EPSILON);
 
             let mut gauge = 0.0;
             for rule in applicable_rules {

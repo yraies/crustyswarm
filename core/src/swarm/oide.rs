@@ -2,6 +2,8 @@ use std::fmt::Debug;
 
 use rand::prelude::*;
 
+use super::{grammar::SwarmGrammar, oide_genome::OIDESwarmGenome};
+
 pub trait Differentiable {
     fn add(&self, other: &Self) -> Self;
     fn difference(&self, other: &Self) -> Self;
@@ -11,16 +13,22 @@ pub trait Differentiable {
 }
 
 pub trait Evaluatable<E>: Differentiable {
-    fn eval(&self) -> E;
+    type Params;
+    fn eval(&self, params: &Self::Params) -> E;
 }
 
-trait IODEPopulation<B, E> {
+pub trait IODEPopulation<B: Evaluatable<E, Params = P>, E, P> {
     fn get_size(&self) -> usize;
     fn get_population(&self) -> Vec<&B>;
-    fn step(&self, selection: fn(((&B, E), (&B, E), (&B, E))) -> B, rng: &mut StdRng) -> Vec<B>;
+    fn step(
+        &self,
+        selection: &mut dyn FnMut(((B, E), (B, E), (B, E)), usize) -> B,
+        rng: &mut impl Rng,
+        params: P,
+    ) -> Vec<B>;
 }
 
-impl<B: Evaluatable<E> + PartialEq + Debug, E> IODEPopulation<B, E> for Vec<B> {
+impl<B: Evaluatable<E, Params = P> + PartialEq + Debug, E, P> IODEPopulation<B, E, P> for Vec<B> {
     fn get_size(&self) -> usize {
         self.len()
     }
@@ -29,7 +37,12 @@ impl<B: Evaluatable<E> + PartialEq + Debug, E> IODEPopulation<B, E> for Vec<B> {
         self.iter().collect::<Vec<&B>>()
     }
 
-    fn step(&self, selection: fn(((&B, E), (&B, E), (&B, E))) -> B, rng: &mut StdRng) -> Vec<B> {
+    fn step(
+        &self,
+        selection: &mut dyn FnMut(((B, E), (B, E), (B, E)), usize) -> B,
+        rng: &mut impl Rng,
+        params: P,
+    ) -> Vec<B> {
         let variants = self
             .get_population()
             .iter()
@@ -45,7 +58,8 @@ impl<B: Evaluatable<E> + PartialEq + Debug, E> IODEPopulation<B, E> for Vec<B> {
                     .choose(rng)
                     .expect("No other individuals could be found!");
                 let trial = target.add(&(other1.difference(other2).scale(0.5)));
-                let target_opposite = target.opposite();
+                let target_opposite =
+                    target.add(&(other1.difference(other2).scale(0.5).opposite()));
                 (target.cop(), trial, target_opposite)
             })
             .collect::<Vec<_>>();
@@ -55,16 +69,17 @@ impl<B: Evaluatable<E> + PartialEq + Debug, E> IODEPopulation<B, E> for Vec<B> {
             //.inspect(|f| println!("{:?}, {:?}, {:?}", f.0, f.1, f.2))
             .map(|(target, trial, opposite)| {
                 (
-                    (target, target.eval()),
-                    (trial, trial.eval()),
-                    (opposite, opposite.eval()),
+                    (target.cop(), target.eval(&params)),
+                    (trial.cop(), trial.eval(&params)),
+                    (opposite.cop(), opposite.eval(&params)),
                 )
             })
             .collect::<Vec<_>>();
 
         let selected_pop = evaled_pairs
             .into_iter()
-            .map(|pair| selection(pair))
+            .enumerate()
+            .map(|(num, pair)| selection(pair, num))
             .collect();
 
         selected_pop
@@ -94,8 +109,24 @@ impl Differentiable for f32 {
 }
 
 impl Evaluatable<f32> for f32 {
-    fn eval(&self) -> f32 {
+    type Params = ();
+    fn eval(&self, _params: &Self::Params) -> f32 {
         *self
+    }
+}
+
+impl Evaluatable<SwarmGrammar> for OIDESwarmGenome {
+    type Params = (u64, u64);
+    fn eval(&self, params: &Self::Params) -> SwarmGrammar {
+        let mut rnd = StdRng::seed_from_u64(params.0);
+        let genome = super::genome::SwarmGenome::from(self);
+        //println!("{:?}", &genome);
+        let mut sg = SwarmGrammar::from(genome, &mut rnd);
+        //println!("{:?}", &sg);
+        for _ in 0..params.1 {
+            sg.step(&mut rnd);
+        }
+        sg
     }
 }
 
@@ -114,7 +145,8 @@ fn test_ode_20() {
         println!("Iteration {i}", i = i);
         println!("Input : {:?}", pop);
         pop = pop.step(
-            |(t1, t2, t3)| {
+            &mut |t: ((f32, f32), (f32, f32), (f32, f32)), _: usize| {
+                let (t1, t2, t3) = t;
                 let d1 = (t1.1 + 20.0).abs();
                 let d2 = (t2.1 + 20.0).abs();
                 let d3 = (t3.1 + 20.0).abs();
@@ -128,6 +160,7 @@ fn test_ode_20() {
                 }
             },
             &mut rng,
+            (),
         );
         println!("Result: {:?}", pop);
         let newbest = pop.iter().fold(f32::MAX, |acc, elem| {

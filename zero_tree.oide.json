@@ -1,0 +1,614 @@
+{
+  "species_count": 2,
+  "artifact_count": 3,
+  "rule_count": 3,
+  "species_map": [
+    {
+      "index": 0,
+      "separation": {
+        "base": 0.0,
+        "range": 1.0,
+        "val": 0.1
+      },
+      "alignment": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.5
+      },
+      "cohesion": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.5
+      },
+      "randomness": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.1
+      },
+      "center": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.001
+      },
+      "floor": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.001
+      },
+      "bias": {
+        "x": {
+          "base": -1.0,
+          "range": 1.0,
+          "val": 1.0
+        },
+        "y": {
+          "base": -1.0,
+          "range": 1.0,
+          "val": 1.2
+        },
+        "z": {
+          "base": -1.0,
+          "range": 1.0,
+          "val": 1.0
+        }
+      },
+      "gradient": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "normal": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "slope": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "normal_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.5
+      },
+      "max_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.0
+      },
+      "max_acceleration": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.0
+      },
+      "pacekeeping": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "view_distance": {
+        "base": 0.0,
+        "range": 50.0,
+        "val": 20.0
+      },
+      "view_angle": {
+        "base": 0.0,
+        "range": 359.9,
+        "val": 270.0
+      },
+      "sep_distance": {
+        "base": 0.0,
+        "range": 50.0,
+        "val": 5.0
+      },
+      "axis_constraint": {
+        "x": {
+          "base": 0.0,
+          "range": 1.0,
+          "val": 1.0
+        },
+        "y": {
+          "base": 0.0,
+          "range": 1.0,
+          "val": 1.0
+        },
+        "z": {
+          "base": 0.0,
+          "range": 1.0,
+          "val": 1.0
+        }
+      },
+      "influenced_by": [
+        {
+          "vec": [
+            {
+              "active": false,
+              "value": 1.0
+            },
+            {
+              "active": false,
+              "value": 0.5
+            }
+          ],
+          "upper_bound": 2.0,
+          "lower_bound": -2.0
+        },
+        {
+          "vec": [
+            {
+              "active": false,
+              "value": 0.5
+            },
+            {
+              "active": false,
+              "value": 0.5
+            },
+            {
+              "active": false,
+              "value": 0.5
+            }
+          ],
+          "upper_bound": 2.0,
+          "lower_bound": -2.0
+        }
+      ],
+      "noclip": false,
+      "energy": {
+        "on_movement": {
+          "base": 0.0,
+          "range": 5.0,
+          "val": 0.1
+        },
+        "on_zero": [
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "val": 5.0
+          },
+          {
+            "vec": [
+              {
+                "active": false,
+                "value": 4
+              }
+            ],
+            "index_count": 5
+          }
+        ],
+        "on_replication": {
+          "base": 0.0,
+          "range": 5.0,
+          "val": 0.1
+        },
+        "for_offspring": {
+          "base": 0.0,
+          "range": 5.0,
+          "val": 0.1
+        }
+      },
+      "hand_down_seed": false,
+      "rules": {
+        "rules": [
+          {
+            "context": {
+              "vec": [],
+              "index_count": 5
+            },
+            "range": 0.0,
+            "weight": 3.0,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 0
+                },
+                {
+                  "active": true,
+                  "value": 2
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [],
+              "index_count": 5
+            },
+            "range": 0.0,
+            "weight": 1.0,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 1
+                },
+                {
+                  "active": true,
+                  "value": 2
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 10.0,
+            "weight": 1.0,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 0
+                },
+                {
+                  "active": false,
+                  "value": 0
+                },
+                {
+                  "active": false,
+                  "value": 0
+                },
+                {
+                  "active": false,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            }
+          }
+        ],
+        "upper_weight_bound": 100.0,
+        "upper_range_bound": 15.0
+      },
+      "color_index": 6
+    },
+    {
+      "index": 1,
+      "separation": {
+        "base": 0.0,
+        "range": 1.0,
+        "val": 0.1
+      },
+      "alignment": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.5
+      },
+      "cohesion": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.5
+      },
+      "randomness": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.1
+      },
+      "center": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.001
+      },
+      "floor": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.001
+      },
+      "bias": {
+        "x": {
+          "base": -1.0,
+          "range": 1.0,
+          "val": 1.0
+        },
+        "y": {
+          "base": -1.0,
+          "range": 1.0,
+          "val": 1.0
+        },
+        "z": {
+          "base": -1.0,
+          "range": 1.0,
+          "val": 1.0
+        }
+      },
+      "gradient": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "normal": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "slope": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "normal_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.5
+      },
+      "max_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.0
+      },
+      "max_acceleration": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.0
+      },
+      "pacekeeping": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "view_distance": {
+        "base": 0.0,
+        "range": 50.0,
+        "val": 20.0
+      },
+      "view_angle": {
+        "base": 0.0,
+        "range": 359.9,
+        "val": 270.0
+      },
+      "sep_distance": {
+        "base": 0.0,
+        "range": 50.0,
+        "val": 10.0
+      },
+      "axis_constraint": {
+        "x": {
+          "base": 0.0,
+          "range": 1.0,
+          "val": 1.0
+        },
+        "y": {
+          "base": 0.0,
+          "range": 1.0,
+          "val": 1.0
+        },
+        "z": {
+          "base": 0.0,
+          "range": 1.0,
+          "val": 1.0
+        }
+      },
+      "influenced_by": [
+        {
+          "vec": [
+            {
+              "active": false,
+              "value": 0.5
+            },
+            {
+              "active": false,
+              "value": 1.0
+            }
+          ],
+          "upper_bound": 2.0,
+          "lower_bound": -2.0
+        },
+        {
+          "vec": [
+            {
+              "active": false,
+              "value": 0.0
+            },
+            {
+              "active": false,
+              "value": 0.0
+            },
+            {
+              "active": false,
+              "value": 0.0
+            }
+          ],
+          "upper_bound": 2.0,
+          "lower_bound": -2.0
+        }
+      ],
+      "noclip": false,
+      "energy": {
+        "on_movement": {
+          "base": 0.0,
+          "range": 5.0,
+          "val": 0.01
+        },
+        "on_zero": [
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "val": 5.0
+          },
+          {
+            "vec": [
+              {
+                "active": false,
+                "value": 4
+              }
+            ],
+            "index_count": 5
+          }
+        ],
+        "on_replication": {
+          "base": 0.0,
+          "range": 5.0,
+          "val": 0.01
+        },
+        "for_offspring": {
+          "base": 0.0,
+          "range": 5.0,
+          "val": 0.01
+        }
+      },
+      "hand_down_seed": false,
+      "rules": {
+        "rules": [
+          {
+            "context": {
+              "vec": [],
+              "index_count": 5
+            },
+            "range": 0.0,
+            "weight": 4.0,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 3
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [],
+              "index_count": 5
+            },
+            "range": 0.0,
+            "weight": 1.0,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": true,
+                  "value": 3
+                },
+                {
+                  "active": true,
+                  "value": 2
+                }
+              ],
+              "index_count": 5
+            }
+          },
+          {
+            "context": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            },
+            "range": 20.0,
+            "weight": 1.0,
+            "persist": true,
+            "replacement": {
+              "vec": [
+                {
+                  "active": false,
+                  "value": 0
+                },
+                {
+                  "active": false,
+                  "value": 0
+                },
+                {
+                  "active": false,
+                  "value": 0
+                },
+                {
+                  "active": false,
+                  "value": 0
+                }
+              ],
+              "index_count": 5
+            }
+          }
+        ],
+        "upper_weight_bound": 100.0,
+        "upper_range_bound": 15.0
+      },
+      "color_index": 4
+    }
+  ],
+  "artifact_map": {
+    "vec": [
+      {
+        "active": false,
+        "value": 3
+      },
+      {
+        "active": false,
+        "value": 2
+      },
+      {
+        "active": false,
+        "value": 1
+      }
+    ],
+    "index_count": 15
+  },
+  "start_dist": {
+    "Single": [
+      {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "g0"
+    ]
+  },
+  "strategy": {
+    "every": 2,
+    "offset": 1
+  },
+  "terrain_influences": [
+    {
+      "vec": [
+        {
+          "active": false,
+          "value": 0.0
+        },
+        {
+          "active": false,
+          "value": 0.0
+        }
+      ],
+      "upper_bound": 0.0,
+      "lower_bound": 0.0
+    },
+    {
+      "vec": [
+        {
+          "active": false,
+          "value": 0.0
+        },
+        {
+          "active": false,
+          "value": 0.0
+        },
+        {
+          "active": false,
+          "value": 0.0
+        }
+      ],
+      "upper_bound": 0.0,
+      "lower_bound": 0.0
+    }
+  ],
+  "terrain_size": 20,
+  "terrain_spacing": 5.0
+}
