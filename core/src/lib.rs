@@ -1,5 +1,7 @@
 extern crate cgmath;
 extern crate core;
+extern crate derive_diff;
+extern crate r_oide;
 extern crate rand;
 extern crate rayon;
 extern crate serde;

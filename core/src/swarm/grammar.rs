@@ -7,9 +7,11 @@ use rand::Rng;
 use rayon::prelude::*;
 
 use super::actor::Agent;
-use crate::utils::*;
-use swarm::genome::SwarmGenome;
-use swarm::world::{ChunkedWorld, World};
+use crate::swarm::genome::SwarmGenome;
+use crate::{
+    swarm::world::{ChunkedWorld, World},
+    utils::*,
+};
 
 use serde::Deserialize;
 use serde::Serialize;

@@ -1,0 +1,23 @@
+[package]
+name = "derive_diff"
+version = "1.0.0"
+authors = ["Yasin Raies <3652076+yraies@users.noreply.github.com>"]
+edition = "2018"
+publish = false
+
+[lib]
+proc-macro = true
+
+[[bin]]
+name = "test"
+path = "src/main.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+quote =  "1.0"
+syn = "1.0"
+rand = "^0.6"
+
+[dependencies.r_oide]
+path = "../r_oide"

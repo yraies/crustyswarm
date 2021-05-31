@@ -1,0 +1,11 @@
+[package]
+name = "r_oide"
+version = "0.1.0"
+authors = ["Yasin Raies <3652076+yraies@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "^0.6"
+serde = { version = "^1.0", features = ["derive"] }

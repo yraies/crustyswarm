@@ -6,10 +6,13 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
-use crate::utils::UidGen;
-use swarm::actor::*;
-use swarm::genome::SurroundingIndex;
-use swarm::genome::SwarmGenome;
+use crate::{
+    swarm::{
+        actor::*,
+        genome::{SurroundingIndex, SwarmGenome},
+    },
+    utils::UidGen,
+};
 
 type AgentIterBox<'a> = Box<dyn Iterator<Item = &'a Agent> + 'a>;
 type ArtifactIterBox<'a> = Box<dyn Iterator<Item = &'a Artifact> + 'a>;

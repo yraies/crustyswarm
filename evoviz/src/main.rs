@@ -1,4 +1,4 @@
-use crustswarm::swarm::{grammar::SwarmGrammar, oide_genome::OIDESwarmGenome, world::World};
+use crustswarm::swarm::{evo::genome::OIDESwarmGenome, grammar::SwarmGrammar, world::World};
 use crustswarm_lib as crustswarm;
 
 use std::io::Write;
@@ -24,8 +24,8 @@ const TERRAIN_VS_SHADER: &str = include_str!("shaders/terrain.glsl.vs");
 fn main() {
     let matches = App::new("Crustswarm Evolution Visualizer")
         .version("1.0")
-        .author("Yasin Raies <yasin.raies@gmail.com>")
-        .about("Visualizes a multi species swarm agent simulation")
+        .author("Yasin Raies <yasin.raies@stud-mail.uni-wuerzburg.de>")
+        .about("Visualizes a multi species swarm agent simulation.\nPress SPACE to transfer an individuum to the next iteration.\nPress 1 2 and 3 to show the three available variations of a given parent/target indiviuum.")
         .arg(
             Arg::with_name("framerate")
                 .long("fps")
@@ -106,36 +106,41 @@ fn main() {
             Arg::with_name("population")
                 .long("population")
                 .help("size of evolved population")
-                .conflicts_with("template"),
+                .takes_value(true)
         )
         .arg(
             Arg::with_name("species")
                 .long("species")
                 .help("species count in evolved vsgs")
+                .takes_value(true)
                 .conflicts_with("template"),
         )
         .arg(
             Arg::with_name("artifact")
                 .long("artifact")
                 .help("artifact count in evolved vsgs")
+                .takes_value(true)
                 .conflicts_with("template"),
         )
         .arg(
             Arg::with_name("rules")
                 .long("rules")
                 .help("rules count in evolved vsgs")
+                .takes_value(true)
                 .conflicts_with("template"),
         )
         .arg(
             Arg::with_name("context")
                 .long("context")
                 .help("context count in evolved vsgs")
+                .takes_value(true)
                 .conflicts_with("template"),
         )
         .arg(
             Arg::with_name("replacements")
                 .long("replacements")
                 .help("replacements count in evolved vsgs")
+                .takes_value(true)
                 .conflicts_with("template"),
         )
         .arg(
@@ -143,13 +148,13 @@ fn main() {
                 .long("template")
                 .help("specify a template to generate the population from")
                 .value_name("CONFIG")
-                .takes_value(true)
-                .index(1),
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("iterations")
                 .long("iterations")
-                .help("iterations to simulate each vsgs"),
+                .help("iterations to simulate each vsgs")
+                .takes_value(true),
         )
         .get_matches();
 
@@ -161,10 +166,10 @@ fn main() {
 
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
 
-    let oidegenome = if matches.is_present("template") {
+    let mut oidegenome = if matches.is_present("template") {
         let configfile = matches.value_of("template").unwrap();
         println!("Using template: {}", &configfile);
-        dbg!(crustswarm::io::oide_genome_from_file(configfile))
+        crustswarm::io::oide_genome_from_file(configfile)
     } else {
         let species_count = matches
             .value_of("species")
@@ -187,7 +192,7 @@ fn main() {
             .map(|s| s.parse::<usize>().unwrap())
             .unwrap_or(3);
 
-        crustswarm::swarm::oide_genome::OIDESwarmGenome::new(
+        crustswarm::swarm::evo::genome::OIDESwarmGenome::new(
             species_count,
             artifact_count,
             rules_count,
@@ -202,18 +207,31 @@ fn main() {
         .unwrap_or(20);
 
     let mut population = vec![];
-    population.push(oidegenome.cop());
-    for i in 0..population_size {
-        population.push(
-            oidegenome.add(
-                &oidegenome
-                    .random(&mut rnd)
-                    .scale(i as f32 / population_size as f32),
-            ),
+
+    if matches.is_present("rebound") {
+        let new_bound_genome = OIDESwarmGenome::new(
+            *oidegenome.species_count,
+            *oidegenome.artifact_count,
+            *oidegenome.rule_count,
+            oidegenome.get_first_context_count(),
+            oidegenome.get_first_replacement_count(),
         );
+
+        oidegenome = new_bound_genome.apply_bounds(&oidegenome);
     }
 
-    use crustswarm_lib::swarm::oide::*;
+    use r_oide::traits::*;
+
+    population.push(oidegenome.clon());
+    let gens = (population_size - 1) / 2;
+    for i in 0..gens {
+        let random_genome = oidegenome.random(&mut rnd);
+        population.push(oidegenome.add(&random_genome.scale(i as f32 * 0.1 / gens as f32)));
+        population
+            .push(oidegenome.add(&random_genome.scale(i as f32 * 0.1 / gens as f32).opposite()));
+    }
+
+    let population_size = RefCell::new(population.len());
 
     let _basename = "foo".to_string(); /*
                                        let basename = format!(
@@ -260,14 +278,17 @@ fn main() {
     ),
                          current_pop_idx: usize| {
         let ((g1, e1), (g2, e2), (g3, e3)) = inp;
-        let mut selected_genome = &g1;
+        let mut g1_sel = false;
+        let mut g2_sel = false;
+        let mut g3_sel = false;
+        let mut curr_sel = 1;
         let mut sg = &e1;
         let mut selection_desc = "1 Target";
 
         raylib::core::logging::set_trace_log(TraceLogType::LOG_NONE);
 
         let (mut rl, thread) = raylib::init()
-            .size(1270, 720)
+            .size(1920, 1080)
             .title(&format!("Hello World this is window speaking",))
             .vsync()
             .msaa_4x()
@@ -321,18 +342,27 @@ fn main() {
             {
                 if rl.is_key_pressed(KeyboardKey::KEY_ONE) {
                     sg = &e1;
-                    selected_genome = &g1;
+                    curr_sel = 1;
                     selection_desc = "1 Target";
                 }
                 if rl.is_key_pressed(KeyboardKey::KEY_TWO) {
                     sg = &e2;
-                    selected_genome = &g2;
+                    curr_sel = 2;
                     selection_desc = "2 +Trial";
                 }
                 if rl.is_key_pressed(KeyboardKey::KEY_THREE) {
                     sg = &e3;
-                    selected_genome = &g3;
+                    curr_sel = 3;
                     selection_desc = "3 -Trial";
+                }
+
+                if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
+                    match curr_sel {
+                        1 => g1_sel = !g1_sel,
+                        2 => g2_sel = !g2_sel,
+                        3 => g3_sel = !g3_sel,
+                        _ => unimplemented!("This should not happen"),
+                    }
                 }
 
                 if rl.is_key_pressed(KeyboardKey::KEY_F) {
@@ -362,6 +392,10 @@ fn main() {
 
                 if rl.is_key_pressed(KeyboardKey::KEY_Y) {
                     conditionals_draws.tweenz = !conditionals_draws.tweenz;
+                }
+
+                if rl.is_key_pressed(KeyboardKey::KEY_P) {
+                    panic!("This was the easiest way to kill this application ...");
                 }
 
                 if rl.is_key_pressed(KeyboardKey::KEY_L) {
@@ -489,6 +523,7 @@ fn main() {
             {
                 render_stats.start();
 
+                let screen_height = rl.get_screen_height();
                 let mut d = rl.begin_drawing(&thread);
                 d.clear_background(Color::color_from_hsv(Vector3::new(0.0, 0.0, 0.9)));
 
@@ -605,10 +640,21 @@ fn main() {
                             "Generation {}\nSelecting {} of {}\nViewing: {}",
                             generation.borrow(),
                             current_pop_idx + 1,
-                            population_size,
+                            population_size.borrow(),
                             selection_desc
                         ),
                     );
+
+                    if g1_sel && curr_sel == 1 || g2_sel && curr_sel == 2 || g3_sel && curr_sel == 3
+                    {
+                        draw_text(
+                            &mut d,
+                            &font,
+                            5,
+                            screen_height - 5 - 18,
+                            &format!("Transfering into next generation",),
+                        );
+                    }
                 }
                 if false {
                     // !matches.is_present("no-ui") {
@@ -648,7 +694,18 @@ fn main() {
             }
         }
 
-        return selected_genome.cop();
+        let mut rets = vec![];
+        if g1_sel {
+            rets.push(g1.clon())
+        };
+        if g2_sel {
+            rets.push(g2.clon())
+        };
+        if g3_sel {
+            rets.push(g3.clon())
+        };
+
+        return rets;
     };
 
     let iterations = matches
@@ -658,6 +715,7 @@ fn main() {
 
     for _ in 0..100 {
         population = population.step(&mut selectfoo, &mut rnd, (seed, iterations));
+        population_size.replace(population.len());
         generation.replace_with(|&mut v| v + 1);
     }
 

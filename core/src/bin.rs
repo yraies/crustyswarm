@@ -2,13 +2,14 @@ extern crate crustswarm_lib as crustswarm;
 
 use std::env;
 
-use crustswarm::swarm::oide_genome::OIDESwarmGenome;
+use crustswarm::swarm::evo::genome::OIDESwarmGenome;
+use r_oide::traits::Differentiable;
 
 fn main() {
     let cmd = env::args().skip(1).next();
 
     match cmd.as_ref().map(String::as_str) {
-        Some("convert") => {
+        Some("convert_to_genome") => {
             let oide_path = env::args()
                 .skip(2)
                 .next()
@@ -19,6 +20,39 @@ fn main() {
                     &crustswarm::io::oide_genome_from_file(oide_path),
                 ),
                 "converted.genome.json",
+            )
+            .map(|err| println!("Error occured while converting: {:?}", err));
+        }
+        Some("convert_to_oide") => {
+            let path = env::args()
+                .skip(2)
+                .next()
+                .expect("Oide config to convert required!");
+            println!("converting {} to oide template", path);
+            let genome = crustswarm::io::genome_from_file(path);
+            let oide_genome = crustswarm::swarm::evo::genome::OIDESwarmGenome::from(&genome);
+            crustswarm::io::oide_genome_to_file(&oide_genome, "converted.oide.json")
+                .map(|err| println!("Error occured while converting: {:?}", err));
+        }
+        Some("rebound_oide") => {
+            let path = env::args()
+                .skip(2)
+                .next()
+                .expect("Oide config to rebound required!");
+            println!("rebounding {} oide template", path);
+            let genome = crustswarm::io::oide_genome_from_file(path);
+
+            let new_bound_genome = OIDESwarmGenome::new(
+                *genome.species_count,
+                *genome.artifact_count,
+                *genome.rule_count,
+                genome.get_first_context_count(),
+                genome.get_first_replacement_count(),
+            );
+
+            crustswarm::io::oide_genome_to_file(
+                &new_bound_genome.apply_bounds(&genome),
+                "rebound.oide.json",
             )
             .map(|err| println!("Error occured while converting: {:?}", err));
         }
@@ -42,7 +76,7 @@ fn main() {
 fn oide_genome() {
     use std::io::Write;
     //spec art rule context replacement
-    let oidegnome = crustswarm::swarm::oide_genome::OIDESwarmGenome::new(2, 3, 8, 1, 3);
+    let oidegnome = crustswarm::swarm::evo::genome::OIDESwarmGenome::new(2, 3, 8, 1, 3);
     let oidegnome = oidegnome.random(&mut rand::thread_rng());
 
     let mut file = std::fs::File::create("genome.oide.json")
@@ -75,4 +109,43 @@ fn oide_genome() {
     let json_str = std::fs::read_to_string("result.genome.json").unwrap();
     let genome: crustswarm::swarm::genome::SwarmGenome = serde_json::from_str(&json_str).unwrap();
     dbg!(genome.terrain_size);
+}
+
+#[test]
+fn oide_genome2() -> Result<(), std::io::Error> {
+    use r_oide::traits::Differentiable;
+    println!("Cur. Dir: {:?}", std::env::current_dir());
+    let base_tree = crustswarm::io::genome_from_file(r"..\experiments\base_tree.json");
+    let base_tree_genome = crustswarm::swarm::evo::genome::OIDESwarmGenome::from(&base_tree);
+
+    let new_bound_genome = OIDESwarmGenome::new(
+        *base_tree_genome.species_count,
+        *base_tree_genome.artifact_count,
+        *base_tree_genome.rule_count,
+        base_tree_genome.get_first_context_count(),
+        base_tree_genome.get_first_replacement_count(),
+    );
+
+    let rebound_tree_genome = new_bound_genome.apply_bounds(&base_tree_genome);
+
+    crustswarm::io::oide_genome_to_file(&rebound_tree_genome, "test_0.oide.json")
+        .map(|err| println!("Error occured while converting: {:?}", err));
+
+    let randomized_tree_genome = rebound_tree_genome
+        .random(&mut <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(123123621));
+
+    crustswarm::io::oide_genome_to_file(&randomized_tree_genome, "test_1.oide.json")
+        .map(|err| println!("Error occured while converting: {:?}", err));
+
+    let scaled_tree_genome = randomized_tree_genome.scale(0.5);
+
+    crustswarm::io::oide_genome_to_file(&scaled_tree_genome, "test_2.oide.json")
+        .map(|err| println!("Error occured while converting: {:?}", err));
+
+    let added_tree_genome = rebound_tree_genome.add(&scaled_tree_genome);
+
+    crustswarm::io::oide_genome_to_file(&added_tree_genome, "test_3.oide.json")
+        .map(|err| println!("Error occured while converting: {:?}", err));
+
+    Ok(())
 }

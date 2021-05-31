@@ -1,7 +1,7 @@
 use super::{Factor, Species, SpeciesIndex, SurroundingIndex, SwarmGenome};
+use crate::swarm::actor::{Agent, Artifact};
 use crate::utils::UidGen;
 use serde::{Deserialize, Serialize};
-use swarm::actor::{Agent, Artifact};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]

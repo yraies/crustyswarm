@@ -59,6 +59,15 @@ impl ReplicationEnergy {
             Self::None => current,
         }
     }
+    pub fn get_param(&self) -> f32 {
+        match self {
+            ReplicationEnergy::Constant(a) => *a,
+            ReplicationEnergy::Count(a) => *a,
+            ReplicationEnergy::PropRel => 0.0,
+            ReplicationEnergy::PropConst(a) => *a,
+            ReplicationEnergy::None => 0.0,
+        }
+    }
 }
 
 impl MovementEnergy {
@@ -67,6 +76,13 @@ impl MovementEnergy {
             Self::Constant(value) => *value,
             Self::Distance(factor) => velocity * factor,
             Self::None => 0.0,
+        }
+    }
+    pub fn get_param(&self) -> f32 {
+        match self {
+            MovementEnergy::Constant(a) => *a,
+            MovementEnergy::Distance(a) => *a,
+            MovementEnergy::None => 0.0,
         }
     }
 }
@@ -102,6 +118,13 @@ impl ZeroEnergy {
             _ => (vec![], vec![]),
         }
     }
+    pub fn get_param(&self) -> u16 {
+        match self {
+            ZeroEnergy::Die => 0,
+            ZeroEnergy::Replace(a, _) => *a,
+            ZeroEnergy::Live => 0,
+        }
+    }
 }
 
 impl OffspringEnergy {
@@ -116,6 +139,14 @@ impl OffspringEnergy {
             OffspringEnergy::PropConst(offset, ammount) => {
                 f32::min(*ammount, (current - offset) / count as f32)
             }
+        }
+    }
+    pub fn get_param(&self) -> f32 {
+        match self {
+            OffspringEnergy::Constant(a) => *a,
+            OffspringEnergy::Inherit(a) => *a,
+            OffspringEnergy::PropRel(a) => *a,
+            OffspringEnergy::PropConst(a, _) => *a,
         }
     }
 }

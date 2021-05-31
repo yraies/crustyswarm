@@ -1,2 +1,2 @@
 [workspace]
-members = ["core","rayviz","evoviz"]
+members = ["r_oide", "derive_diff", "core", "rayviz", "evoviz"]

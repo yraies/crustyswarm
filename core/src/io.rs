@@ -1,3 +1,8 @@
+use crate::swarm::evo::genome::OIDESwarmGenome;
+use crate::swarm::genome::dummies::DummySwarmGenome;
+use crate::swarm::genome::SwarmGenome;
+use crate::swarm::world::World;
+
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Error;
@@ -5,10 +10,6 @@ use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::{convert::TryFrom, fs};
-use swarm::genome::SwarmGenome;
-use swarm::world::World;
-
-use crate::swarm::{genome::dummies::DummySwarmGenome, oide_genome::OIDESwarmGenome};
 
 pub fn genome_from_file(path: impl AsRef<Path>) -> SwarmGenome {
     let mut file = File::open(&path)
@@ -58,6 +59,10 @@ pub fn oide_genome_from_file(path: impl AsRef<Path>) -> OIDESwarmGenome {
     let mut json_str = String::new();
     file.read_to_string(&mut json_str).unwrap();
     serde_json::from_str(&json_str).unwrap()
+}
+
+pub fn oide_genome_to_file(template: &OIDESwarmGenome, path: impl AsRef<Path>) -> Option<Error> {
+    fs::write(&path, serde_json::to_string_pretty(&template).unwrap()).err()
 }
 
 #[allow(dead_code)]

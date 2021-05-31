@@ -16,3 +16,6 @@ regex = "^1.3"
 [dependencies.crustswarm]
 path = "../core"
 
+[dependencies.r_oide]
+path = "../r_oide"
+

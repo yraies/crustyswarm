@@ -2,11 +2,11 @@ pub mod dummies;
 pub mod energy;
 pub mod replacement;
 
+use crate::swarm::actor::{Agent, Artifact};
 use cgmath::Vector3;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use swarm::actor::{Agent, Artifact};
 
 use self::dummies::*;
 use self::replacement::*;
@@ -386,8 +386,8 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
             .map(|(a, b)| (b.to_owned(), a))
             .collect();
 
-        dbg!(&species_names);
-        dbg!(&artifact_names);
+        //dbg!(&species_names);
+        //dbg!(&artifact_names);
 
         let mut species_results: Vec<Result<Species, Self::Error>> =
             vec![Err("No species initialized".to_string()); species_names.len()];
