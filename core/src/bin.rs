@@ -14,12 +14,19 @@ fn main() {
                 .skip(2)
                 .next()
                 .expect("Oide config to convert required!");
-            println!("converting {} to concrete genome", oide_path);
+            let target_path = env::args()
+                .skip(3)
+                .next()
+                .unwrap_or("converted.genome.json".to_string());
+            println!(
+                "converting {} to concrete genome {}",
+                oide_path, target_path
+            );
             crustswarm::io::genome_to_file(
                 &crustswarm::swarm::genome::SwarmGenome::from(
                     &crustswarm::io::oide_genome_from_file(oide_path),
                 ),
-                "converted.genome.json",
+                target_path,
             )
             .map(|err| println!("Error occured while converting: {:?}", err));
         }
@@ -28,10 +35,14 @@ fn main() {
                 .skip(2)
                 .next()
                 .expect("Oide config to convert required!");
-            println!("converting {} to oide template", path);
+            let target_path = env::args()
+                .skip(3)
+                .next()
+                .unwrap_or("converted.oide.json".to_string());
+            println!("converting {} to oide template {}", path, target_path);
             let genome = crustswarm::io::genome_from_file(path);
             let oide_genome = crustswarm::swarm::evo::genome::OIDESwarmGenome::from(&genome);
-            crustswarm::io::oide_genome_to_file(&oide_genome, "converted.oide.json")
+            crustswarm::io::oide_genome_to_file(&oide_genome, target_path)
                 .map(|err| println!("Error occured while converting: {:?}", err));
         }
         Some("rebound_oide") => {
@@ -39,7 +50,11 @@ fn main() {
                 .skip(2)
                 .next()
                 .expect("Oide config to rebound required!");
-            println!("rebounding {} oide template", path);
+            let target_path = env::args()
+                .skip(3)
+                .next()
+                .unwrap_or("rebound.oide.json".to_string());
+            println!("rebounding {} oide template to {}", path, target_path);
             let genome = crustswarm::io::oide_genome_from_file(path);
 
             let new_bound_genome = OIDESwarmGenome::new(
@@ -52,7 +67,7 @@ fn main() {
 
             crustswarm::io::oide_genome_to_file(
                 &new_bound_genome.apply_bounds(&genome),
-                "rebound.oide.json",
+                target_path,
             )
             .map(|err| println!("Error occured while converting: {:?}", err));
         }

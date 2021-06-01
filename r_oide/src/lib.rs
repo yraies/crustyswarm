@@ -16,23 +16,25 @@ pub mod traits {
 
     pub trait Evaluatable<E>: Differentiable {
         type Params;
-        fn eval(&self, params: &Self::Params) -> E;
+        type EvalInfo;
+        fn eval(&self, params: &Self::Params) -> (E, Self::EvalInfo);
     }
 
-    pub trait IODEPopulation<B: Evaluatable<E, Params = P>, E, P> {
+    pub trait IODEPopulation<B: Evaluatable<E, Params = P, EvalInfo = I>, E, P, I> {
         fn get_size(&self) -> usize;
         fn get_population(&self) -> Vec<&B>;
         fn step(
             &self,
-            selection: &mut dyn FnMut(((B, E), (B, E), (B, E)), usize) -> Vec<B>,
+            selection: &mut dyn FnMut(&[(B, E, I)], usize) -> Vec<B>,
             rng: &mut impl Rng,
             params: P,
+            f: f32,
         ) -> Vec<B>;
     }
 
-    impl<B, E, P> IODEPopulation<B, E, P> for Vec<B>
+    impl<B, E, P, I> IODEPopulation<B, E, P, I> for Vec<B>
     where
-        B: Evaluatable<E, Params = P> + PartialEq + Debug,
+        B: Evaluatable<E, Params = P, EvalInfo = I> + PartialEq + Debug,
     {
         fn get_size(&self) -> usize {
             self.len()
@@ -44,9 +46,10 @@ pub mod traits {
 
         fn step(
             &self,
-            selection: &mut dyn FnMut(((B, E), (B, E), (B, E)), usize) -> Vec<B>,
+            selection: &mut dyn FnMut(&[(B, E, I)], usize) -> Vec<B>,
             rng: &mut impl Rng,
             params: P,
+            f: f32,
         ) -> Vec<B> {
             let variants = self
                 .get_population()
@@ -62,28 +65,29 @@ pub mod traits {
                         .filter(|curr| target.ne(curr))
                         .choose(rng)
                         .expect("No other individuals could be found!");
-                    let trial = target.add(&(other1.difference(other2).scale(0.5)));
+                    let trial = target.add(&(other1.difference(other2).scale(f)));
                     let target_opposite =
-                        target.add(&(other1.difference(other2).scale(0.5).opposite()));
-                    (target.clon(), trial, target_opposite)
+                        target.add(&(other1.difference(other2).scale(f).opposite()));
+                    [target.clon(), trial, target_opposite]
                 })
                 .collect::<Vec<_>>();
 
-            let evaled_pairs = variants
+            let evaled_pairs: Vec<_> = variants
                 .iter()
-                //.inspect(|f| println!("{:?}, {:?}, {:?}", f.0, f.1, f.2))
-                .map(|(target, trial, opposite)| {
-                    (
-                        (target.clon(), target.eval(&params)),
-                        (trial.clon(), trial.eval(&params)),
-                        (opposite.clon(), opposite.eval(&params)),
-                    )
-                });
+                .map(|set| {
+                    set.into_iter()
+                        .map(|base| {
+                            let (eval, info) = base.eval(&params);
+                            (base.clon(), eval, info)
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect();
 
             evaled_pairs
                 .into_iter()
                 .enumerate()
-                .flat_map(|(num, pair)| selection(pair, num))
+                .flat_map(|(num, pair)| selection(&pair, num))
                 .collect()
         }
     }
@@ -125,8 +129,9 @@ pub mod tests {
 
     impl Evaluatable<f32> for f32 {
         type Params = ();
-        fn eval(&self, _params: &Self::Params) -> f32 {
-            *self
+        type EvalInfo = ();
+        fn eval(&self, _params: &Self::Params) -> (f32, ()) {
+            (*self, ())
         }
     }
 
@@ -144,22 +149,21 @@ pub mod tests {
             println!("Iteration {i}", i = i);
             println!("Input : {:?}", pop);
             pop = pop.step(
-                &mut |t: ((f32, f32), (f32, f32), (f32, f32)), _: usize| {
-                    let (t1, t2, t3) = t;
-                    let d1 = (t1.1 + 20.0).abs();
-                    let d2 = (t2.1 + 20.0).abs();
-                    let d3 = (t3.1 + 20.0).abs();
-
-                    if d1 < d2 && d1 < d3 {
-                        vec![t1.1]
-                    } else if d2 < d3 {
-                        vec![t2.1]
-                    } else {
-                        vec![t3.1]
-                    }
+                &mut |t: &[(f32, f32, ())], _num: usize| {
+                    vec![
+                        t.iter()
+                            .map(|c| (c, (c.1 + 20.0).abs()))
+                            .min_by(|(_, v1), (_, v2)| {
+                                v1.partial_cmp(v2).unwrap_or(std::cmp::Ordering::Less)
+                            })
+                            .unwrap()
+                            .0
+                             .1,
+                    ]
                 },
                 &mut rng,
                 (),
+                0.5,
             );
             println!("Result: {:?}", pop);
             let newbest = pop.iter().fold(f32::MAX, |acc, elem| {

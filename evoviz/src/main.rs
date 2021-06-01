@@ -1,3 +1,4 @@
+use crustswarm::swarm::evo::{OIDESwarmEvalInfo, OIDESwarmParams};
 use crustswarm::swarm::{evo::genome::OIDESwarmGenome, grammar::SwarmGrammar, world::World};
 use crustswarm_lib as crustswarm;
 
@@ -226,9 +227,9 @@ fn main() {
     let gens = (population_size - 1) / 2;
     for i in 0..gens {
         let random_genome = oidegenome.random(&mut rnd);
-        population.push(oidegenome.add(&random_genome.scale(i as f32 * 0.1 / gens as f32)));
+        population.push(oidegenome.add(&random_genome.scale(i as f32 * 1.0 / gens as f32)));
         population
-            .push(oidegenome.add(&random_genome.scale(i as f32 * 0.1 / gens as f32).opposite()));
+            .push(oidegenome.add(&random_genome.scale(i as f32 * 1.0 / gens as f32).opposite()));
     }
 
     let population_size = RefCell::new(population.len());
@@ -271,18 +272,11 @@ fn main() {
 
     let generation = RefCell::new(1usize);
 
-    let mut selectfoo = |inp: (
-        (OIDESwarmGenome, SwarmGrammar),
-        (OIDESwarmGenome, SwarmGrammar),
-        (OIDESwarmGenome, SwarmGrammar),
-    ),
+    let mut selectfoo = |inp: &[(OIDESwarmGenome, SwarmGrammar, OIDESwarmEvalInfo)],
                          current_pop_idx: usize| {
-        let ((g1, e1), (g2, e2), (g3, e3)) = inp;
-        let mut g1_sel = false;
-        let mut g2_sel = false;
-        let mut g3_sel = false;
-        let mut curr_sel = 1;
-        let mut sg = &e1;
+        let mut activations = vec![false; inp.len()];
+        let mut curr_sel = 0;
+        let mut sg = &inp[0].1;
         let mut selection_desc = "1 Target";
 
         raylib::core::logging::set_trace_log(TraceLogType::LOG_NONE);
@@ -341,28 +335,34 @@ fn main() {
             // Handle Inputs
             {
                 if rl.is_key_pressed(KeyboardKey::KEY_ONE) {
-                    sg = &e1;
-                    curr_sel = 1;
+                    curr_sel = 0;
+                    sg = &inp[curr_sel].1;
                     selection_desc = "1 Target";
                 }
                 if rl.is_key_pressed(KeyboardKey::KEY_TWO) {
-                    sg = &e2;
-                    curr_sel = 2;
-                    selection_desc = "2 +Trial";
+                    if inp.len() >= 2 {
+                        curr_sel = 1;
+                        sg = &inp[curr_sel].1;
+                        selection_desc = "2 +Trial";
+                    }
                 }
                 if rl.is_key_pressed(KeyboardKey::KEY_THREE) {
-                    sg = &e3;
-                    curr_sel = 3;
-                    selection_desc = "3 -Trial";
+                    if inp.len() >= 3 {
+                        curr_sel = 2;
+                        sg = &inp[curr_sel].1;
+                        selection_desc = "3 -Trial";
+                    }
+                }
+                if rl.is_key_pressed(KeyboardKey::KEY_FOUR) {
+                    if inp.len() >= 4 {
+                        curr_sel = 3;
+                        sg = &inp[curr_sel].1;
+                        selection_desc = "4 ???";
+                    }
                 }
 
                 if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
-                    match curr_sel {
-                        1 => g1_sel = !g1_sel,
-                        2 => g2_sel = !g2_sel,
-                        3 => g3_sel = !g3_sel,
-                        _ => unimplemented!("This should not happen"),
-                    }
+                    activations[curr_sel] = !activations[curr_sel];
                 }
 
                 if rl.is_key_pressed(KeyboardKey::KEY_F) {
@@ -637,16 +637,16 @@ fn main() {
                         5,
                         5,
                         &format!(
-                            "Generation {}\nSelecting {} of {}\nViewing: {}",
+                            "Generation {}\nSelecting {} of {}\nViewing: {}\nI={}",
                             generation.borrow(),
                             current_pop_idx + 1,
                             population_size.borrow(),
-                            selection_desc
+                            selection_desc,
+                            inp[curr_sel].2.iterations
                         ),
                     );
 
-                    if g1_sel && curr_sel == 1 || g2_sel && curr_sel == 2 || g3_sel && curr_sel == 3
-                    {
+                    if activations[curr_sel] {
                         draw_text(
                             &mut d,
                             &font,
@@ -694,18 +694,17 @@ fn main() {
             }
         }
 
-        let mut rets = vec![];
-        if g1_sel {
-            rets.push(g1.clon())
-        };
-        if g2_sel {
-            rets.push(g2.clon())
-        };
-        if g3_sel {
-            rets.push(g3.clon())
-        };
-
-        return rets;
+        activations
+            .iter()
+            .enumerate()
+            .flat_map(|(idx, active)| {
+                if *active {
+                    Some(inp[idx].0.clon())
+                } else {
+                    None
+                }
+            })
+            .collect()
     };
 
     let iterations = matches
@@ -714,7 +713,16 @@ fn main() {
         .unwrap_or(30);
 
     for _ in 0..100 {
-        population = population.step(&mut selectfoo, &mut rnd, (seed, iterations));
+        population = population.step(
+            &mut selectfoo,
+            &mut rnd,
+            OIDESwarmParams {
+                seed,
+                max_iterations: iterations as usize,
+                timeout_hint: Duration::from_secs(10),
+            },
+            0.5,
+        );
         population_size.replace(population.len());
         generation.replace_with(|&mut v| v + 1);
     }

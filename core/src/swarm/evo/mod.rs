@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use r_oide::{atoms::BoundedIdxVec, traits::Evaluatable};
 use rand::prelude::*;
 
@@ -6,18 +8,39 @@ use super::grammar::SwarmGrammar;
 pub mod conversion;
 pub mod genome;
 
+pub struct OIDESwarmParams {
+    pub seed: u64,
+    pub max_iterations: usize,
+    pub timeout_hint: Duration,
+}
+
+pub struct OIDESwarmEvalInfo {
+    pub iterations: usize,
+}
+
 impl Evaluatable<SwarmGrammar> for genome::OIDESwarmGenome {
-    type Params = (u64, u64);
-    fn eval(&self, params: &Self::Params) -> SwarmGrammar {
-        let mut rnd = StdRng::seed_from_u64(params.0);
+    type Params = OIDESwarmParams;
+    type EvalInfo = OIDESwarmEvalInfo;
+    fn eval(&self, params: &Self::Params) -> (SwarmGrammar, Self::EvalInfo) {
+        let mut rnd = StdRng::seed_from_u64(params.seed);
         let genome = super::genome::SwarmGenome::from(self);
-        //println!("{:?}", &genome);
         let mut sg = SwarmGrammar::from(genome, &mut rnd);
-        //println!("{:?}", &sg);
-        for _ in 0..params.1 {
+        let start_time = std::time::Instant::now();
+
+        let mut iteration = 0;
+        for _ in 0..params.max_iterations {
             sg.step(&mut rnd);
+            iteration = iteration + 1;
+            if start_time.elapsed() > params.timeout_hint {
+                break;
+            }
         }
-        sg
+        (
+            sg,
+            OIDESwarmEvalInfo {
+                iterations: iteration,
+            },
+        )
     }
 }
 

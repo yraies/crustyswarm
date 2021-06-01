@@ -125,20 +125,6 @@ impl<T: Differentiable, U: Differentiable, V: Differentiable> Differentiable for
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct Fixed<T: Clone + PartialEq>(T);
 
-impl<T: Clone + PartialEq> std::ops::Deref for Fixed<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T: Clone + PartialEq> AsRef<T> for Fixed<T> {
-    fn as_ref(&self) -> &T {
-        &self.0
-    }
-}
-
 impl<T: Clone + PartialEq> Differentiable for Fixed<T> {
     fn add(&self, _other: &Self) -> Self {
         self.clon()
@@ -169,6 +155,20 @@ impl<T: Clone + PartialEq> Differentiable for Fixed<T> {
     }
 }
 
+impl<T: Clone + PartialEq> std::ops::Deref for Fixed<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T: Clone + PartialEq> AsRef<T> for Fixed<T> {
+    fn as_ref(&self) -> &T {
+        &self.0
+    }
+}
+
 impl<T: Clone + PartialEq> From<T> for Fixed<T> {
     fn from(other: T) -> Self {
         Fixed(other)
@@ -194,7 +194,9 @@ impl From<FloatyBool> for bool {
 
 impl From<f32> for FloatyBool {
     fn from(other: f32) -> Self {
-        FloatyBool(other.rem_euclid(1.0))
+        assert!(other <= 1.0);
+        assert!(other >= 0.0);
+        FloatyBool(other)
     }
 }
 
@@ -208,14 +210,14 @@ impl Differentiable for FloatyBool {
     fn add(&self, other: &Self) -> Self {
         let temp_res = self.0 + other.0;
         FloatyBool(if temp_res > 1.0 {
-            temp_res - 1.0
+            2.0 - temp_res
         } else {
             temp_res
         })
     }
 
     fn difference(&self, other: &Self) -> Self {
-        FloatyBool((other.0 - self.0).abs())
+        FloatyBool((self.0 - other.0).abs())
     }
 
     fn scale(&self, factor: f32) -> Self {
@@ -241,9 +243,6 @@ impl Differentiable for FloatyBool {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct BoundedFactor {
-    //    lower_bound: f32,
-    //    upper_bound: f32,
-    //    value: f32,
     pub base: f32,
     pub range: f32,
     pub val: f32,
@@ -269,10 +268,6 @@ impl BoundedFactor {
     pub fn get_value(&self) -> f32 {
         self.base + self.val
     }
-
-    pub fn copy_values(&self, other: &BoundedFactor) -> BoundedFactor {
-        self.apply_bounds(&other)
-    }
 }
 
 impl Differentiable for BoundedFactor {
@@ -295,14 +290,7 @@ impl Differentiable for BoundedFactor {
         BoundedFactor {
             base: self.base,
             range: self.range,
-            val: {
-                let diff = self.val - other.val; // - self.range <= diff <= self.range
-                if diff < 0.0 {
-                    -diff
-                } else {
-                    diff
-                }
-            },
+            val: (self.val - other.val).abs(), // - self.range <= diff <= self.range
         }
     }
 
@@ -364,14 +352,14 @@ impl BoolCell<usize> {
     fn add(&self, other: &Self, index_count: usize) -> Self {
         Self {
             active: self.active.add(&other.active),
-            value: (index_count + other.value + self.value) % index_count,
+            value: (other.value + self.value) % index_count,
         }
     }
 
-    fn diff(&self, other: &Self, index_count: usize) -> Self {
+    fn diff(&self, other: &Self) -> Self {
         Self {
             active: self.active.difference(&other.active),
-            value: (index_count + other.value - self.value) % index_count,
+            value: (self.value as i64 - other.value as i64).abs() as usize,
         }
     }
 
@@ -384,7 +372,7 @@ impl BoolCell<usize> {
     fn opposite(&self, index_count: usize) -> Self {
         Self {
             active: self.active.opposite(),
-            value: index_count - self.value - 1,
+            value: dbg!(index_count) - dbg!(self.value) - 1,
         }
     }
 
@@ -467,14 +455,29 @@ impl BoundedIdxVec {
         self.vec.iter().map(|bar| bar.is_active()).collect()
     }
 
-    pub fn copy_values(&self, other: &BoundedIdxVec) -> BoundedIdxVec {
-        self.apply_bounds(&other)
-    }
-
     pub fn fill_to(&mut self, size: usize) {
         while self.vec.len() < size {
             self.vec.push(BoolCell::<usize>::new())
         }
+    }
+}
+
+impl FromIterator<(bool, usize)> for BoundedIdxVec {
+    fn from_iter<I: IntoIterator<Item = (bool, usize)>>(iter: I) -> Self {
+        let mut c = BoundedIdxVec {
+            vec: vec![],
+            index_count: 1,
+        };
+
+        for i in iter {
+            c.index_count = c.index_count.max(i.1);
+            c.vec.push(BoolCell {
+                active: (if i.0 { 1.0 } else { 0.0 }).into(),
+                value: i.1,
+            });
+        }
+
+        c
     }
 }
 
@@ -501,10 +504,6 @@ impl BoundedFactorVec {
             .collect()
     }
 
-    pub fn copy_values(&self, other: &BoundedFactorVec) -> BoundedFactorVec {
-        self.apply_bounds(&other)
-    }
-
     pub fn fill_to(&mut self, size: usize) {
         while self.vec.len() < size {
             self.vec.push(BoolCell::<f32>::new())
@@ -524,26 +523,7 @@ impl FromIterator<(bool, f32)> for BoundedFactorVec {
             c.lower_bound = c.lower_bound.min(i.1);
             c.upper_bound = c.upper_bound.max(i.1);
             c.vec.push(BoolCell {
-                active: (if i.0 { 0.0 } else { 1.0 }).into(),
-                value: i.1,
-            });
-        }
-
-        c
-    }
-}
-
-impl FromIterator<(bool, usize)> for BoundedIdxVec {
-    fn from_iter<I: IntoIterator<Item = (bool, usize)>>(iter: I) -> Self {
-        let mut c = BoundedIdxVec {
-            vec: vec![],
-            index_count: 1,
-        };
-
-        for i in iter {
-            c.index_count = c.index_count.max(i.1);
-            c.vec.push(BoolCell {
-                active: (if i.0 { 0.0 } else { 1.0 }).into(),
+                active: (if i.0 { 1.0 } else { 0.0 }).into(),
                 value: i.1,
             });
         }
@@ -559,7 +539,7 @@ impl Differentiable for BoundedIdxVec {
                 .vec
                 .iter()
                 .zip(&other.vec)
-                .map(|(first, second)| first.diff(second, self.index_count))
+                .map(|(first, second)| first.add(second, self.index_count))
                 .collect(),
             index_count: self.index_count,
         }
@@ -571,7 +551,7 @@ impl Differentiable for BoundedIdxVec {
                 .vec
                 .iter()
                 .zip(&other.vec)
-                .map(|(first, second)| first.add(second, self.index_count))
+                .map(|(first, second)| first.diff(second))
                 .collect(),
             index_count: self.index_count,
         }
@@ -608,6 +588,7 @@ impl Differentiable for BoundedIdxVec {
             .collect();
         copy
     }
+
     fn apply_bounds(&self, other: &Self) -> Self {
         BoundedIdxVec {
             vec: other.vec.clone(),
@@ -623,7 +604,7 @@ impl Differentiable for BoundedFactorVec {
                 .vec
                 .iter()
                 .zip(&other.vec)
-                .map(|(first, second)| first.diff(second, self.lower_bound, self.upper_bound))
+                .map(|(first, second)| first.add(second, self.lower_bound, self.upper_bound))
                 .collect(),
             upper_bound: self.upper_bound,
             lower_bound: self.lower_bound,
@@ -636,7 +617,7 @@ impl Differentiable for BoundedFactorVec {
                 .vec
                 .iter()
                 .zip(&other.vec)
-                .map(|(first, second)| first.add(second, self.lower_bound, self.upper_bound))
+                .map(|(first, second)| first.diff(second, self.lower_bound, self.upper_bound))
                 .collect(),
             upper_bound: self.upper_bound,
             lower_bound: self.lower_bound,

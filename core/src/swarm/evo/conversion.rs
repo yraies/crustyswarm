@@ -152,8 +152,8 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
     fn from(genome: &SwarmGenome) -> Self {
         let species_count = genome.species_map.iter().count();
         let artifact_count = genome.artifact_map.iter().count();
-        dbg!(&species_count);
-        dbg!(&artifact_count);
+        //dbg!(&species_count);
+        //dbg!(&artifact_count);
         let rule_count = genome
             .species_map
             .iter()
