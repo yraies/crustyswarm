@@ -1,0 +1,327 @@
+{
+  "species_count": 1,
+  "artifact_count": 2,
+  "rule_count": 2,
+  "species_map": [
+    {
+      "index": 0,
+      "separation": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.9
+      },
+      "alignment": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 1.0
+      },
+      "cohesion": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "randomness": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.1
+      },
+      "center": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0001
+      },
+      "floor": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "bias": [
+        {
+          "base": -1.0,
+          "range": 2.0,
+          "val": 1.0
+        },
+        {
+          "base": -1.0,
+          "range": 2.0,
+          "val": 1.02
+        },
+        {
+          "base": -1.0,
+          "range": 2.0,
+          "val": 1.0
+        }
+      ],
+      "gradient": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "normal": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.1
+      },
+      "slope": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.0
+      },
+      "normal_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.4
+      },
+      "max_speed": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.6
+      },
+      "max_acceleration": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.2
+      },
+      "pacekeeping": {
+        "base": 0.0,
+        "range": 2.0,
+        "val": 0.1
+      },
+      "view_distance": {
+        "base": 0.0,
+        "range": 200.0,
+        "val": 20.0
+      },
+      "view_angle": {
+        "base": 1.0,
+        "range": 358.9,
+        "val": 169.0
+      },
+      "sep_distance": {
+        "base": 0.0,
+        "range": 50.0,
+        "val": 10.0
+      },
+      "axis_constraint": [
+        {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 0.9
+        },
+        {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 1.0
+        },
+        {
+          "base": 0.0,
+          "range": 2.0,
+          "val": 0.9
+        }
+      ],
+      "influenced_by": [
+        {
+          "vec": [
+            {
+              "active": 1.0,
+              "value": {
+                "base": 0.0,
+                "range": 1.0,
+                "val": 1.0
+              }
+            }
+          ]
+        },
+        {
+          "vec": [
+            {
+              "active": 1.0,
+              "value": {
+                "base": 0.0,
+                "range": 1.0,
+                "val": 0.1
+              }
+            },
+            {
+              "active": 1.0,
+              "value": {
+                "base": 0.0,
+                "range": 1.0,
+                "val": 0.1
+              }
+            }
+          ]
+        }
+      ],
+      "noclip": false,
+      "energy": {
+        "on_movement": {
+          "base": 0.0,
+          "range": 10.0,
+          "val": 0.2
+        },
+        "on_zero": [
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "val": 10.0
+          },
+          {
+            "vec": [
+              {
+                "active": 1.0,
+                "value": 2
+              }
+            ],
+            "upper_bound": 2
+          }
+        ],
+        "on_replication": {
+          "base": 0.0,
+          "range": 10.0,
+          "val": 0.0
+        },
+        "for_offspring": {
+          "base": 0.0,
+          "range": 10.0,
+          "val": 0.85
+        }
+      },
+      "hand_down_seed": 0.0,
+      "rules": {
+        "rules": [
+          {
+            "context": {
+              "vec": [],
+              "upper_bound": 2
+            },
+            "range": {
+              "base": 0.0,
+              "range": 50.0,
+              "val": 5.0
+            },
+            "weight": {
+              "base": 0.0,
+              "range": 100.0,
+              "val": 6.0
+            },
+            "persist": 1.0,
+            "replacement": {
+              "vec": [
+                {
+                  "active": 1.0,
+                  "value": 2
+                },
+                {
+                  "active": 0.0,
+                  "value": 0
+                }
+              ],
+              "upper_bound": 2
+            }
+          },
+          {
+            "context": {
+              "vec": [],
+              "upper_bound": 2
+            },
+            "range": {
+              "base": 0.0,
+              "range": 50.0,
+              "val": 5.0
+            },
+            "weight": {
+              "base": 0.0,
+              "range": 100.0,
+              "val": 3.0
+            },
+            "persist": 1.0,
+            "replacement": {
+              "vec": [
+                {
+                  "active": 1.0,
+                  "value": 0
+                },
+                {
+                  "active": 1.0,
+                  "value": 2
+                }
+              ],
+              "upper_bound": 2
+            }
+          }
+        ],
+        "upper_weight_bound": 6.0,
+        "upper_range_bound": 5.0
+      },
+      "color_index": 2
+    }
+  ],
+  "artifact_map": {
+    "vec": [
+      {
+        "active": 1.0,
+        "value": 0
+      },
+      {
+        "active": 1.0,
+        "value": 1
+      }
+    ],
+    "upper_bound": 14
+  },
+  "start_dist": {
+    "Multi": [
+      {
+        "Single": [
+          {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "g0"
+        ]
+      }
+    ]
+  },
+  "strategy": {
+    "every": 3,
+    "offset": 3
+  },
+  "terrain_influences": [
+    {
+      "vec": [
+        {
+          "active": 0.0,
+          "value": {
+            "base": 0.0,
+            "range": 0.0,
+            "val": 0.0
+          }
+        }
+      ]
+    },
+    {
+      "vec": [
+        {
+          "active": 0.0,
+          "value": {
+            "base": 0.0,
+            "range": 5.0,
+            "val": 3.0
+          }
+        },
+        {
+          "active": 0.0,
+          "value": {
+            "base": 0.0,
+            "range": 5.0,
+            "val": 0.0
+          }
+        }
+      ]
+    }
+  ],
+  "terrain_size": 31,
+  "terrain_spacing": 5.0
+}

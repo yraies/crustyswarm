@@ -51,8 +51,8 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
                                 &oide_rule.context,
                                 &oide_genome.species_count,
                             ),
-                            range: *oide_rule.range,
-                            weight: *oide_rule.weight,
+                            range: oide_rule.range.get_value(),
+                            weight: oide_rule.weight.get_value(),
                             persist: oide_rule.persist.clone().into(),
                             replacement: Replacement::Simple(
                                 FlattenableIntoSurroundingVec::flatten_into_surrounding_vec(
@@ -286,8 +286,8 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
 
                             OIDEContextRule {
                                 context,
-                                range: rule.range.into(),
-                                weight: rule.weight.into(),
+                                range: BoundedFactor::new_from_f32(rule.range),
+                                weight: BoundedFactor::new_from_f32(rule.weight),
                                 persist: rule.persist.into(),
                                 replacement,
                             }

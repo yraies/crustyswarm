@@ -76,8 +76,8 @@ pub struct OIDERuleSet {
 )]
 pub struct OIDEContextRule {
     pub context: BoundedIdxVec,
-    pub range: Fixed<f32>,
-    pub weight: Fixed<f32>,
+    pub range: BoundedFactor,
+    pub weight: BoundedFactor,
     pub persist: FloatyBool,
     pub replacement: BoundedIdxVec,
 }
@@ -217,23 +217,12 @@ impl OIDERuleSet {
                 );
                 rule_count
             ],
-            upper_range_bound: 15.0.into(),
+            upper_range_bound: 50.0.into(),
             upper_weight_bound: 100.0.into(),
         }
     }
-
-    fn random(&self, rng: &mut impl Rng) -> Self {
-        OIDERuleSet {
-            rules: self
-                .rules
-                .iter()
-                .map(|rule| rule.random(rng, *self.upper_range_bound, *self.upper_weight_bound))
-                .collect(),
-            upper_weight_bound: self.upper_weight_bound.clone(),
-            upper_range_bound: self.upper_range_bound.clone(),
-        }
-    }
 }
+
 impl OIDEContextRule {
     fn new_with_size(
         index_count: usize,
@@ -242,23 +231,10 @@ impl OIDEContextRule {
     ) -> OIDEContextRule {
         OIDEContextRule {
             context: BoundedIdxVec::new_by_idx_count(index_count, context_count),
-            range: 0.0.into(),
-            weight: 1.0.into(),
+            range: BoundedFactor::new(0.0, 50.0, 0.0),
+            weight: BoundedFactor::new(0.0, 100.0, 0.0),
             persist: true.into(),
             replacement: BoundedIdxVec::new_by_idx_count(index_count, replacement_count),
-        }
-    }
-    fn random(&self, rng: &mut impl Rng, upper_range_bound: f32, upper_weight_bound: f32) -> Self {
-        OIDEContextRule {
-            context: self.context.random(rng),
-            range: rng
-                .sample(Uniform::new_inclusive(0.0, upper_range_bound))
-                .into(),
-            weight: rng
-                .sample(Uniform::new_inclusive(0.0, upper_weight_bound))
-                .into(),
-            persist: rng.gen::<f32>().into(),
-            replacement: self.replacement.random(rng),
         }
     }
 }
