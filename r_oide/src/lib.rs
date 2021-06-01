@@ -1,16 +1,52 @@
 pub mod atoms;
 
+pub mod prelude {
+    pub use crate::traits::{
+        Differentiable, Evaluatable, IODEPopulation, OIDEAdd, OIDEBoundApplication, OIDEDiff,
+        OIDEOpposite, OIDERandomize, OIDEScale,
+    };
+
+    pub use crate::atoms::{bool::*, bounded_float::*, fixed::*, tuples::*, *};
+}
+
 pub mod traits {
     use rand::prelude::*;
     use std::fmt::Debug;
 
-    pub trait Differentiable {
+    pub trait Differentiable
+    where
+        Self: OIDEAdd
+            + OIDEDiff
+            + OIDEScale
+            + OIDEOpposite
+            + OIDERandomize
+            + OIDEBoundApplication
+            + Clone,
+    {
+        fn trial_plus_from(&self, parent1: &Self, parent2: &Self, factor: f32) -> Self {
+            self.add(&parent1.difference(parent2).scale(factor))
+        }
+        fn trial_minus_from(&self, parent1: &Self, parent2: &Self, factor: f32) -> Self {
+            self.add(&parent1.difference(parent2).opposite().scale(factor))
+        }
+    }
+
+    pub trait OIDEAdd {
         fn add(&self, other: &Self) -> Self;
+    }
+    pub trait OIDEDiff {
         fn difference(&self, other: &Self) -> Self;
+    }
+    pub trait OIDEScale {
         fn scale(&self, factor: f32) -> Self;
+    }
+    pub trait OIDEOpposite {
         fn opposite(&self) -> Self;
-        fn clon(&self) -> Self;
+    }
+    pub trait OIDERandomize {
         fn random(&self, rng: &mut impl Rng) -> Self;
+    }
+    pub trait OIDEBoundApplication {
         fn apply_bounds(&self, other: &Self) -> Self;
     }
 
@@ -54,21 +90,20 @@ pub mod traits {
             let variants = self
                 .get_population()
                 .iter()
-                .map(|target| {
-                    let other1 = self
+                .map(|&target| {
+                    let parent1 = self
                         .iter()
                         .filter(|curr| target.ne(curr))
                         .choose(rng)
                         .expect("No other individuals could be found!");
-                    let other2 = self
+                    let parent2 = self
                         .iter()
                         .filter(|curr| target.ne(curr))
                         .choose(rng)
                         .expect("No other individuals could be found!");
-                    let trial = target.add(&(other1.difference(other2).scale(f)));
-                    let target_opposite =
-                        target.add(&(other1.difference(other2).scale(f).opposite()));
-                    [target.clon(), trial, target_opposite]
+                    let trial = target.trial_plus_from(parent1, parent2, f);
+                    let trial_opposite = target.trial_minus_from(parent1, parent2, f);
+                    [target.clone(), trial, trial_opposite]
                 })
                 .collect::<Vec<_>>();
 
@@ -78,7 +113,7 @@ pub mod traits {
                     set.into_iter()
                         .map(|base| {
                             let (eval, info) = base.eval(&params);
-                            (base.clon(), eval, info)
+                            (base.clone(), eval, info)
                         })
                         .collect::<Vec<_>>()
                 })
@@ -95,37 +130,40 @@ pub mod traits {
 
 pub mod tests {
     #[allow(unused_imports)]
-    use crate::traits::{Differentiable, Evaluatable, IODEPopulation};
+    use crate::prelude::*;
 
-    impl Differentiable for f32 {
+    impl OIDEAdd for f32 {
         fn add(&self, other: &Self) -> Self {
             self + other
         }
-
+    }
+    impl OIDEDiff for f32 {
         fn difference(&self, other: &Self) -> Self {
             other - self
         }
-
+    }
+    impl OIDEScale for f32 {
         fn scale(&self, factor: f32) -> Self {
             self * factor
         }
-
+    }
+    impl OIDEOpposite for f32 {
         fn opposite(&self) -> Self {
             -self
         }
-
-        fn clon(&self) -> Self {
-            *self
-        }
-
+    }
+    impl OIDERandomize for f32 {
         fn random(&self, rng: &mut impl rand::Rng) -> Self {
             rng.gen()
         }
-
+    }
+    impl OIDEBoundApplication for f32 {
         fn apply_bounds(&self, other: &Self) -> Self {
             *other
         }
     }
+
+    impl Differentiable for f32 {}
 
     impl Evaluatable<f32> for f32 {
         type Params = ();

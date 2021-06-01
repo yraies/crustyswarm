@@ -1,9 +1,8 @@
 extern crate crustswarm_lib as crustswarm;
 
-use std::env;
-
 use crustswarm::swarm::evo::genome::OIDESwarmGenome;
-use r_oide::traits::Differentiable;
+use r_oide::prelude::*;
+use std::env;
 
 fn main() {
     let cmd = env::args().skip(1).next();

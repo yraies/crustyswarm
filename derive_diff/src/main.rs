@@ -1,96 +1,165 @@
-use derive_diff::Differentiable;
+use derive_diff::*;
+use rand::prelude::*;
 
-pub trait Differentiable {
-    fn add(&self, other0: &Self) -> Self;
-    fn difference(&self, other0: &Self) -> Self;
-    fn scale(&self, factor: f32) -> Self;
-    fn opposite(&self) -> Self;
-    fn clon(&self) -> Self;
-    fn random(&self, rng: &mut impl rand::Rng) -> Self;
-    fn apply_bounds(&self, other0: &Self) -> Self;
+trait Differentiable
+where
+    Self: OIDEAdd
+        + OIDEDiff
+        + OIDEScale
+        + OIDEOpposite
+        + OIDERandomize
+        + OIDEBoundApplication
+        + Clone,
+{
+    fn trial_plus_from(&self, parent1: &Self, parent2: &Self, factor: f32) -> Self {
+        self.add(&parent1.difference(parent2).scale(factor))
+    }
+    fn trial_minus_from(&self, parent1: &Self, parent2: &Self, factor: f32) -> Self {
+        self.add(&parent1.difference(parent2).opposite().scale(factor))
+    }
 }
 
-impl Differentiable for usize {
+trait OIDEAdd {
+    fn add(&self, other: &Self) -> Self;
+}
+trait OIDEDiff {
+    fn difference(&self, other: &Self) -> Self;
+}
+trait OIDEScale {
+    fn scale(&self, factor: f32) -> Self;
+}
+trait OIDEOpposite {
+    fn opposite(&self) -> Self;
+}
+trait OIDERandomize {
+    fn random(&self, rng: &mut impl Rng) -> Self;
+}
+trait OIDEBoundApplication {
+    fn apply_bounds(&self, other: &Self) -> Self;
+}
+
+impl OIDEAdd for usize {
     fn add(&self, other0: &Self) -> Self {
         self + other0
     }
+}
+impl OIDEDiff for usize {
     fn difference(&self, other0: &Self) -> Self {
         self.max(other0) - self.min(other0)
     }
+}
+impl OIDEScale for usize {
     fn scale(&self, factor: f32) -> Self {
         ((*self as f32) * factor) as usize
     }
+}
+impl OIDEOpposite for usize {
     fn opposite(&self) -> Self {
         usize::MAX - self
     }
-    fn clon(&self) -> Self {
-        self.clone()
-    }
-
+}
+impl OIDERandomize for usize {
     fn random(&self, rng: &mut impl rand::Rng) -> Self {
         rng.gen()
     }
-
+}
+impl OIDEBoundApplication for usize {
     fn apply_bounds(&self, other0: &Self) -> Self {
         *other0
     }
 }
+impl Differentiable for usize {}
 
-impl<T: Differentiable> Differentiable for (T, T) {
+impl<T: Differentiable> OIDEAdd for (T, T) {
     fn add(&self, other0: &Self) -> Self {
         (
-            Differentiable::add(&self.0, &other0.0),
-            Differentiable::add(&self.1, &other0.1),
-        )
-    }
-    fn difference(&self, other0: &Self) -> Self {
-        (
-            Differentiable::difference(&self.0, &other0.0),
-            Differentiable::difference(&self.1, &other0.1),
-        )
-    }
-    fn scale(&self, factor: f32) -> Self {
-        (
-            Differentiable::scale(&self.0, factor),
-            Differentiable::scale(&self.1, factor),
-        )
-    }
-    fn opposite(&self) -> Self {
-        (
-            Differentiable::opposite(&self.0),
-            Differentiable::opposite(&self.1),
-        )
-    }
-    fn clon(&self) -> Self {
-        (Differentiable::clon(&self.0), Differentiable::clon(&self.1))
-    }
-
-    fn random(&self, rng: &mut impl rand::Rng) -> Self {
-        (self.0.random(rng), self.1.random(rng))
-    }
-
-    fn apply_bounds(&self, other0: &Self) -> Self {
-        (
-            Differentiable::apply_bounds(&self.0, &other0.0),
-            Differentiable::apply_bounds(&self.1, &other0.1),
+            OIDEAdd::add(&self.0, &other0.0),
+            OIDEAdd::add(&self.1, &other0.1),
         )
     }
 }
+impl<T: Differentiable> OIDEDiff for (T, T) {
+    fn difference(&self, other0: &Self) -> Self {
+        (
+            OIDEDiff::difference(&self.0, &other0.0),
+            OIDEDiff::difference(&self.1, &other0.1),
+        )
+    }
+}
+impl<T: Differentiable> OIDEScale for (T, T) {
+    fn scale(&self, factor: f32) -> Self {
+        (
+            OIDEScale::scale(&self.0, factor),
+            OIDEScale::scale(&self.1, factor),
+        )
+    }
+}
+impl<T: Differentiable> OIDEOpposite for (T, T) {
+    fn opposite(&self) -> Self {
+        (
+            OIDEOpposite::opposite(&self.0),
+            OIDEOpposite::opposite(&self.1),
+        )
+    }
+}
+impl<T: Differentiable> OIDERandomize for (T, T) {
+    fn random(&self, rng: &mut impl rand::Rng) -> Self {
+        (self.0.random(rng), self.1.random(rng))
+    }
+}
+impl<T: Differentiable> OIDEBoundApplication for (T, T) {
+    fn apply_bounds(&self, other0: &Self) -> Self {
+        (
+            OIDEBoundApplication::apply_bounds(&self.0, &other0.0),
+            OIDEBoundApplication::apply_bounds(&self.1, &other0.1),
+        )
+    }
+}
+impl<T: Differentiable> Differentiable for (T, T) {}
 
-#[derive(Differentiable)]
+#[derive(
+    OIDEAdd,
+    OIDEDiff,
+    OIDEScale,
+    OIDEOpposite,
+    OIDERandomize,
+    OIDEBoundApplication,
+    Clone,
+    Differentiable,
+)]
 struct NamedStruct {
     baz: usize,
     var: usize,
 }
 
-#[derive(Differentiable)]
+#[derive(Clone, AllOIDETraits)]
 struct UnnamedStruct(usize, usize);
 
-#[derive(Differentiable)]
+#[derive(
+    Debug,
+    OIDEAdd,
+    OIDEDiff,
+    OIDEScale,
+    OIDEOpposite,
+    OIDERandomize,
+    OIDEBoundApplication,
+    Clone,
+    Differentiable,
+)]
 struct UnitStruct;
 
 #[allow(dead_code)]
-#[derive(Differentiable, Debug)]
+#[derive(
+    Debug,
+    OIDEAdd,
+    OIDEDiff,
+    OIDEScale,
+    OIDEOpposite,
+    OIDERandomize,
+    OIDEBoundApplication,
+    Clone,
+    Differentiable,
+)]
 enum Enum {
     Unnamed((usize, usize)),
     Named {

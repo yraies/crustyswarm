@@ -1,10 +1,19 @@
 use std::{fmt::Debug, iter::FromIterator};
 
-use crate::traits::Differentiable;
+use crate::traits::*;
 use rand::{distributions::Uniform, Rng};
 use serde::{Deserialize, Serialize};
 
-impl<T: Differentiable> Differentiable for Vec<T> {
+pub mod bool;
+pub mod bounded_float;
+pub mod fixed;
+pub mod tuples;
+pub use crate::atoms::bool::*;
+pub use crate::atoms::bounded_float::*;
+pub use crate::atoms::fixed::*;
+pub use crate::atoms::tuples::*;
+
+impl<T: OIDEAdd> OIDEAdd for Vec<T> {
     fn add(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         self.iter()
@@ -12,7 +21,8 @@ impl<T: Differentiable> Differentiable for Vec<T> {
             .map(|(s, o)| s.add(o))
             .collect()
     }
-
+}
+impl<T: OIDEDiff> OIDEDiff for Vec<T> {
     fn difference(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         self.iter()
@@ -20,23 +30,23 @@ impl<T: Differentiable> Differentiable for Vec<T> {
             .map(|(s, o)| s.difference(o))
             .collect()
     }
-
+}
+impl<T: OIDEScale> OIDEScale for Vec<T> {
     fn scale(&self, factor: f32) -> Self {
         self.iter().map(|s| s.scale(factor)).collect()
     }
-
+}
+impl<T: OIDEOpposite> OIDEOpposite for Vec<T> {
     fn opposite(&self) -> Self {
         self.iter().map(|s| s.opposite()).collect()
     }
-
-    fn clon(&self) -> Self {
-        self.iter().map(|s| s.clon()).collect()
-    }
-
+}
+impl<T: OIDERandomize> OIDERandomize for Vec<T> {
     fn random(&self, rng: &mut impl Rng) -> Self {
         self.iter().map(|s| s.random(rng)).collect()
     }
-
+}
+impl<T: OIDEBoundApplication> OIDEBoundApplication for Vec<T> {
     fn apply_bounds(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
         self.iter()
@@ -45,293 +55,11 @@ impl<T: Differentiable> Differentiable for Vec<T> {
             .collect()
     }
 }
-
-impl<T: Differentiable, U: Differentiable> Differentiable for (T, U) {
-    fn add(&self, other: &Self) -> Self {
-        (self.0.add(&other.0), self.1.add(&other.1))
-    }
-
-    fn difference(&self, other: &Self) -> Self {
-        (self.0.difference(&other.0), self.1.difference(&other.1))
-    }
-
-    fn scale(&self, factor: f32) -> Self {
-        (self.0.scale(factor), self.1.scale(factor))
-    }
-
-    fn opposite(&self) -> Self {
-        (self.0.opposite(), self.1.opposite())
-    }
-
-    fn clon(&self) -> Self {
-        (self.0.clon(), self.1.clon())
-    }
-
-    fn random(&self, rng: &mut impl Rng) -> Self {
-        (self.0.random(rng), self.1.random(rng))
-    }
-
-    fn apply_bounds(&self, other: &Self) -> Self {
-        (self.0.apply_bounds(&other.0), self.1.apply_bounds(&other.1))
-    }
-}
-
-impl<T: Differentiable, U: Differentiable, V: Differentiable> Differentiable for (T, U, V) {
-    fn add(&self, other: &Self) -> Self {
-        (
-            self.0.add(&other.0),
-            self.1.add(&other.1),
-            self.2.add(&other.2),
-        )
-    }
-
-    fn difference(&self, other: &Self) -> Self {
-        (
-            self.0.difference(&other.0),
-            self.1.difference(&other.1),
-            self.2.difference(&other.2),
-        )
-    }
-
-    fn scale(&self, factor: f32) -> Self {
-        (
-            self.0.scale(factor),
-            self.1.scale(factor),
-            self.2.scale(factor),
-        )
-    }
-
-    fn opposite(&self) -> Self {
-        (self.0.opposite(), self.1.opposite(), self.2.opposite())
-    }
-
-    fn clon(&self) -> Self {
-        (self.0.clon(), self.1.clon(), self.2.clon())
-    }
-
-    fn random(&self, rng: &mut impl Rng) -> Self {
-        (self.0.random(rng), self.1.random(rng), self.2.random(rng))
-    }
-
-    fn apply_bounds(&self, other: &Self) -> Self {
-        (
-            self.0.apply_bounds(&other.0),
-            self.1.apply_bounds(&other.1),
-            self.2.apply_bounds(&other.2),
-        )
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
-pub struct Fixed<T: Clone + PartialEq>(T);
-
-impl<T: Clone + PartialEq> Differentiable for Fixed<T> {
-    fn add(&self, _other: &Self) -> Self {
-        self.clon()
-    }
-
-    fn difference(&self, _other: &Self) -> Self {
-        self.clon()
-    }
-
-    fn scale(&self, _factor: f32) -> Self {
-        self.clon()
-    }
-
-    fn opposite(&self) -> Self {
-        self.clon()
-    }
-
-    fn clon(&self) -> Self {
-        self.clone()
-    }
-
-    fn random(&self, _rng: &mut impl Rng) -> Self {
-        self.clon()
-    }
-
-    fn apply_bounds(&self, other: &Self) -> Self {
-        other.clon()
-    }
-}
-
-impl<T: Clone + PartialEq> std::ops::Deref for Fixed<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T: Clone + PartialEq> AsRef<T> for Fixed<T> {
-    fn as_ref(&self) -> &T {
-        &self.0
-    }
-}
-
-impl<T: Clone + PartialEq> From<T> for Fixed<T> {
-    fn from(other: T) -> Self {
-        Fixed(other)
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
-pub struct FloatyBool(f32);
-
-impl std::ops::Deref for FloatyBool {
-    type Target = f32;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<FloatyBool> for bool {
-    fn from(other: FloatyBool) -> Self {
-        other.0 >= 0.5
-    }
-}
-
-impl From<f32> for FloatyBool {
-    fn from(other: f32) -> Self {
-        assert!(other <= 1.0);
-        assert!(other >= 0.0);
-        FloatyBool(other)
-    }
-}
-
-impl From<bool> for FloatyBool {
-    fn from(other: bool) -> Self {
-        FloatyBool(if other { 1.0 } else { 0.0 })
-    }
-}
-
-impl Differentiable for FloatyBool {
-    fn add(&self, other: &Self) -> Self {
-        let temp_res = self.0 + other.0;
-        FloatyBool(if temp_res > 1.0 {
-            2.0 - temp_res
-        } else {
-            temp_res
-        })
-    }
-
-    fn difference(&self, other: &Self) -> Self {
-        FloatyBool((self.0 - other.0).abs())
-    }
-
-    fn scale(&self, factor: f32) -> Self {
-        FloatyBool(self.0 * factor)
-    }
-
-    fn opposite(&self) -> Self {
-        FloatyBool(1.0 - self.0)
-    }
-
-    fn clon(&self) -> Self {
-        self.clone()
-    }
-
-    fn random(&self, rng: &mut impl Rng) -> Self {
-        FloatyBool(rng.sample(Uniform::new_inclusive(0.0, 1.0)))
-    }
-
-    fn apply_bounds(&self, other: &Self) -> Self {
-        other.clon()
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
-pub struct BoundedFactor {
-    pub base: f32,
-    pub range: f32,
-    pub val: f32,
-}
-
-impl BoundedFactor {
-    pub fn new(lower: f32, upper: f32, value: f32) -> BoundedFactor {
-        BoundedFactor {
-            base: lower,
-            range: upper - lower,
-            val: value - lower,
-        }
-    }
-
-    pub fn new_from_f32(value: f32) -> BoundedFactor {
-        BoundedFactor {
-            base: value,
-            range: 0.0,
-            val: 0.0,
-        }
-    }
-
-    pub fn get_value(&self) -> f32 {
-        self.base + self.val
-    }
-}
-
-impl Differentiable for BoundedFactor {
-    fn add(&self, other: &Self) -> Self {
-        BoundedFactor {
-            base: self.base,
-            range: self.range,
-            val: {
-                let sum = self.val + other.val; // 0 <= sum <= 2 self.range
-                if sum > self.range {
-                    2f32 * self.range - sum
-                } else {
-                    sum
-                }
-            },
-        }
-    }
-
-    fn difference(&self, other: &Self) -> Self {
-        BoundedFactor {
-            base: self.base,
-            range: self.range,
-            val: (self.val - other.val).abs(), // - self.range <= diff <= self.range
-        }
-    }
-
-    fn opposite(&self) -> Self {
-        BoundedFactor {
-            base: self.base,
-            range: self.range,
-            val: self.range - self.val,
-        }
-    }
-
-    fn scale(&self, factor: f32) -> Self {
-        BoundedFactor {
-            base: self.base,
-            range: self.range,
-            val: self.val * factor, //TODO: Handle factor > 1.0
-        }
-    }
-
-    fn clon(&self) -> Self {
-        self.clone()
-    }
-
-    fn random(&self, rng: &mut impl Rng) -> Self {
-        let mut copy = self.clone();
-        copy.val = rng.sample(Uniform::new_inclusive(0.0, self.range));
-        copy
-    }
-
-    fn apply_bounds(&self, other: &Self) -> Self {
-        BoundedFactor {
-            base: self.base,
-            range: self.range,
-            val: (other.get_value() - self.base).clamp(0.0, self.range),
-        }
-    }
-}
+impl<T: Differentiable> Differentiable for Vec<T> {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct BoolCell<T> {
-    pub active: FloatyBool,
+    pub active: bool::FloatyBool,
     pub value: T,
 }
 
@@ -419,7 +147,7 @@ impl FromIterator<(bool, usize)> for BoundedIdxVec {
         for i in iter {
             c.upper_bound = c.upper_bound.max(i.1);
             c.vec.push(BoolCell {
-                active: (if i.0 { 1.0 } else { 0.0 }).into(),
+                active: i.0.into(),
                 value: i.1,
             });
         }
@@ -435,11 +163,11 @@ pub struct BoundedFactorVec {
 
 impl BoundedFactorVec {
     pub fn new(lower_bound: f32, upper_bound: f32, size: usize) -> BoundedFactorVec {
-        let base_bf = BoundedFactor::new(lower_bound, upper_bound, lower_bound);
+        let base_bf = BoundedFactor::new_with_bounds(lower_bound, upper_bound, lower_bound);
         BoundedFactorVec {
             vec: (0..size)
                 .map(|_| BoolCell {
-                    active: FloatyBool(0.0),
+                    active: FloatyBool::new_false(),
                     value: base_bf.clone(),
                 })
                 .collect::<Vec<_>>(),
@@ -462,8 +190,8 @@ impl BoundedFactorVec {
     pub fn fill_to(&mut self, size: usize) {
         while self.vec.len() < size {
             self.vec.push(BoolCell {
-                active: FloatyBool(0.0),
-                value: BoundedFactor::new(0.0, 0.0, 0.0),
+                active: FloatyBool::new_false(),
+                value: BoundedFactor::new_from_f32(0.0),
             })
         }
     }
@@ -479,20 +207,20 @@ impl FromIterator<(bool, f32)> for BoundedFactorVec {
             lower_bound = lower_bound.min(i.1);
             upper_bound = upper_bound.max(i.1);
             c.vec.push(BoolCell {
-                active: (if i.0 { 1.0 } else { 0.0 }).into(),
-                value: BoundedFactor::new(i.1, i.1, i.1),
+                active: i.0.into(),
+                value: BoundedFactor::new_from_f32(i.1),
             });
         }
 
         c.vec.iter_mut().for_each(|v| {
-            v.value = BoundedFactor::new(lower_bound, upper_bound, v.value.get_value());
+            v.value = BoundedFactor::new_with_bounds(lower_bound, upper_bound, v.value.get_value());
         });
 
         c
     }
 }
 
-impl Differentiable for BoundedIdxVec {
+impl OIDEAdd for BoundedIdxVec {
     fn add(&self, other: &Self) -> Self {
         BoundedIdxVec {
             vec: self
@@ -504,6 +232,8 @@ impl Differentiable for BoundedIdxVec {
             upper_bound: self.upper_bound,
         }
     }
+}
+impl OIDEDiff for BoundedIdxVec {
     fn difference(&self, other: &Self) -> Self {
         BoundedIdxVec {
             vec: self
@@ -515,14 +245,16 @@ impl Differentiable for BoundedIdxVec {
             upper_bound: self.upper_bound,
         }
     }
-
+}
+impl OIDEScale for BoundedIdxVec {
     fn scale(&self, factor: f32) -> Self {
         BoundedIdxVec {
             vec: self.vec.iter().map(|cell| cell.scale(factor)).collect(),
             upper_bound: self.upper_bound,
         }
     }
-
+}
+impl OIDEOpposite for BoundedIdxVec {
     fn opposite(&self) -> Self {
         BoundedIdxVec {
             vec: self
@@ -533,11 +265,8 @@ impl Differentiable for BoundedIdxVec {
             upper_bound: self.upper_bound,
         }
     }
-
-    fn clon(&self) -> Self {
-        self.clone()
-    }
-
+}
+impl OIDERandomize for BoundedIdxVec {
     fn random(&self, rng: &mut impl Rng) -> Self {
         let mut copy = self.clone();
         copy.vec = copy
@@ -547,7 +276,8 @@ impl Differentiable for BoundedIdxVec {
             .collect();
         copy
     }
-
+}
+impl OIDEBoundApplication for BoundedIdxVec {
     fn apply_bounds(&self, other: &Self) -> Self {
         BoundedIdxVec {
             vec: other
@@ -563,8 +293,9 @@ impl Differentiable for BoundedIdxVec {
         }
     }
 }
+impl Differentiable for BoundedIdxVec {}
 
-impl Differentiable for BoundedFactorVec {
+impl OIDEAdd for BoundedFactorVec {
     fn add(&self, other: &Self) -> Self {
         BoundedFactorVec {
             vec: self
@@ -578,7 +309,8 @@ impl Differentiable for BoundedFactorVec {
                 .collect(),
         }
     }
-
+}
+impl OIDEDiff for BoundedFactorVec {
     fn difference(&self, other: &Self) -> Self {
         BoundedFactorVec {
             vec: self
@@ -592,7 +324,8 @@ impl Differentiable for BoundedFactorVec {
                 .collect(),
         }
     }
-
+}
+impl OIDEScale for BoundedFactorVec {
     fn scale(&self, factor: f32) -> Self {
         BoundedFactorVec {
             vec: self
@@ -605,7 +338,8 @@ impl Differentiable for BoundedFactorVec {
                 .collect(),
         }
     }
-
+}
+impl OIDEOpposite for BoundedFactorVec {
     fn opposite(&self) -> Self {
         BoundedFactorVec {
             vec: self
@@ -618,11 +352,8 @@ impl Differentiable for BoundedFactorVec {
                 .collect(),
         }
     }
-
-    fn clon(&self) -> Self {
-        self.clone()
-    }
-
+}
+impl OIDERandomize for BoundedFactorVec {
     fn random(&self, rng: &mut impl Rng) -> Self {
         let mut copy = self.clone();
         copy.vec = copy
@@ -635,13 +366,15 @@ impl Differentiable for BoundedFactorVec {
             .collect();
         copy
     }
-
+}
+impl OIDEBoundApplication for BoundedFactorVec {
     fn apply_bounds(&self, other: &Self) -> Self {
         BoundedFactorVec {
             vec: other.vec.clone(),
         }
     }
 }
+impl Differentiable for BoundedFactorVec {}
 
 #[cfg(test)]
 mod testbounded_factors {
@@ -655,7 +388,7 @@ mod testbounded_factors {
         for _ in 0..count {
             let mut vals: Vec<f32> = vec![rng.sample(&uni), rng.sample(&uni), rng.sample(&uni)];
             vals.sort_by(|o1, o2| o1.partial_cmp(o2).unwrap());
-            let factor = BoundedFactor::new(vals[0], vals[2], vals[1]);
+            let factor = BoundedFactor::new_with_bounds(vals[0], vals[2], vals[1]);
             test(factor);
         }
     }
@@ -664,16 +397,8 @@ mod testbounded_factors {
         let mut rng = StdRng::seed_from_u64(1_234_567_890);
         let uni = Uniform::new_inclusive(-10.0, 10.0);
 
-        let factor = BoundedFactor {
-            base: -9.0,
-            range: 6.0,
-            val: 3.75,
-        };
-        let factor2 = BoundedFactor {
-            base: -9.0,
-            range: 6.0,
-            val: 2.0,
-        };
+        let factor = BoundedFactor::new_with_base(-9.0, 6.0, 3.75);
+        let factor2 = BoundedFactor::new_with_base(-9.0, 6.0, 2.0);
         test(factor, factor2);
 
         for _i in 0..count {
@@ -684,8 +409,8 @@ mod testbounded_factors {
                 rng.sample(&uni),
             ];
             vals.sort_by(|o1, o2| o1.partial_cmp(o2).unwrap());
-            let factor = BoundedFactor::new(vals[0], vals[3], vals[1]);
-            let factor2 = BoundedFactor::new(vals[0], vals[3], vals[2]);
+            let factor = BoundedFactor::new_with_bounds(vals[0], vals[3], vals[1]);
+            let factor2 = BoundedFactor::new_with_bounds(vals[0], vals[3], vals[2]);
             if rng.gen() {
                 dbg!(_i);
                 dbg!(&factor);
@@ -702,35 +427,41 @@ mod testbounded_factors {
 
     #[test]
     fn basic_addition() {
-        let factor = BoundedFactor::new(0.0, 4.0, 2.0);
-        let factor2 = BoundedFactor::new(0.0, 4.0, 3.0);
-        assert_eq!(BoundedFactor::new(0.0, 4.0, 3.0), factor.add(&factor2));
+        let factor = BoundedFactor::new_with_bounds(0.0, 4.0, 2.0);
+        let factor2 = BoundedFactor::new_with_bounds(0.0, 4.0, 3.0);
+        assert_eq!(
+            BoundedFactor::new_with_bounds(0.0, 4.0, 3.0),
+            factor.add(&factor2)
+        );
 
-        let factor = BoundedFactor::new(10.0, 20.0, 19.0);
-        let factor2 = BoundedFactor::new(10.0, 20.0, 19.0);
-        assert_eq!(BoundedFactor::new(10.0, 20.0, 12.0), factor.add(&factor2));
+        let factor = BoundedFactor::new_with_bounds(10.0, 20.0, 19.0);
+        let factor2 = BoundedFactor::new_with_bounds(10.0, 20.0, 19.0);
+        assert_eq!(
+            BoundedFactor::new_with_bounds(10.0, 20.0, 12.0),
+            factor.add(&factor2)
+        );
     }
 
     #[test]
     fn basic_difference() {
-        let factor = BoundedFactor::new(-10.0, 10.0, 5.0);
-        let factor2 = BoundedFactor::new(-10.0, 10.0, 5.0);
+        let factor = BoundedFactor::new_with_bounds(-10.0, 10.0, 5.0);
+        let factor2 = BoundedFactor::new_with_bounds(-10.0, 10.0, 5.0);
         assert_eq!(
-            BoundedFactor::new(-10.0, 10.0, -10.0),
+            BoundedFactor::new_with_bounds(-10.0, 10.0, -10.0),
             factor.difference(&factor2)
         );
 
-        let factor = BoundedFactor::new(-10.0, 10.0, 10.0);
-        let factor2 = BoundedFactor::new(-10.0, 10.0, -10.0);
+        let factor = BoundedFactor::new_with_bounds(-10.0, 10.0, 10.0);
+        let factor2 = BoundedFactor::new_with_bounds(-10.0, 10.0, -10.0);
         assert_eq!(
-            BoundedFactor::new(-10.0, 10.0, 10.0),
+            BoundedFactor::new_with_bounds(-10.0, 10.0, 10.0),
             factor.difference(&factor2)
         );
 
-        let factor = BoundedFactor::new(-10.0, 10.0, 5.0);
-        let factor2 = BoundedFactor::new(-10.0, 10.0, -7.0);
+        let factor = BoundedFactor::new_with_bounds(-10.0, 10.0, 5.0);
+        let factor2 = BoundedFactor::new_with_bounds(-10.0, 10.0, -7.0);
         assert_eq!(
-            BoundedFactor::new(-10.0, 10.0, 2.0),
+            BoundedFactor::new_with_bounds(-10.0, 10.0, 2.0),
             factor.difference(&factor2)
         );
     }
@@ -751,9 +482,9 @@ mod testbounded_factors {
         test_bounded_factor(1000, |factor| {
             let testfac = factor.add(&factor.opposite());
             assert!(
-                testfac.get_value() - testfac.base - testfac.range <= 0.000001,
+                testfac.get_value() - testfac.get_lower_bound() - testfac.get_range() <= 0.000001,
                 "Difference: {:?}",
-                testfac.get_value() - testfac.base - testfac.range
+                testfac.get_value() - testfac.get_lower_bound() - testfac.get_range()
             );
         });
     }
@@ -764,14 +495,14 @@ mod testbounded_factors {
             let diff = factor1.difference(&factor2);
             let testfac = factor1.add(&diff).add(&diff.opposite()).opposite();
             assert!(
-                factor1.val - factor1.range - testfac.val <= 0.00001,
+                factor1.get_offset() - factor1.get_range() - testfac.get_offset() <= 0.00001,
                 "\nF1: {:?}\nF2: {:?}\nDiff: {:?}\nDiff.opp: {:?}\nF1.add(Diff): {:?}\nF1.add(Diff).add(Diff.opp): {:?}",
                 factor1,
                 factor2,
-                diff.val,
-                diff.opposite().val,
-                factor1.add(&diff).val,
-                testfac.val
+                diff.get_offset(),
+                diff.opposite().get_offset(),
+                factor1.add(&diff).get_offset(),
+                testfac.get_offset()
             ); // kaputt, weil a+(a-b)-(a-b) != a+((a-b)-(a-b))
         });
     }

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use r_oide::{atoms::BoundedIdxVec, traits::Evaluatable};
+use r_oide::prelude::*;
 use rand::prelude::*;
 
 use super::grammar::SwarmGrammar;

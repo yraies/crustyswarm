@@ -223,7 +223,7 @@ fn main() {
 
     use r_oide::traits::*;
 
-    population.push(oidegenome.clon());
+    population.push(oidegenome.clone());
     let gens = (population_size - 1) / 2;
     for i in 0..gens {
         let random_genome = oidegenome.random(&mut rnd);
@@ -303,11 +303,13 @@ fn main() {
         let mut render_stats = VizStats::new();
 
         let mut orbit = true; //matches.is_present("fixed-camera");
-        let mut orbit_speed = 0.01; //matches.value_of("orbit-speed").map_or(0.01, |o| o.parse().unwrap());
+        let mut orbit_speed = matches
+            .value_of("orbit-speed")
+            .map_or(0.01, |o| o.parse().unwrap());
 
         let mut conditionals_draws = ConditionalDraw::new();
         conditionals_draws.buoys = true; // !matches.is_present("no-buoys");
-        conditionals_draws.tweenz = true; // !matches.is_present("no-tweenz");
+        conditionals_draws.tweenz = !matches.is_present("no-tweenz");
 
         let font = rl
             .load_font(&thread, fontfile_path.to_str().unwrap())
@@ -699,7 +701,7 @@ fn main() {
             .enumerate()
             .flat_map(|(idx, active)| {
                 if *active {
-                    Some(inp[idx].0.clon())
+                    Some(inp[idx].0.clone())
                 } else {
                     None
                 }

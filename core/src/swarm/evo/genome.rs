@@ -1,15 +1,16 @@
 #![allow(dead_code)]
 
 use cgmath::Vector3;
-use rand::{distributions::Uniform, Rng};
 use serde::{Deserialize, Serialize};
 
 use super::super::genome::{
     replacement::ApplicationStrategy, Distribution, SpeciesIndex, SurroundingIndex,
 };
-use r_oide::{atoms::*, traits::*};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, ::derive_diff::Differentiable)]
+use derive_diff::AllOIDETraits;
+use r_oide::prelude::*;
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, AllOIDETraits)]
 pub struct OIDESwarmGenome {
     pub species_count: Fixed<usize>,
     pub artifact_count: Fixed<usize>,
@@ -23,7 +24,7 @@ pub struct OIDESwarmGenome {
     pub terrain_spacing: Fixed<f32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, ::derive_diff::Differentiable)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, AllOIDETraits)]
 pub struct OIDESpecies {
     pub index: Fixed<usize>,
     pub separation: BoundedFactor,
@@ -52,9 +53,7 @@ pub struct OIDESpecies {
     pub color_index: Fixed<usize>,
 }
 
-#[derive(
-    Debug, Serialize, Deserialize, Clone, Default, PartialEq, ::derive_diff::Differentiable,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, AllOIDETraits)]
 pub struct OIDEEnergy {
     pub on_movement: BoundedFactor,
     pub on_zero: (BoundedFactor, BoundedIdxVec),
@@ -62,18 +61,14 @@ pub struct OIDEEnergy {
     pub for_offspring: BoundedFactor,
 }
 
-#[derive(
-    Debug, Serialize, Deserialize, Clone, Default, PartialEq, ::derive_diff::Differentiable,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, AllOIDETraits)]
 pub struct OIDERuleSet {
     pub rules: Vec<OIDEContextRule>,
     pub upper_weight_bound: Fixed<f32>,
     pub upper_range_bound: Fixed<f32>,
 }
 
-#[derive(
-    Debug, Serialize, Deserialize, Clone, Default, PartialEq, ::derive_diff::Differentiable,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, AllOIDETraits)]
 pub struct OIDEContextRule {
     pub context: BoundedIdxVec,
     pub range: BoundedFactor,
@@ -143,31 +138,31 @@ impl OIDESpecies {
     ) -> OIDESpecies {
         OIDESpecies {
             index: 0.into(),
-            separation: BoundedFactor::new(0.0, 2.0, 0.0),
-            alignment: BoundedFactor::new(0.0, 2.0, 0.0),
-            cohesion: BoundedFactor::new(0.0, 2.0, 0.0),
-            randomness: BoundedFactor::new(0.0, 2.0, 0.0),
-            center: BoundedFactor::new(0.0, 2.0, 0.0),
-            floor: BoundedFactor::new(0.0, 2.0, 0.0),
+            separation: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            alignment: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            cohesion: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            randomness: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            center: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            floor: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
             bias: (
-                BoundedFactor::new(-1.0, 1.0, 0.0),
-                BoundedFactor::new(-1.0, 1.0, 0.0),
-                BoundedFactor::new(-1.0, 1.0, 0.0),
+                BoundedFactor::new_with_bounds(-1.0, 1.0, 0.0),
+                BoundedFactor::new_with_bounds(-1.0, 1.0, 0.0),
+                BoundedFactor::new_with_bounds(-1.0, 1.0, 0.0),
             ),
-            gradient: BoundedFactor::new(0.0, 2.0, 0.0),
-            normal: BoundedFactor::new(0.0, 2.0, 0.0),
-            slope: BoundedFactor::new(0.0, 2.0, 0.0),
-            normal_speed: BoundedFactor::new(0.0, 2.0, 0.5),
-            max_speed: BoundedFactor::new(0.0, 2.0, 1.0),
-            max_acceleration: BoundedFactor::new(0.0, 2.0, 1.0),
-            pacekeeping: BoundedFactor::new(0.0, 2.0, 0.0),
-            view_distance: BoundedFactor::new(0.0, 200.0, 50.0),
-            view_angle: BoundedFactor::new(1.0, 359.9, 270.0),
-            sep_distance: BoundedFactor::new(0.0, 50.0, 10.0),
+            gradient: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            normal: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            slope: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            normal_speed: BoundedFactor::new_with_bounds(0.0, 2.0, 0.5),
+            max_speed: BoundedFactor::new_with_bounds(0.0, 2.0, 1.0),
+            max_acceleration: BoundedFactor::new_with_bounds(0.0, 2.0, 1.0),
+            pacekeeping: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            view_distance: BoundedFactor::new_with_bounds(0.0, 200.0, 50.0),
+            view_angle: BoundedFactor::new_with_bounds(1.0, 359.9, 270.0),
+            sep_distance: BoundedFactor::new_with_bounds(0.0, 50.0, 10.0),
             axis_constraint: (
-                BoundedFactor::new(0.0, 2.0, 0.0),
-                BoundedFactor::new(0.0, 2.0, 0.0),
-                BoundedFactor::new(0.0, 2.0, 0.0),
+                BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+                BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+                BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
             ),
             influenced_by: (
                 BoundedFactorVec::new(-2.0, 2.0, species_count),
@@ -190,13 +185,13 @@ impl OIDESpecies {
 impl OIDEEnergy {
     fn new_with_size(index_count: usize, replacement_count: usize) -> OIDEEnergy {
         OIDEEnergy {
-            on_movement: BoundedFactor::new(0.0, 10.0, 0.1),
+            on_movement: BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
             on_zero: (
-                BoundedFactor::new(0.0, 10.0, 0.1),
+                BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
                 BoundedIdxVec::new_by_idx_count(index_count, replacement_count),
             ),
-            on_replication: BoundedFactor::new(0.0, 10.0, 0.1),
-            for_offspring: BoundedFactor::new(0.0, 10.0, 0.1),
+            on_replication: BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
+            for_offspring: BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
         }
     }
 }
@@ -231,8 +226,8 @@ impl OIDEContextRule {
     ) -> OIDEContextRule {
         OIDEContextRule {
             context: BoundedIdxVec::new_by_idx_count(index_count, context_count),
-            range: BoundedFactor::new(0.0, 50.0, 0.0),
-            weight: BoundedFactor::new(0.0, 100.0, 0.0),
+            range: BoundedFactor::new_with_bounds(0.0, 50.0, 0.0),
+            weight: BoundedFactor::new_with_bounds(0.0, 100.0, 0.0),
             persist: true.into(),
             replacement: BoundedIdxVec::new_by_idx_count(index_count, replacement_count),
         }
