@@ -352,7 +352,7 @@ impl BoolCell<usize> {
     fn add(&self, other: &Self, index_count: usize) -> Self {
         Self {
             active: self.active.add(&other.active),
-            value: (other.value + self.value) % index_count,
+            value: (other.value + self.value) % (index_count + 1),
         }
     }
 
@@ -366,20 +366,20 @@ impl BoolCell<usize> {
     fn scale(&self, factor: f32) -> Self {
         Self {
             active: self.active.scale(factor), //TODO: deal with factors > 1.0
-            value: (self.value as f32 * factor).ceil() as usize,
+            value: (self.value as f32 * factor).round() as usize,
         }
     }
     fn opposite(&self, index_count: usize) -> Self {
         Self {
             active: self.active.opposite(),
-            value: dbg!(index_count) - dbg!(self.value) - 1,
+            value: index_count - self.value,
         }
     }
 
     pub fn random(&self, rng: &mut impl Rng, lower_bound: usize, upper_bound: usize) -> Self {
         BoolCell {
             active: rng.sample(Uniform::new_inclusive(0.0, 1.0)).into(),
-            value: rng.gen_range(lower_bound, upper_bound),
+            value: rng.gen_range(lower_bound, upper_bound + 1),
         }
     }
 }
@@ -440,14 +440,14 @@ impl BoolCell<f32> {
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct BoundedIdxVec {
     pub vec: Vec<BoolCell<usize>>,
-    pub index_count: usize,
+    pub upper_bound: usize,
 }
 
 impl BoundedIdxVec {
-    pub fn new(index_count: usize, size: usize) -> BoundedIdxVec {
+    pub fn new_by_idx_count(index_count: usize, size: usize) -> BoundedIdxVec {
         BoundedIdxVec {
             vec: vec![BoolCell::<usize>::new(); size],
-            index_count,
+            upper_bound: index_count - 1,
         }
     }
 
@@ -466,11 +466,11 @@ impl FromIterator<(bool, usize)> for BoundedIdxVec {
     fn from_iter<I: IntoIterator<Item = (bool, usize)>>(iter: I) -> Self {
         let mut c = BoundedIdxVec {
             vec: vec![],
-            index_count: 1,
+            upper_bound: 0,
         };
 
         for i in iter {
-            c.index_count = c.index_count.max(i.1);
+            c.upper_bound = c.upper_bound.max(i.1);
             c.vec.push(BoolCell {
                 active: (if i.0 { 1.0 } else { 0.0 }).into(),
                 value: i.1,
@@ -539,9 +539,9 @@ impl Differentiable for BoundedIdxVec {
                 .vec
                 .iter()
                 .zip(&other.vec)
-                .map(|(first, second)| first.add(second, self.index_count))
+                .map(|(first, second)| first.add(second, self.upper_bound))
                 .collect(),
-            index_count: self.index_count,
+            upper_bound: self.upper_bound,
         }
     }
 
@@ -553,14 +553,14 @@ impl Differentiable for BoundedIdxVec {
                 .zip(&other.vec)
                 .map(|(first, second)| first.diff(second))
                 .collect(),
-            index_count: self.index_count,
+            upper_bound: self.upper_bound,
         }
     }
 
     fn scale(&self, factor: f32) -> Self {
         BoundedIdxVec {
             vec: self.vec.iter().map(|cell| cell.scale(factor)).collect(),
-            index_count: self.index_count,
+            upper_bound: self.upper_bound,
         }
     }
 
@@ -569,9 +569,9 @@ impl Differentiable for BoundedIdxVec {
             vec: self
                 .vec
                 .iter()
-                .map(|cell| cell.opposite(self.index_count))
+                .map(|cell| cell.opposite(self.upper_bound))
                 .collect(),
-            index_count: self.index_count,
+            upper_bound: self.upper_bound,
         }
     }
 
@@ -584,15 +584,23 @@ impl Differentiable for BoundedIdxVec {
         copy.vec = copy
             .vec
             .iter()
-            .map(|cell| cell.random(rng, 0, self.index_count))
+            .map(|cell| cell.random(rng, 0, self.upper_bound))
             .collect();
         copy
     }
 
     fn apply_bounds(&self, other: &Self) -> Self {
         BoundedIdxVec {
-            vec: other.vec.clone(),
-            index_count: self.index_count,
+            vec: other
+                .vec
+                .iter()
+                .map(|v| {
+                    let mut new_val = v.clone();
+                    new_val.value = v.value % (self.upper_bound + 1);
+                    new_val
+                })
+                .collect(),
+            upper_bound: self.upper_bound,
         }
     }
 }
@@ -855,7 +863,7 @@ mod testidxvec {
         let mut rng = StdRng::seed_from_u64(1237919273);
         let total_size = 20;
         for total_count in 1..20 {
-            let v1 = BoundedIdxVec::new(total_count, total_size);
+            let v1 = BoundedIdxVec::new_by_idx_count(total_count, total_size);
             for _i in 0..200 {
                 let v1 = v1.random(&mut rng);
                 let v2 = v1.random(&mut rng);

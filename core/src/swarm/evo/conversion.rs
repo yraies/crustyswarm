@@ -117,7 +117,7 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
                         oide_species.axis_constraint.2.get_value(),
                     ),
                     influenced_by: influences,
-                    noclip: oide_species.noclip.clone().into(),
+                    noclip: *oide_species.noclip,
                     energy,
                     hand_down_seed: oide_species.hand_down_seed.clone().into(),
                     rules,
@@ -236,7 +236,7 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
                         match species.energy.on_zero.clone() {
                             ZeroEnergy::Die => BoundedIdxVec {
                                 vec: vec![],
-                                index_count: 1,
+                                upper_bound: 0,
                             },
                             ZeroEnergy::Replace(_, reps) => {
                                 let bar = conv_rep(&reps);
@@ -249,12 +249,12 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
                                             value: i,
                                         })
                                         .collect(),
-                                    index_count: species_count + artifact_count - 1,
+                                    upper_bound: species_count + artifact_count - 1,
                                 }
                             }
                             ZeroEnergy::Live => BoundedIdxVec {
                                 vec: vec![],
-                                index_count: 1,
+                                upper_bound: 0,
                             },
                         },
                     ),

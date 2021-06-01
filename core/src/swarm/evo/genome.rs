@@ -45,7 +45,7 @@ pub struct OIDESpecies {
     pub sep_distance: BoundedFactor,
     pub axis_constraint: (BoundedFactor, BoundedFactor, BoundedFactor),
     pub influenced_by: (BoundedFactorVec, BoundedFactorVec),
-    pub noclip: FloatyBool,
+    pub noclip: Fixed<bool>,
     pub energy: OIDEEnergy,
     pub hand_down_seed: FloatyBool,
     pub rules: OIDERuleSet,
@@ -104,7 +104,7 @@ impl OIDESwarmGenome {
                 );
                 spec_count
             ],
-            artifact_map: BoundedIdxVec::new(15, art_count), // colors
+            artifact_map: BoundedIdxVec::new_by_idx_count(15, art_count), // colors
             start_dist: Distribution::Single(
                 Vector3::new(0.0, 0.0, 0.0),
                 SurroundingIndex::Agent(SpeciesIndex(0)),
@@ -121,28 +121,6 @@ impl OIDESwarmGenome {
             ),
             terrain_size: 20.into(),
             terrain_spacing: 5.0.into(),
-        }
-    }
-
-    pub fn random(&self, rng: &mut impl Rng) -> Self {
-        OIDESwarmGenome {
-            species_count: self.species_count.clone(),
-            artifact_count: self.artifact_count.clone(),
-            rule_count: self.rule_count.clone(),
-            species_map: self
-                .species_map
-                .iter()
-                .map(|spec| spec.random(rng))
-                .collect(),
-            artifact_map: self.artifact_map.random(rng),
-            start_dist: self.start_dist.clone(),
-            strategy: self.strategy.clone(),
-            terrain_influences: (
-                self.terrain_influences.0.random(rng),
-                self.terrain_influences.1.random(rng),
-            ),
-            terrain_size: self.terrain_size.clone(),
-            terrain_spacing: self.terrain_spacing.clone(),
         }
     }
 
@@ -207,47 +185,6 @@ impl OIDESpecies {
             color_index: 0.into(),
         }
     }
-
-    fn random(&self, rng: &mut impl Rng) -> Self {
-        OIDESpecies {
-            index: self.index.clone(),
-            separation: self.separation.random(rng),
-            alignment: self.alignment.random(rng),
-            cohesion: self.cohesion.random(rng),
-            randomness: self.randomness.random(rng),
-            center: self.center.random(rng),
-            floor: self.floor.random(rng),
-            bias: (
-                self.bias.0.random(rng),
-                self.bias.1.random(rng),
-                self.bias.2.random(rng),
-            ),
-            gradient: self.gradient.random(rng),
-            normal: self.normal.random(rng),
-            slope: self.slope.random(rng),
-            normal_speed: self.normal_speed.random(rng),
-            max_speed: self.max_speed.random(rng),
-            max_acceleration: self.max_acceleration.random(rng),
-            pacekeeping: self.pacekeeping.random(rng),
-            view_distance: self.view_distance.random(rng),
-            view_angle: self.view_angle.random(rng),
-            sep_distance: self.sep_distance.random(rng),
-            axis_constraint: (
-                self.axis_constraint.0.random(rng),
-                self.axis_constraint.1.random(rng),
-                self.axis_constraint.2.random(rng),
-            ),
-            influenced_by: (
-                self.influenced_by.0.random(rng),
-                self.influenced_by.1.random(rng),
-            ),
-            noclip: rng.gen::<f32>().into(),
-            energy: self.energy.random(rng),
-            hand_down_seed: rng.gen::<f32>().into(),
-            rules: self.rules.random(rng),
-            color_index: rng.gen_range(0, 16).into(),
-        }
-    }
 }
 
 impl OIDEEnergy {
@@ -256,19 +193,10 @@ impl OIDEEnergy {
             on_movement: BoundedFactor::new(0.0, 10.0, 0.1),
             on_zero: (
                 BoundedFactor::new(0.0, 10.0, 0.1),
-                BoundedIdxVec::new(index_count, replacement_count),
+                BoundedIdxVec::new_by_idx_count(index_count, replacement_count),
             ),
             on_replication: BoundedFactor::new(0.0, 10.0, 0.1),
             for_offspring: BoundedFactor::new(0.0, 10.0, 0.1),
-        }
-    }
-
-    fn random(&self, rng: &mut impl Rng) -> Self {
-        OIDEEnergy {
-            on_movement: self.on_movement.random(rng),
-            on_zero: (self.on_zero.0.random(rng), self.on_zero.1.random(rng)),
-            on_replication: self.on_replication.random(rng),
-            for_offspring: self.for_offspring.random(rng),
         }
     }
 }
@@ -313,11 +241,11 @@ impl OIDEContextRule {
         replacement_count: usize,
     ) -> OIDEContextRule {
         OIDEContextRule {
-            context: BoundedIdxVec::new(index_count, context_count),
+            context: BoundedIdxVec::new_by_idx_count(index_count, context_count),
             range: 0.0.into(),
             weight: 1.0.into(),
             persist: true.into(),
-            replacement: BoundedIdxVec::new(index_count, replacement_count),
+            replacement: BoundedIdxVec::new_by_idx_count(index_count, replacement_count),
         }
     }
     fn random(&self, rng: &mut impl Rng, upper_range_bound: f32, upper_weight_bound: f32) -> Self {
