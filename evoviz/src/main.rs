@@ -723,7 +723,7 @@ fn main() {
                 max_iterations: iterations as usize,
                 timeout_hint: Duration::from_secs(10),
             },
-            0.5,
+            0.25,
         );
         population_size.replace(population.len());
         generation.replace_with(|&mut v| v + 1);

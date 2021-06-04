@@ -27,7 +27,7 @@ pub mod traits {
             self.add(&parent1.difference(parent2).scale(factor))
         }
         fn trial_minus_from(&self, parent1: &Self, parent2: &Self, factor: f32) -> Self {
-            self.add(&parent1.difference(parent2).opposite().scale(factor))
+            self.add(&parent1.difference(parent2).scale(factor).opposite())
         }
     }
 
@@ -93,12 +93,12 @@ pub mod traits {
                 .map(|&target| {
                     let parent1 = self
                         .iter()
-                        .filter(|curr| target.ne(curr))
+                        .filter(|&curr| curr.ne(target))
                         .choose(rng)
                         .expect("No other individuals could be found!");
                     let parent2 = self
                         .iter()
-                        .filter(|curr| target.ne(curr))
+                        .filter(|&curr| curr.ne(target) && curr.ne(parent1))
                         .choose(rng)
                         .expect("No other individuals could be found!");
                     let trial = target.trial_plus_from(parent1, parent2, f);
