@@ -7,7 +7,7 @@ use super::super::genome::{
     replacement::ApplicationStrategy, Distribution, SpeciesIndex, SurroundingIndex,
 };
 
-use derive_diff::AllOIDETraits;
+use derive_diff::*;
 use r_oide::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, AllOIDETraits)]
@@ -68,7 +68,20 @@ pub struct OIDERuleSet {
     pub upper_range_bound: Fixed<f32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, AllOIDETraits)]
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Default,
+    PartialEq,
+    Differentiable,
+    OIDEAdd,
+    OIDEDiff,
+    OIDEScale,
+    OIDERandomize,
+    OIDEBoundApplication,
+)]
 pub struct OIDEContextRule {
     pub context: BoundedIdxVec,
     pub range: BoundedFactor,
@@ -77,13 +90,24 @@ pub struct OIDEContextRule {
     pub replacement: BoundedIdxVec,
 }
 
+impl OIDEOpposite for OIDEContextRule {
+    fn opposite(&self) -> Self {
+        OIDEContextRule {
+            context: self.replacement.clone(),
+            range: self.range.clone(),
+            weight: self.weight.clone(),
+            persist: self.persist.clone(),
+            replacement: self.context.clone(),
+        }
+    }
+}
+
 impl OIDESwarmGenome {
     pub fn new(
         spec_count: usize,
         art_count: usize,
         rule_count: usize,
-        context_count: usize,
-        replacement_count: usize,
+        rule_size: usize,
     ) -> OIDESwarmGenome {
         OIDESwarmGenome {
             species_count: spec_count.into(),
@@ -91,11 +115,7 @@ impl OIDESwarmGenome {
             rule_count: rule_count.into(),
             species_map: vec![
                 OIDESpecies::new_with_size(
-                    spec_count,
-                    art_count,
-                    rule_count,
-                    context_count,
-                    replacement_count,
+                    spec_count, art_count, rule_count, rule_size,
                 );
                 spec_count
             ],
@@ -133,8 +153,7 @@ impl OIDESpecies {
         species_count: usize,
         artifact_count: usize,
         rule_count: usize,
-        context_count: usize,
-        replacement_count: usize,
+        rule_size: usize,
     ) -> OIDESpecies {
         OIDESpecies {
             index: 0.into(),
@@ -169,13 +188,12 @@ impl OIDESpecies {
                 BoundedFactorVec::new(-2.0, 2.0, artifact_count),
             ),
             noclip: false.into(),
-            energy: OIDEEnergy::new_with_size(species_count + artifact_count, replacement_count),
+            energy: OIDEEnergy::new_with_size(species_count + artifact_count, rule_size),
             hand_down_seed: false.into(),
             rules: OIDERuleSet::new_with_size(
                 species_count + artifact_count,
                 rule_count,
-                context_count,
-                replacement_count,
+                rule_size,
             ),
             color_index: 0.into(),
         }
@@ -197,21 +215,9 @@ impl OIDEEnergy {
 }
 
 impl OIDERuleSet {
-    fn new_with_size(
-        index_count: usize,
-        rule_count: usize,
-        context_count: usize,
-        replacement_count: usize,
-    ) -> OIDERuleSet {
+    fn new_with_size(index_count: usize, rule_count: usize, rule_size: usize) -> OIDERuleSet {
         OIDERuleSet {
-            rules: vec![
-                OIDEContextRule::new_with_size(
-                    index_count,
-                    context_count,
-                    replacement_count
-                );
-                rule_count
-            ],
+            rules: vec![OIDEContextRule::new_with_size(index_count, rule_size); rule_count],
             upper_range_bound: 50.0.into(),
             upper_weight_bound: 100.0.into(),
         }
@@ -219,17 +225,13 @@ impl OIDERuleSet {
 }
 
 impl OIDEContextRule {
-    fn new_with_size(
-        index_count: usize,
-        context_count: usize,
-        replacement_count: usize,
-    ) -> OIDEContextRule {
+    fn new_with_size(index_count: usize, rule_size: usize) -> OIDEContextRule {
         OIDEContextRule {
-            context: BoundedIdxVec::new_by_idx_count(index_count, context_count),
+            context: BoundedIdxVec::new_by_idx_count(index_count, rule_size),
             range: BoundedFactor::new_with_bounds(0.0, 50.0, 0.0),
             weight: BoundedFactor::new_with_bounds(0.0, 100.0, 0.0),
             persist: true.into(),
-            replacement: BoundedIdxVec::new_by_idx_count(index_count, replacement_count),
+            replacement: BoundedIdxVec::new_by_idx_count(index_count, rule_size),
         }
     }
 }

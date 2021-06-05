@@ -197,8 +197,7 @@ fn main() {
             species_count,
             artifact_count,
             rules_count,
-            context_count,
-            replacement_count,
+            context_count.max(replacement_count),
         )
     };
 
@@ -214,8 +213,9 @@ fn main() {
             *oidegenome.species_count,
             *oidegenome.artifact_count,
             *oidegenome.rule_count,
-            oidegenome.get_first_context_count(),
-            oidegenome.get_first_replacement_count(),
+            oidegenome
+                .get_first_context_count()
+                .max(oidegenome.get_first_replacement_count()),
         );
 
         oidegenome = new_bound_genome.apply_bounds(&oidegenome);
