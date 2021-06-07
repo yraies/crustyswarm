@@ -12,3 +12,6 @@ serde = { version = "^1.0", features = ["derive"] }
 
 [dependencies.derive_diff]
 path = "../derive_diff"
+
+[dev-dependencies]
+plotlib = "^0.5"

@@ -7,51 +7,54 @@ use serde::{Deserialize, Serialize};
 //
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
-pub struct BoundedFactor {
-    base: f32,
-    range: f32,
-    offset: f32,
+pub struct BoundedInt {
+    base: i32,
+    range: i32,
+    offset: i32,
 }
 
-impl BoundedFactor {
-    pub fn new_with_bounds(lower: f32, upper: f32, value: f32) -> BoundedFactor {
-        BoundedFactor {
+impl BoundedInt {
+    pub fn new_with_bounds(lower: i32, upper: i32, value: i32) -> BoundedInt {
+        assert!(lower <= value);
+        assert!(value <= upper);
+        BoundedInt {
             base: lower,
             range: upper - lower,
             offset: value - lower,
         }
     }
 
-    pub fn new_with_base(base: f32, range: f32, offset: f32) -> BoundedFactor {
-        assert!(range >= 0.0);
-        BoundedFactor {
+    pub fn new_with_base(base: i32, range: i32, offset: i32) -> BoundedInt {
+        assert!(range >= 0);
+        assert!(offset >= 0);
+        BoundedInt {
             base,
             range,
             offset,
         }
     }
 
-    pub fn new_from_f32(offset: f32) -> BoundedFactor {
-        BoundedFactor {
+    pub fn new_from_i32(offset: i32) -> BoundedInt {
+        BoundedInt {
             base: offset,
-            range: 0.0,
-            offset: 0.0,
+            range: 0,
+            offset: 0,
         }
     }
 
-    pub fn get_value(&self) -> f32 {
+    pub fn get_value(&self) -> i32 {
         self.base + self.offset.abs()
     }
-    pub fn get_upper_bound(&self) -> f32 {
+    pub fn get_upper_bound(&self) -> i32 {
         self.base + self.range
     }
-    pub fn get_lower_bound(&self) -> f32 {
+    pub fn get_lower_bound(&self) -> i32 {
         self.base
     }
-    pub fn get_range(&self) -> f32 {
+    pub fn get_range(&self) -> i32 {
         self.range
     }
-    pub fn get_offset(&self) -> f32 {
+    pub fn get_offset(&self) -> i32 {
         self.offset.abs()
     }
 }
@@ -60,17 +63,17 @@ impl BoundedFactor {
 // OIDE
 //
 
-impl OIDEAdd for BoundedFactor {
+impl OIDEAdd for BoundedInt {
     fn add(&self, other: &Self) -> Self {
-        BoundedFactor {
+        BoundedInt {
             base: self.base,
             range: self.range,
             offset: {
                 let sum = self.offset + other.offset; // -2 self.range <= sum <= 2 self.range
                 if sum > self.range {
-                    -2f32 * self.range + sum // offset <= 0
+                    -2i32 * self.range + sum // offset <= 0
                 } else if sum < -self.range {
-                    2f32 * self.range + sum // 0 <= offset
+                    2i32 * self.range + sum // 0 <= offset
                 } else {
                     sum // -self.range <= offset <= self.range
                 }
@@ -78,17 +81,17 @@ impl OIDEAdd for BoundedFactor {
         }
     }
 }
-impl OIDEDiff for BoundedFactor {
+impl OIDEDiff for BoundedInt {
     fn difference(&self, other: &Self) -> Self {
-        BoundedFactor {
+        BoundedInt {
             base: self.base,
             range: self.range,
             offset: {
                 let diff = self.offset - other.offset; // -2 self.range <= diff <= 2 self.range
                 if diff > self.range {
-                    -2f32 * self.range + diff // offset <= 0
+                    -2i32 * self.range + diff // offset <= 0
                 } else if diff < -self.range {
-                    2f32 * self.range + diff // offset >= 0
+                    2i32 * self.range + diff // offset >= 0
                 } else {
                     diff // -self.range <= 0 <= self.range
                 }
@@ -96,46 +99,48 @@ impl OIDEDiff for BoundedFactor {
         }
     }
 }
-impl OIDEScale for BoundedFactor {
+impl OIDEScale for BoundedInt {
     fn scale(&self, factor: f32) -> Self {
-        BoundedFactor {
+        BoundedInt {
             base: self.base,
             range: self.range,
-            offset: self.offset * factor, //TODO: Handle factor > 1.0
+            offset: (self.offset as f32 * factor) as i32, //TODO: Handle factor > 1.0
         }
     }
 }
-impl OIDEOpposite for BoundedFactor {
+impl OIDEOpposite for BoundedInt {
     fn opposite(&self) -> Self {
-        BoundedFactor {
+        BoundedInt {
             base: self.base,
             range: self.range,
             offset: -self.offset,
         }
     }
 }
-impl OIDERandomize for BoundedFactor {
+impl OIDERandomize for BoundedInt {
     fn random(&self, rng: &mut impl Rng) -> Self {
         let mut copy = self.clone();
-        copy.offset = rng.sample(Uniform::new_inclusive(-self.range, self.range));
+
+        copy.offset =
+            rng.sample(Uniform::new_inclusive(0, self.range)) * [1, -1].choose(rng).unwrap();
         copy
     }
 }
-impl OIDEBoundApplication for BoundedFactor {
+impl OIDEBoundApplication for BoundedInt {
     fn apply_bounds(&self, other: &Self) -> Self {
-        BoundedFactor {
+        BoundedInt {
             base: self.base,
             range: self.range,
             offset: (other.get_value() - self.base).clamp(-self.range, self.range),
         }
     }
 }
-impl Differentiable for BoundedFactor {}
+impl Differentiable for BoundedInt {}
 
 #[cfg(test)]
 mod test {
     extern crate plotlib;
-    use super::BoundedFactor;
+    use super::BoundedInt;
     use crate::prelude::*;
     use plotlib::{
         repr::{Histogram, HistogramBins},
@@ -146,20 +151,20 @@ mod test {
     #[test]
     fn unif_dist() {
         let mut rng = StdRng::seed_from_u64(123123123);
-        let base = BoundedFactor::new_with_bounds(0.0, 1.0, 0.0);
-        let (width, height, bins) = (120, 30, 10);
+        let base = BoundedInt::new_with_bounds(0, 9, 0);
+        let (width, height, bins) = (10 + 5 * 20, 30, 20);
 
         let values: Vec<_> = (0..100000)
             .into_iter()
             .map(|_| base.random(&mut rng).get_value() as f64)
             .collect();
         let hist = Histogram::from_slice(&values, HistogramBins::Count(bins));
-        let view = ContinuousView::new().add(hist).x_range(0.0, 1.0);
+        let view = ContinuousView::new().add(hist).x_range(-11.0, 11.0);
         let res = view.to_text(width, height).unwrap();
         println!("\n### BASE ###\n{}", res);
 
         let mut rng = StdRng::seed_from_u64(123123123);
-        let base = BoundedFactor::new_with_bounds(0.0, 1.0, 0.0);
+        let base = BoundedInt::new_with_bounds(0, 10, 0);
         let values: Vec<_> = (0..100000)
             .into_iter()
             .map(|_| {
@@ -169,7 +174,7 @@ mod test {
             })
             .collect();
         let hist = Histogram::from_slice(&values, HistogramBins::Count(bins));
-        let view = ContinuousView::new().add(hist);
+        let view = ContinuousView::new().add(hist).x_range(-11.0, 11.0);
         let res = view.to_text(width, height).unwrap();
         println!("\n### DIFF ###\n{}", res);
 
@@ -183,7 +188,7 @@ mod test {
             })
             .collect();
         let hist = Histogram::from_slice(&values, HistogramBins::Count(bins));
-        let view = ContinuousView::new().add(hist).x_range(0.0, 1.0);
+        let view = ContinuousView::new().add(hist).x_range(-11.0, 11.0);
         let res = view.to_text(width, height).unwrap();
         println!("\n### ADD ###\n{}", res);
 
@@ -193,7 +198,7 @@ mod test {
             .map(|_| base.random(&mut rng).opposite().get_value() as f64)
             .collect();
         let hist = Histogram::from_slice(&values, HistogramBins::Count(bins));
-        let view = ContinuousView::new().add(hist).x_range(0.0, 1.0);
+        let view = ContinuousView::new().add(hist).x_range(-11.0, 11.0);
         let res = view.to_text(width, height).unwrap();
         println!("\n### OPP ###\n{}", res);
 
@@ -207,7 +212,7 @@ mod test {
             })
             .collect();
         let hist = Histogram::from_slice(&values, HistogramBins::Count(bins));
-        let view = ContinuousView::new().add(hist).x_range(0.0, 1.0);
+        let view = ContinuousView::new().add(hist).x_range(-11.0, 11.0);
         let res = view.to_text(width, height).unwrap();
         println!("\n### ADDDIFF ###\n{}", res);
 
@@ -226,7 +231,7 @@ mod test {
             })
             .collect();
         let hist = Histogram::from_slice(&values, HistogramBins::Count(bins));
-        let view = ContinuousView::new().add(hist).x_range(0.0, 1.0);
+        let view = ContinuousView::new().add(hist).x_range(-11.0, 11.0);
         let res = view.to_text(width, height).unwrap();
         println!("\n### ADDOPPDIFF ###\n{}", res);
 

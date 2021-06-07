@@ -46,7 +46,7 @@ pub struct OIDESpecies {
     pub sep_distance: BoundedFactor,
     pub axis_constraint: (BoundedFactor, BoundedFactor, BoundedFactor),
     pub influenced_by: (BoundedFactorVec, BoundedFactorVec),
-    pub noclip: Fixed<bool>,
+    pub noclip: FloatyBool,
     pub energy: OIDEEnergy,
     pub hand_down_seed: FloatyBool,
     pub rules: OIDERuleSet,
@@ -55,10 +55,10 @@ pub struct OIDESpecies {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, AllOIDETraits)]
 pub struct OIDEEnergy {
-    pub on_movement: BoundedFactor,
-    pub on_zero: (BoundedFactor, BoundedIdxVec),
-    pub on_replication: BoundedFactor,
-    pub for_offspring: BoundedFactor,
+    pub on_movement: (BoundedFactor, BoundedFactor),
+    pub on_zero: (BoundedFactor, BoundedFactor, IndexMultiset),
+    pub on_replication: (BoundedFactor, BoundedFactor),
+    pub for_offspring: (BoundedFactor, BoundedFactor, BoundedFactor),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, AllOIDETraits)]
@@ -83,11 +83,11 @@ pub struct OIDERuleSet {
     OIDEBoundApplication,
 )]
 pub struct OIDEContextRule {
-    pub context: BoundedIdxVec,
+    pub context: IndexMultiset,
     pub range: BoundedFactor,
     pub weight: BoundedFactor,
     pub persist: FloatyBool,
-    pub replacement: BoundedIdxVec,
+    pub replacement: IndexMultiset,
 }
 
 impl OIDEOpposite for OIDEContextRule {
@@ -103,20 +103,13 @@ impl OIDEOpposite for OIDEContextRule {
 }
 
 impl OIDESwarmGenome {
-    pub fn new(
-        spec_count: usize,
-        art_count: usize,
-        rule_count: usize,
-        rule_size: usize,
-    ) -> OIDESwarmGenome {
+    pub fn new(spec_count: usize, art_count: usize, rule_count: usize) -> OIDESwarmGenome {
         OIDESwarmGenome {
             species_count: spec_count.into(),
             artifact_count: art_count.into(),
             rule_count: rule_count.into(),
             species_map: vec![
-                OIDESpecies::new_with_size(
-                    spec_count, art_count, rule_count, rule_size,
-                );
+                OIDESpecies::new_with_size(spec_count, art_count, rule_count);
                 spec_count
             ],
             artifact_map: BoundedIdxVec::new_by_idx_count(15, art_count), // colors
@@ -134,17 +127,9 @@ impl OIDESwarmGenome {
                 BoundedFactorVec::new(0.0, 5.0, spec_count),
                 BoundedFactorVec::new(0.0, 5.0, art_count),
             ),
-            terrain_size: 20.into(),
+            terrain_size: 50.into(),
             terrain_spacing: 5.0.into(),
         }
-    }
-
-    pub fn get_first_context_count(&self) -> usize {
-        self.species_map[0].rules.rules[0].context.vec.len()
-    }
-
-    pub fn get_first_replacement_count(&self) -> usize {
-        self.species_map[0].rules.rules[0].replacement.vec.len()
     }
 }
 
@@ -153,7 +138,6 @@ impl OIDESpecies {
         species_count: usize,
         artifact_count: usize,
         rule_count: usize,
-        rule_size: usize,
     ) -> OIDESpecies {
         OIDESpecies {
             index: 0.into(),
@@ -188,36 +172,43 @@ impl OIDESpecies {
                 BoundedFactorVec::new(-2.0, 2.0, artifact_count),
             ),
             noclip: false.into(),
-            energy: OIDEEnergy::new_with_size(species_count + artifact_count, rule_size),
+            energy: OIDEEnergy::new_with_size(species_count + artifact_count),
             hand_down_seed: false.into(),
-            rules: OIDERuleSet::new_with_size(
-                species_count + artifact_count,
-                rule_count,
-                rule_size,
-            ),
+            rules: OIDERuleSet::new_with_size(species_count + artifact_count, rule_count),
             color_index: 0.into(),
         }
     }
 }
 
 impl OIDEEnergy {
-    fn new_with_size(index_count: usize, replacement_count: usize) -> OIDEEnergy {
+    pub fn new_with_size(index_count: usize) -> OIDEEnergy {
         OIDEEnergy {
-            on_movement: BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
-            on_zero: (
+            on_movement: (
+                BoundedFactor::new_with_bounds(0.0, 3.0 - (f32::EPSILON * 4.0), 0.0),
                 BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
-                BoundedIdxVec::new_by_idx_count(index_count, replacement_count),
             ),
-            on_replication: BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
-            for_offspring: BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
+            on_zero: (
+                BoundedFactor::new_with_bounds(0.0, 3.0 - (f32::EPSILON * 4.0), 0.0),
+                BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
+                IndexMultiset::new_with_size(index_count),
+            ),
+            on_replication: (
+                BoundedFactor::new_with_bounds(0.0, 5.0 - (f32::EPSILON * 4.0), 0.0),
+                BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
+            ),
+            for_offspring: (
+                BoundedFactor::new_with_bounds(0.0, 4.0 - (f32::EPSILON * 4.0), 0.0),
+                BoundedFactor::new_with_bounds(0.0, 10.0, 0.0),
+                BoundedFactor::new_with_bounds(0.0, 10.0, 0.1),
+            ),
         }
     }
 }
 
 impl OIDERuleSet {
-    fn new_with_size(index_count: usize, rule_count: usize, rule_size: usize) -> OIDERuleSet {
+    pub fn new_with_size(index_count: usize, rule_count: usize) -> OIDERuleSet {
         OIDERuleSet {
-            rules: vec![OIDEContextRule::new_with_size(index_count, rule_size); rule_count],
+            rules: vec![OIDEContextRule::new_with_size(index_count); rule_count],
             upper_range_bound: 50.0.into(),
             upper_weight_bound: 100.0.into(),
         }
@@ -225,13 +216,13 @@ impl OIDERuleSet {
 }
 
 impl OIDEContextRule {
-    fn new_with_size(index_count: usize, rule_size: usize) -> OIDEContextRule {
+    pub fn new_with_size(index_count: usize) -> OIDEContextRule {
         OIDEContextRule {
-            context: BoundedIdxVec::new_by_idx_count(index_count, rule_size),
+            context: IndexMultiset::new_with_size(index_count),
             range: BoundedFactor::new_with_bounds(0.0, 50.0, 0.0),
             weight: BoundedFactor::new_with_bounds(0.0, 100.0, 0.0),
             persist: true.into(),
-            replacement: BoundedIdxVec::new_by_idx_count(index_count, rule_size),
+            replacement: IndexMultiset::new_with_size(index_count),
         }
     }
 }

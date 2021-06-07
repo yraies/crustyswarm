@@ -60,9 +60,6 @@ fn main() {
                 *genome.species_count,
                 *genome.artifact_count,
                 *genome.rule_count,
-                genome
-                    .get_first_context_count()
-                    .max(genome.get_first_replacement_count()),
             );
 
             crustswarm::io::oide_genome_to_file(
@@ -74,7 +71,7 @@ fn main() {
         Some("generate_zero") => {
             std::fs::write(
                 "zero.oide.json",
-                serde_json::to_string_pretty(&OIDESwarmGenome::new(2, 3, 3, 4)).unwrap(),
+                serde_json::to_string_pretty(&OIDESwarmGenome::new(2, 3, 3)).unwrap(),
             )
             .unwrap();
         }
@@ -91,7 +88,7 @@ fn main() {
 fn oide_genome() {
     use std::io::Write;
     //spec art rule context replacement
-    let oidegnome = crustswarm::swarm::evo::genome::OIDESwarmGenome::new(2, 3, 8, 3);
+    let oidegnome = crustswarm::swarm::evo::genome::OIDESwarmGenome::new(2, 3, 8);
     let oidegnome = oidegnome.random(&mut rand::thread_rng());
 
     let mut file = std::fs::File::create("genome.oide.json")
@@ -137,9 +134,6 @@ fn oide_genome2() -> Result<(), std::io::Error> {
         *base_tree_genome.species_count,
         *base_tree_genome.artifact_count,
         *base_tree_genome.rule_count,
-        base_tree_genome
-            .get_first_context_count()
-            .max(base_tree_genome.get_first_replacement_count()),
     );
 
     let rebound_tree_genome = new_bound_genome.apply_bounds(&base_tree_genome);

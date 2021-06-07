@@ -29,6 +29,9 @@ impl Evaluatable<SwarmGrammar> for genome::OIDESwarmGenome {
 
         let mut iteration = 0;
         for _ in 0..params.max_iterations {
+            if iteration % 100 == 0 {
+                println!("Iteration {}", iteration);
+            }
             sg.step(&mut rnd);
             iteration = iteration + 1;
             if start_time.elapsed() > params.timeout_hint {
@@ -50,25 +53,18 @@ struct FlattenableIntoSurroundingVec;
 
 impl FlattenableIntoSurroundingVec {
     pub fn flatten_into_surrounding_vec(
-        vec: &BoundedIdxVec,
+        vec: &Vec<usize>,
         species_count: &dyn AsRef<usize>,
     ) -> Vec<SurroundingIndex> {
-        let foobar = vec
-            .vec
-            .iter()
-            .flat_map(|bar| {
-                if bar.is_active() {
-                    if bar.value >= *species_count.as_ref() {
-                        let art_id = bar.value - species_count.as_ref();
-                        Some(SurroundingIndex::Artifact(ArtifactIndex(art_id)))
-                    } else {
-                        Some(SurroundingIndex::Agent(SpeciesIndex(bar.value)))
-                    }
+        vec.iter()
+            .map(|bar| {
+                if bar >= species_count.as_ref() {
+                    let art_id = bar - species_count.as_ref();
+                    SurroundingIndex::Artifact(ArtifactIndex(art_id))
                 } else {
-                    None
+                    SurroundingIndex::Agent(SpeciesIndex(*bar))
                 }
             })
-            .collect();
-        foobar
+            .collect()
     }
 }

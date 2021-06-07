@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use cgmath::Vector3;
 
-use r_oide::atoms::{BoolCell, BoundedFactor, BoundedIdxVec};
+use r_oide::atoms::BoundedFactor;
 
 use super::genome::*;
 use super::{
@@ -21,24 +21,80 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
             .iter()
             .map(|oide_species| -> Species {
                 let energy = Energy {
-                    on_movement: MovementEnergy::Distance(
-                        oide_species.energy.on_movement.get_value(),
-                    ),
-                    on_zero: ZeroEnergy::Replace(
-                        oide_species.energy.on_zero.0.get_value() as u16,
-                        Replacement::Simple(
-                            FlattenableIntoSurroundingVec::flatten_into_surrounding_vec(
-                                &oide_species.energy.on_zero.1,
-                                &oide_genome.species_count,
+                    on_movement: match oide_species.energy.on_movement.0.get_value().trunc()
+                        as usize
+                    {
+                        0 => {
+                            MovementEnergy::Constant(oide_species.energy.on_movement.1.get_value())
+                        }
+                        1 => {
+                            MovementEnergy::Distance(oide_species.energy.on_movement.1.get_value())
+                        }
+                        2 => MovementEnergy::None,
+                        _ => unreachable!(
+                            "This should not happen! on_movement: {}",
+                            oide_species.energy.on_movement.0.get_value()
+                        ),
+                    },
+                    on_zero: match oide_species.energy.on_zero.0.get_value().trunc() as usize {
+                        0 => ZeroEnergy::Die,
+                        1 => ZeroEnergy::Replace(
+                            oide_species.energy.on_zero.1.get_value() as u16,
+                            Replacement::Simple(
+                                FlattenableIntoSurroundingVec::flatten_into_surrounding_vec(
+                                    &oide_species.energy.on_zero.2.get_indices(),
+                                    &oide_genome.species_count,
+                                ),
                             ),
                         ),
-                    ),
-                    on_replication: ReplicationEnergy::Constant(
-                        oide_species.energy.on_replication.get_value(),
-                    ),
-                    for_offspring: OffspringEnergy::Inherit(
-                        oide_species.energy.for_offspring.get_value(),
-                    ),
+                        2 => ZeroEnergy::Live,
+                        _ => unreachable!(
+                            "This should not happen! on_zero: {}",
+                            oide_species.energy.on_zero.0.get_value()
+                        ),
+                    },
+                    on_replication: match oide_species.energy.on_replication.0.get_value().trunc()
+                        as usize
+                    {
+                        0 => ReplicationEnergy::Constant(
+                            oide_species.energy.on_replication.1.get_value(),
+                        ),
+                        1 => ReplicationEnergy::Count(
+                            oide_species.energy.on_replication.1.get_value(),
+                        ),
+                        2 => ReplicationEnergy::PropRel,
+                        3 => ReplicationEnergy::PropConst(
+                            oide_species.energy.on_replication.1.get_value(),
+                        ),
+                        4 => ReplicationEnergy::None,
+                        _ => unreachable!(
+                            "This should not happen! on_replication: {}",
+                            oide_species.energy.on_replication.0.get_value()
+                        ),
+                    },
+                    for_offspring: match oide_species.energy.for_offspring.0.get_value().trunc()
+                        as usize
+                    {
+                        0 => OffspringEnergy::Constant(
+                            oide_species.energy.for_offspring.1.get_value(),
+                        ),
+                        1 => OffspringEnergy::Inherit(
+                            oide_species.energy.for_offspring.1.get_value(),
+                        ),
+                        2 => OffspringEnergy::PropRel(
+                            oide_species.energy.for_offspring.1.get_value(),
+                        ),
+                        3 => OffspringEnergy::PropConst(
+                            oide_species.energy.for_offspring.1.get_value(),
+                            oide_species.energy.for_offspring.2.get_value(),
+                        ),
+                        _ => panic!(
+                            "This should not happen! for_offspring: {}, {}, {}",
+                            oide_species.energy.for_offspring.0.get_value(),
+                            oide_species.energy.for_offspring.0.get_value().trunc(),
+                            oide_species.energy.for_offspring.0.get_value().trunc() as usize
+                        ),
+                    },
                 };
 
                 let rules = oide_species
@@ -48,7 +104,7 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
                     .map(|oide_rule| {
                         let foo = ContextRule {
                             context: FlattenableIntoSurroundingVec::flatten_into_surrounding_vec(
-                                &oide_rule.context,
+                                &oide_rule.context.get_indices(),
                                 &oide_genome.species_count,
                             ),
                             range: oide_rule.range.get_value(),
@@ -56,7 +112,7 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
                             persist: oide_rule.persist.clone().into(),
                             replacement: Replacement::Simple(
                                 FlattenableIntoSurroundingVec::flatten_into_surrounding_vec(
-                                    &oide_rule.replacement,
+                                    &oide_rule.replacement.get_indices(),
                                     &oide_genome.species_count,
                                 ),
                             ),
@@ -117,7 +173,7 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
                         oide_species.axis_constraint.2.get_value(),
                     ),
                     influenced_by: influences,
-                    noclip: *oide_species.noclip,
+                    noclip: oide_species.noclip.is_active(),
                     energy,
                     hand_down_seed: oide_species.hand_down_seed.clone().into(),
                     rules,
@@ -158,20 +214,6 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
             .species_map
             .iter()
             .map(|spec| spec.rules.iter().count())
-            .max()
-            .unwrap_or(0);
-        let context_count = genome
-            .species_map
-            .iter()
-            .flat_map(|spec| spec.rules.clone())
-            .map(|r| r.context.len())
-            .max()
-            .unwrap_or(0);
-        let replacement_count = genome
-            .species_map
-            .iter()
-            .flat_map(|spec| spec.rules.clone())
-            .map(|r| r.replacement.count_replacements())
             .max()
             .unwrap_or(0);
 
@@ -228,71 +270,117 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
                 }
 
                 let energy = OIDEEnergy {
-                    on_movement: BoundedFactor::new_from_f32(
-                        species.energy.on_movement.get_param(),
-                    ),
-                    on_zero: (
-                        BoundedFactor::new_from_f32(species.energy.on_zero.get_param() as f32),
-                        match species.energy.on_zero.clone() {
-                            ZeroEnergy::Die => BoundedIdxVec {
-                                vec: vec![],
-                                upper_bound: 0,
-                            },
-                            ZeroEnergy::Replace(_, reps) => {
-                                let bar = conv_rep(&reps);
-                                let v = bar.iter().map(|i| to_usize(i.clone()));
-                                BoundedIdxVec {
-                                    vec: v
-                                        .clone()
-                                        .map(|i| BoolCell {
-                                            active: 1.0.into(),
-                                            value: i,
-                                        })
-                                        .collect(),
-                                    upper_bound: species_count + artifact_count - 1,
-                                }
+                    on_movement: {
+                        let (v1, v2): (f32, f32) = match &species.energy.on_movement {
+                            MovementEnergy::Constant(v) => (0.0, *v),
+                            MovementEnergy::Distance(v) => (0.0, *v),
+                            MovementEnergy::None => (0.0, 0.0),
+                        };
+                        (
+                            BoundedFactor::new_with_bounds(0.0, 3.0 - (f32::EPSILON * 4.0), v1),
+                            BoundedFactor::new_with_bounds(0.0, 10.0, v2),
+                        )
+                    },
+                    on_zero: {
+                        match &species.energy.on_zero {
+                            ZeroEnergy::Die => (
+                                BoundedFactor::new_with_bounds(
+                                    0.0,
+                                    3.0 - (f32::EPSILON * 4.0),
+                                    0.0,
+                                ),
+                                BoundedFactor::new_with_bounds(0.0, 10.0, 0.0),
+                                vec![0.0; artifact_count + species_count].into(),
+                            ),
+                            ZeroEnergy::Replace(v1, reps) => {
+                                let mut distribution: Vec<f32> =
+                                    vec![0.0; artifact_count + species_count];
+                                conv_rep(&reps)
+                                    .iter()
+                                    .map(|i| to_usize(i.clone()))
+                                    .for_each(|idx| distribution[idx] = distribution[idx] + 1.0);
+                                (
+                                    BoundedFactor::new_with_bounds(
+                                        0.0,
+                                        3.0 - (f32::EPSILON * 4.0),
+                                        1.0,
+                                    ),
+                                    BoundedFactor::new_with_bounds(0.0, 10.0, *v1 as f32),
+                                    distribution.into(),
+                                )
                             }
-                            ZeroEnergy::Live => BoundedIdxVec {
-                                vec: vec![],
-                                upper_bound: 0,
-                            },
-                        },
-                    ),
-                    on_replication: BoundedFactor::new_from_f32(
-                        species.energy.on_replication.get_param(),
-                    ),
-                    for_offspring: BoundedFactor::new_from_f32(
-                        species.energy.for_offspring.get_param(),
-                    ),
+                            ZeroEnergy::Live => (
+                                BoundedFactor::new_with_bounds(
+                                    0.0,
+                                    3.0 - (f32::EPSILON * 4.0),
+                                    2.0,
+                                ),
+                                BoundedFactor::new_with_bounds(0.0, 10.0, 0.0),
+                                vec![0.0; artifact_count + species_count].into(),
+                            ),
+                        }
+                    },
+                    on_replication: {
+                        let (v1, v2): (f32, f32) = match &species.energy.on_replication {
+                            ReplicationEnergy::Constant(v) => (0.0, *v),
+                            ReplicationEnergy::Count(v) => (1.0, *v),
+                            ReplicationEnergy::PropRel => (2.0, 0.0),
+                            ReplicationEnergy::PropConst(v) => (3.0, *v),
+                            ReplicationEnergy::None => (4.0, 0.0),
+                        };
+                        (
+                            BoundedFactor::new_with_bounds(0.0, 5.0 - (f32::EPSILON * 4.0), v1),
+                            BoundedFactor::new_with_bounds(0.0, 10.0, v2),
+                        )
+                    },
+                    for_offspring: {
+                        let (v1, v2, v3): (f32, f32, f32) = match &species.energy.for_offspring {
+                            OffspringEnergy::Constant(v1) => (0.0, *v1, 0.0),
+                            OffspringEnergy::Inherit(v1) => (1.0, *v1, 0.0),
+                            OffspringEnergy::PropRel(v1) => (2.0, *v1, 0.0),
+                            OffspringEnergy::PropConst(v1, v2) => (3.0, *v1, *v2),
+                        };
+                        (
+                            BoundedFactor::new_with_bounds(0.0, 4.0 - (f32::EPSILON * 4.0), v1),
+                            BoundedFactor::new_with_bounds(0.0, 10.0, v2),
+                            BoundedFactor::new_with_bounds(0.0, 10.0, v3),
+                        )
+                    },
                 };
 
-                let rules = OIDERuleSet {
-                    rules: species
-                        .rules
-                        .iter()
-                        .map(|rule| {
-                            let mut context = rule
-                                .context
-                                .iter()
-                                .map(|&a| (true, to_usize(a)))
-                                .collect::<BoundedIdxVec>();
-                            let mut replacement = conv_rep(&rule.replacement)
-                                .iter()
-                                .map(|&a| (true, to_usize(a)))
-                                .collect::<BoundedIdxVec>();
+                let mut rules: Vec<_> = species
+                    .rules
+                    .iter()
+                    .map(|rule| {
+                        let mut context = vec![0.0; artifact_count + species_count];
+                        let mut replacement = vec![0.0; artifact_count + species_count];
 
-                            context.fill_to(context_count);
-                            replacement.fill_to(replacement_count);
+                        rule.context.iter().for_each(|surr_idx| {
+                            let idx = to_usize(*surr_idx);
+                            context[idx] = context[idx] + 1.0;
+                        });
+                        conv_rep(&rule.replacement).iter().for_each(|surr_idx| {
+                            let idx = to_usize(*surr_idx);
+                            replacement[idx] = replacement[idx] + 1.0;
+                        });
 
-                            OIDEContextRule {
-                                context,
-                                range: BoundedFactor::new_from_f32(rule.range),
-                                weight: BoundedFactor::new_from_f32(rule.weight),
-                                persist: rule.persist.into(),
-                                replacement,
-                            }
-                        })
-                        .collect(),
+                        OIDEContextRule {
+                            context: context.into(),
+                            range: BoundedFactor::new_from_f32(rule.range),
+                            weight: BoundedFactor::new_from_f32(rule.weight),
+                            persist: rule.persist.into(),
+                            replacement: replacement.into(),
+                        }
+                    })
+                    .collect();
+
+                rules.resize(
+                    rule_count,
+                    OIDEContextRule::new_with_size(artifact_count + species_count),
+                );
+
+                let ruleset = OIDERuleSet {
+                    rules,
                     upper_weight_bound: species
                         .rules
                         .iter()
@@ -341,7 +429,7 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
                     noclip: species.noclip.into(),
                     energy,
                     hand_down_seed: species.hand_down_seed.into(),
-                    rules,
+                    rules: ruleset,
                     color_index: species.color_index.into(),
                 }
             })

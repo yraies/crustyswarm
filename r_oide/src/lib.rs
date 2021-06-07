@@ -6,7 +6,9 @@ pub mod prelude {
         OIDEOpposite, OIDERandomize, OIDEScale,
     };
 
-    pub use crate::atoms::{bool::*, bounded_float::*, fixed::*, tuples::*, *};
+    pub use crate::atoms::{
+        bool::*, bounded_float::*, bounded_int::*, fixed::*, multiset::*, tuples::*, *,
+    };
 }
 
 pub mod traits {
@@ -103,13 +105,21 @@ pub mod traits {
                         .expect("No other individuals could be found!");
                     let trial = target.trial_plus_from(parent1, parent2, f);
                     let trial_opposite = target.trial_minus_from(parent1, parent2, f);
-                    [target.clone(), trial, trial_opposite]
+                    [
+                        target.clone(),
+                        trial,
+                        trial_opposite,
+                        target.clone().opposite(),
+                    ]
                 })
                 .collect::<Vec<_>>();
 
             let evaled_pairs: Vec<_> = variants
                 .iter()
-                .map(|set| {
+                .enumerate()
+                .map(|(idx, set)| {
+                    println!("#############################\nEvaluating triple #{:3} of {:3}\n#############################", idx + 1, self.len());
+                    std::thread::sleep(std::time::Duration::from_millis(300));
                     set.into_iter()
                         .map(|base| {
                             let (eval, info) = base.eval(&params);
@@ -177,10 +187,11 @@ pub mod tests {
     fn test_ode_20() {
         let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(2345678912u64);
         rand::Rng::gen_bool(&mut rng, 0.5);
-        let mut pop = rand::Rng::sample_iter(&mut rng, &rand::distributions::Standard)
-            .take(10)
-            .map(|f: f32| f * 100.0)
-            .collect::<Vec<f32>>();
+        //let mut pop = rand::Rng::sample_iter(&mut rng, &rand::distributions::Standard)
+        //    .take(10)
+        //    .map(|f: f32| f * 100.0)
+        //    .collect::<Vec<f32>>();
+        let mut pop: Vec<_> = (0..10).map(|v| v as f32).collect();
         crate::traits::IODEPopulation::get_population(&pop);
         let mut lastbest = f32::MAX;
         for i in 0..15 {
@@ -190,7 +201,7 @@ pub mod tests {
                 &mut |t: &[(f32, f32, ())], _num: usize| {
                     vec![
                         t.iter()
-                            .map(|c| (c, (c.1 + 20.0).abs()))
+                            .map(|c| (c, (c.1 + 20.1111211).abs()))
                             .min_by(|(_, v1), (_, v2)| {
                                 v1.partial_cmp(v2).unwrap_or(std::cmp::Ordering::Less)
                             })
@@ -216,5 +227,6 @@ pub mod tests {
             lastbest = newbest;
             println!()
         }
+        assert!(false)
     }
 }

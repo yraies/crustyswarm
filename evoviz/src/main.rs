@@ -1,14 +1,16 @@
 use crustswarm::swarm::evo::{OIDESwarmEvalInfo, OIDESwarmParams};
+use crustswarm::swarm::genome::SwarmGenome;
 use crustswarm::swarm::{evo::genome::OIDESwarmGenome, grammar::SwarmGrammar, world::World};
 use crustswarm_lib as crustswarm;
 
+use std::borrow::Borrow;
 use std::io::Write;
 use std::ops::Add;
 use std::string::String;
 use std::time::{Duration, SystemTime};
 use std::{cell::RefCell, fs::File};
 
-use circular_queue::CircularQueue;
+use circular_queue::CircularQueue as RingBuffer;
 
 use tempfile::TempDir;
 
@@ -99,8 +101,8 @@ fn main() {
                 .help("Shows no buoys initially"),
         )
         .arg(
-            Arg::with_name("no-tweenz")
-                .long("no-tweenz")
+            Arg::with_name("tweenz")
+                .long("tweenz")
                 .help("Shows no tweenz initially"),
         )
         .arg(
@@ -131,18 +133,10 @@ fn main() {
                 .conflicts_with("template"),
         )
         .arg(
-            Arg::with_name("context")
-                .long("context")
-                .help("context count in evolved vsgs")
+            Arg::with_name("timeout")
+                .long("timeout")
+                .help("time after which a given simulation is aborted")
                 .takes_value(true)
-                .conflicts_with("template"),
-        )
-        .arg(
-            Arg::with_name("replacements")
-                .long("replacements")
-                .help("replacements count in evolved vsgs")
-                .takes_value(true)
-                .conflicts_with("template"),
         )
         .arg(
             Arg::with_name("template")
@@ -157,6 +151,13 @@ fn main() {
                 .help("iterations to simulate each vsgs")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("save")
+                .long("save-to")
+                .help("Specify a dir to save each generation to")
+                .value_name("SAVE_DIR")
+                .takes_value(true),
+        )
         .get_matches();
 
     let seed = matches
@@ -167,70 +168,82 @@ fn main() {
 
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
 
-    let mut oidegenome = if matches.is_present("template") {
-        let configfile = matches.value_of("template").unwrap();
-        println!("Using template: {}", &configfile);
-        crustswarm::io::oide_genome_from_file(configfile)
-    } else {
-        let species_count = matches
-            .value_of("species")
-            .map(|s| s.parse::<usize>().unwrap())
-            .unwrap_or(1);
-        let artifact_count = matches
-            .value_of("artifact")
-            .map(|s| s.parse::<usize>().unwrap())
-            .unwrap_or(3);
-        let rules_count = matches
-            .value_of("rules")
-            .map(|s| s.parse::<usize>().unwrap())
-            .unwrap_or(3);
-        let context_count = matches
-            .value_of("context")
-            .map(|s| s.parse::<usize>().unwrap())
-            .unwrap_or(2);
-        let replacement_count = matches
-            .value_of("replacements")
-            .map(|s| s.parse::<usize>().unwrap())
-            .unwrap_or(3);
-
-        crustswarm::swarm::evo::genome::OIDESwarmGenome::new(
-            species_count,
-            artifact_count,
-            rules_count,
-            context_count.max(replacement_count),
-        )
-    };
-
     let population_size = matches
         .value_of("population")
         .map(|s| s.parse::<usize>().unwrap())
         .unwrap_or(20);
 
-    let mut population = vec![];
-
-    if matches.is_present("rebound") {
-        let new_bound_genome = OIDESwarmGenome::new(
-            *oidegenome.species_count,
-            *oidegenome.artifact_count,
-            *oidegenome.rule_count,
-            oidegenome
-                .get_first_context_count()
-                .max(oidegenome.get_first_replacement_count()),
-        );
-
-        oidegenome = new_bound_genome.apply_bounds(&oidegenome);
-    }
-
     use r_oide::traits::*;
 
-    population.push(oidegenome.clone());
-    let gens = (population_size - 1) / 2;
-    for i in 0..gens {
-        let random_genome = oidegenome.random(&mut rnd);
-        population.push(oidegenome.add(&random_genome.scale(i as f32 * 1.0 / gens as f32)));
+    let mut population = if matches.is_present("template") {
+        let configfile = matches.value_of("template").unwrap();
+        println!("Using template: {}", &configfile);
+        let mut oidegenome = crustswarm::io::oide_genome_from_file(configfile);
+
+        let mut population = vec![];
+
+        if matches.is_present("rebound") {
+            let new_bound_genome = OIDESwarmGenome::new(
+                *oidegenome.species_count,
+                *oidegenome.artifact_count,
+                *oidegenome.rule_count,
+            );
+
+            oidegenome = new_bound_genome.apply_bounds(&oidegenome);
+        }
+
+        population.push(oidegenome.clone());
+        let gens = (population_size - 1) / 2;
+        for i in 0..gens {
+            let random_genome = oidegenome
+                .random(&mut rnd)
+                .scale(0.2 * (i as f32 / gens as f32));
+            population.push(oidegenome.add(&random_genome));
+            population.push(oidegenome.add(&random_genome.opposite()));
+        }
+
         population
-            .push(oidegenome.add(&random_genome.scale(i as f32 * 1.0 / gens as f32).opposite()));
-    }
+    } else {
+        let species_count = matches
+            .value_of("species")
+            .map(|s| s.parse::<usize>().unwrap())
+            .unwrap_or(4);
+        let artifact_count = matches
+            .value_of("artifact")
+            .map(|s| s.parse::<usize>().unwrap())
+            .unwrap_or(4);
+        let rules_count = matches
+            .value_of("rules")
+            .map(|s| s.parse::<usize>().unwrap())
+            .unwrap_or(4);
+
+        let base = crustswarm::swarm::evo::genome::OIDESwarmGenome::new(
+            species_count,
+            artifact_count,
+            rules_count,
+        );
+
+        let mut population = vec![];
+
+        while population.len() < population_size {
+            let genome = base.random(&mut rnd);
+
+            let mut grammar = SwarmGrammar::from(SwarmGenome::from(&genome), &mut rnd);
+            for _ in 0..10 {
+                grammar.step(&mut rnd);
+            }
+
+            if grammar.get_world().get_all_agents().count()
+                + grammar.get_world().get_all_artifacts().count()
+                > 0
+            {
+                population.push(genome);
+                println!("Added not-so-random genome to population");
+            }
+        }
+
+        population
+    };
 
     let population_size = RefCell::new(population.len());
 
@@ -309,7 +322,7 @@ fn main() {
 
         let mut conditionals_draws = ConditionalDraw::new();
         conditionals_draws.buoys = true; // !matches.is_present("no-buoys");
-        conditionals_draws.tweenz = !matches.is_present("no-tweenz");
+        conditionals_draws.tweenz = matches.is_present("tweenz");
 
         let font = rl
             .load_font(&thread, fontfile_path.to_str().unwrap())
@@ -332,6 +345,8 @@ fn main() {
         };
 
         let mut _iteration = -1;
+        let mut cube_size_exp = 0i32;
+        let base_size = 1.2f32;
 
         while !rl.window_should_close() {
             // Handle Inputs
@@ -339,7 +354,7 @@ fn main() {
                 if rl.is_key_pressed(KeyboardKey::KEY_ONE) {
                     curr_sel = 0;
                     sg = &inp[curr_sel].1;
-                    selection_desc = "1 Target";
+                    selection_desc = "1 +Target";
                 }
                 if rl.is_key_pressed(KeyboardKey::KEY_TWO) {
                     if inp.len() >= 2 {
@@ -359,8 +374,12 @@ fn main() {
                     if inp.len() >= 4 {
                         curr_sel = 3;
                         sg = &inp[curr_sel].1;
-                        selection_desc = "4 ???";
+                        selection_desc = "4 -Target"
                     }
+                }
+
+                if rl.get_mouse_wheel_move() != 0 {
+                    cube_size_exp += rl.get_mouse_wheel_move();
                 }
 
                 if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
@@ -396,7 +415,9 @@ fn main() {
                     conditionals_draws.tweenz = !conditionals_draws.tweenz;
                 }
 
-                if rl.is_key_pressed(KeyboardKey::KEY_P) {
+                if rl.is_key_pressed(KeyboardKey::KEY_P)
+                    && rl.is_key_down(KeyboardKey::KEY_LEFT_CONTROL)
+                {
                     panic!("This was the easiest way to kill this application ...");
                 }
 
@@ -546,9 +567,9 @@ fn main() {
                             .for_each(|(ag, spec)| {
                                 d3d.draw_cube(
                                     Vector3::new(ag.position.x, ag.position.y, ag.position.z),
-                                    1.0,
-                                    1.0,
-                                    1.0,
+                                    base_size.powi(cube_size_exp),
+                                    base_size.powi(cube_size_exp),
+                                    base_size.powi(cube_size_exp),
                                     get_color(spec.color_index),
                                 );
                             });
@@ -569,9 +590,9 @@ fn main() {
                             ));
                             d3d.draw_cube(
                                 Vector3::new(art.position.x, art.position.y, art.position.z),
-                                1.0,
-                                1.0,
-                                1.0,
+                                base_size.powi(cube_size_exp),
+                                base_size.powi(cube_size_exp),
+                                base_size.powi(cube_size_exp),
                                 new_color,
                             );
 
@@ -714,19 +735,40 @@ fn main() {
         .map(|s| s.parse::<u64>().unwrap())
         .unwrap_or(30);
 
-    for _ in 0..100 {
+    let timeout = matches
+        .value_of("timeout")
+        .map(|s| s.parse::<u64>().unwrap())
+        .unwrap_or(10);
+
+    let save_path = matches.value_of("save");
+    save_path.map(|path| std::fs::create_dir(&path).unwrap());
+
+    for i in 0..100 {
         population = population.step(
             &mut selectfoo,
             &mut rnd,
             OIDESwarmParams {
-                seed,
+                seed: seed + i,
                 max_iterations: iterations as usize,
-                timeout_hint: Duration::from_secs(10),
+                timeout_hint: Duration::from_secs(timeout),
             },
-            0.25,
+            0.2,
         );
         population_size.replace(population.len());
         generation.replace_with(|&mut v| v + 1);
+        save_path.map(|path| {
+            population.iter().enumerate().for_each(|(idx, individuum)| {
+                match crustswarm_lib::io::oide_genome_to_file(
+                    individuum,
+                    format!("{}/gen{}_{}.oide.json", path, generation.borrow(), idx),
+                ) {
+                    Some(e) => {
+                        panic!("{}", e)
+                    }
+                    None => {}
+                }
+            })
+        });
     }
 
     //dbg!(&sg);
@@ -766,14 +808,14 @@ const BASE_INFO_WIDTH: usize = 4;
 
 pub struct VizStats {
     pub start: SystemTime,
-    pub queue: CircularQueue<Prec>,
+    pub queue: RingBuffer<Prec>,
 }
 
 impl VizStats {
     fn new() -> VizStats {
         VizStats {
             start: SystemTime::now(),
-            queue: CircularQueue::with_capacity(WINDOW),
+            queue: RingBuffer::with_capacity(WINDOW),
         }
     }
     fn avg_millis(&self) -> f32 {

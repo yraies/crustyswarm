@@ -6,10 +6,13 @@ use serde::{Deserialize, Serialize};
 
 pub mod bool;
 pub mod bounded_float;
+pub mod bounded_int;
 pub mod fixed;
+pub mod multiset;
 pub mod tuples;
 pub use crate::atoms::bool::*;
 pub use crate::atoms::bounded_float::*;
+pub use crate::atoms::bounded_int::*;
 pub use crate::atoms::fixed::*;
 pub use crate::atoms::tuples::*;
 
@@ -46,16 +49,22 @@ impl<T: OIDERandomize> OIDERandomize for Vec<T> {
         self.iter().map(|s| s.random(rng)).collect()
     }
 }
-impl<T: OIDEBoundApplication> OIDEBoundApplication for Vec<T> {
+impl<T: OIDEBoundApplication + Debug> OIDEBoundApplication for Vec<T> {
     fn apply_bounds(&self, other: &Self) -> Self {
-        assert_eq!(self.len(), other.len());
+        assert_eq!(
+            self.len(),
+            other.len(),
+            "Left: {:?}\nRight: {:?}",
+            self,
+            other
+        );
         self.iter()
             .zip(other.iter())
             .map(|(s, o)| s.apply_bounds(o))
             .collect()
     }
 }
-impl<T: Differentiable> Differentiable for Vec<T> {}
+impl<T: Differentiable + Debug> Differentiable for Vec<T> {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct BoolCell<T> {
