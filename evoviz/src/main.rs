@@ -758,12 +758,12 @@ fn main() {
         .map(|s| s.parse::<u64>().unwrap())
         .unwrap_or(10);
 
-    for i in 0..100 {
+    for _i in 0..100 {
         population = population.step(
             &mut selectfoo,
             &mut rnd,
             OIDESwarmParams {
-                seed: seed + i,
+                seed: seed,
                 max_iterations: iterations as usize,
                 timeout_hint: Duration::from_secs(timeout),
             },
