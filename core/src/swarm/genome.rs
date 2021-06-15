@@ -36,7 +36,7 @@ impl Serialize for SurroundingIndex {
     }
 }
 
-struct StrVisitor;
+pub(crate) struct StrVisitor;
 
 impl<'de> serde::de::Visitor<'de> for StrVisitor {
     type Value = String;
@@ -49,7 +49,7 @@ impl<'de> serde::de::Visitor<'de> for StrVisitor {
     }
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("Expecting string '[rg][0-9]+'")
+        formatter.write_str("Expecting string")
     }
 }
 

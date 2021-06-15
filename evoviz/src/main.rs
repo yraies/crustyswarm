@@ -3,7 +3,6 @@ use crustswarm::swarm::genome::SwarmGenome;
 use crustswarm::swarm::{evo::genome::OIDESwarmGenome, grammar::SwarmGrammar, world::World};
 use crustswarm_lib as crustswarm;
 
-use std::borrow::Borrow;
 use std::io::Write;
 use std::ops::Add;
 use std::string::String;
@@ -14,8 +13,7 @@ use circular_queue::CircularQueue as RingBuffer;
 
 use tempfile::TempDir;
 
-use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use rand::prelude::*;
 
 use raylib::prelude::*;
 
@@ -166,7 +164,7 @@ fn main() {
         .unwrap_or(3672820499107940204u64);
     println!("Using seed: {}", seed);
 
-    let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
+    let mut rnd = rand::rngs::StdRng::seed_from_u64(seed);
 
     let population_size = matches
         .value_of("population")
@@ -175,7 +173,7 @@ fn main() {
 
     use r_oide::traits::*;
 
-    let mut population = if matches.is_present("template") {
+    let (mut population, oidegenome) = if matches.is_present("template") {
         let configfile = matches.value_of("template").unwrap();
         println!("Using template: {}", &configfile);
         let mut oidegenome = crustswarm::io::oide_genome_from_file(configfile);
@@ -202,7 +200,7 @@ fn main() {
             population.push(oidegenome.add(&random_genome.opposite()));
         }
 
-        population
+        (population, oidegenome)
     } else {
         let species_count = matches
             .value_of("species")
@@ -242,10 +240,10 @@ fn main() {
             }
         }
 
-        population
+        (population, base)
     };
 
-    let population_size = RefCell::new(population.len());
+    let population_size_target = population_size;
 
     let _basename = "foo".to_string(); /*
                                        let basename = format!(
@@ -285,12 +283,13 @@ fn main() {
 
     let generation = RefCell::new(1usize);
 
-    let mut selectfoo = |inp: &[(OIDESwarmGenome, SwarmGrammar, OIDESwarmEvalInfo)],
-                         current_pop_idx: usize| {
+    let save_path = matches.value_of("save");
+    save_path.map(|path| std::fs::create_dir(&path).unwrap());
+
+    let mut selectfoo = |inp: &[(OIDESwarmGenome, SwarmGrammar, OIDESwarmEvalInfo)]| {
         let mut activations = vec![false; inp.len()];
         let mut curr_sel = 0;
         let mut sg = &inp[0].1;
-        let mut selection_desc = "1 Target";
 
         raylib::core::logging::set_trace_log(TraceLogType::LOG_NONE);
 
@@ -354,27 +353,23 @@ fn main() {
                 if rl.is_key_pressed(KeyboardKey::KEY_ONE) {
                     curr_sel = 0;
                     sg = &inp[curr_sel].1;
-                    selection_desc = "1 +Target";
                 }
                 if rl.is_key_pressed(KeyboardKey::KEY_TWO) {
                     if inp.len() >= 2 {
                         curr_sel = 1;
                         sg = &inp[curr_sel].1;
-                        selection_desc = "2 +Trial";
                     }
                 }
                 if rl.is_key_pressed(KeyboardKey::KEY_THREE) {
                     if inp.len() >= 3 {
                         curr_sel = 2;
                         sg = &inp[curr_sel].1;
-                        selection_desc = "3 -Trial";
                     }
                 }
                 if rl.is_key_pressed(KeyboardKey::KEY_FOUR) {
                     if inp.len() >= 4 {
                         curr_sel = 3;
                         sg = &inp[curr_sel].1;
-                        selection_desc = "4 -Target"
                     }
                 }
 
@@ -662,9 +657,9 @@ fn main() {
                         &format!(
                             "Generation {}\nSelecting {} of {}\nViewing: {}\nI={}",
                             generation.borrow(),
-                            current_pop_idx + 1,
-                            population_size.borrow(),
-                            selection_desc,
+                            inp[curr_sel].2.pop_id + 1,
+                            inp[curr_sel].2.pop_size,
+                            inp[curr_sel].2.trial_type.to_string(),
                             inp[curr_sel].2.iterations
                         ),
                     );
@@ -717,6 +712,29 @@ fn main() {
             }
         }
 
+        save_path.map(|path| {
+            inp.iter()
+                .zip(&activations)
+                .for_each(|((_, grammar, info), active)| {
+                    match crustswarm::io::grammar_to_file(
+                        grammar,
+                        &format!(
+                            "{}/gen{}_base{}_{}{}.grammar.json",
+                            path,
+                            generation.borrow(),
+                            info.pop_id,
+                            info.trial_type.to_string(),
+                            if *active { "_mark" } else { "" }
+                        ),
+                    ) {
+                        Some(e) => {
+                            panic!("{}", e)
+                        }
+                        None => {}
+                    }
+                })
+        });
+
         activations
             .iter()
             .enumerate()
@@ -740,9 +758,6 @@ fn main() {
         .map(|s| s.parse::<u64>().unwrap())
         .unwrap_or(10);
 
-    let save_path = matches.value_of("save");
-    save_path.map(|path| std::fs::create_dir(&path).unwrap());
-
     for i in 0..100 {
         population = population.step(
             &mut selectfoo,
@@ -754,7 +769,6 @@ fn main() {
             },
             0.2,
         );
-        population_size.replace(population.len());
         generation.replace_with(|&mut v| v + 1);
         save_path.map(|path| {
             population.iter().enumerate().for_each(|(idx, individuum)| {
@@ -769,6 +783,13 @@ fn main() {
                 }
             })
         });
+        if population.len() > 3 {
+            let mut max_add = (population_size_target as f32 / 10f32) as u32;
+            while population.len() <= population_size_target && max_add > 0 {
+                population.push(oidegenome.random(&mut rnd));
+                max_add -= 1;
+            }
+        }
     }
 
     //dbg!(&sg);

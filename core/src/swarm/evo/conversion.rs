@@ -160,7 +160,8 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
                     gradient: oide_species.gradient.get_value(),
                     normal: oide_species.normal.get_value(),
                     slope: oide_species.slope.get_value(),
-                    normal_speed: oide_species.normal_speed.get_value(),
+                    normal_speed: oide_species.normal_speed.get_value()
+                        * oide_species.max_speed.get_value(),
                     max_speed: oide_species.max_speed.get_value(),
                     max_acceleration: oide_species.max_acceleration.get_value(),
                     pacekeeping: oide_species.pacekeeping.get_value(),
@@ -413,7 +414,9 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
                     gradient: BoundedFactor::new_from_f32(species.gradient),
                     normal: BoundedFactor::new_from_f32(species.normal),
                     slope: BoundedFactor::new_from_f32(species.slope),
-                    normal_speed: BoundedFactor::new_from_f32(species.normal_speed),
+                    normal_speed: BoundedFactor::new_from_f32(
+                        species.normal_speed / species.max_speed,
+                    ),
                     max_speed: BoundedFactor::new_from_f32(species.max_speed),
                     max_acceleration: BoundedFactor::new_from_f32(species.max_acceleration),
                     pacekeeping: BoundedFactor::new_from_f32(species.pacekeeping),

@@ -92,6 +92,7 @@ impl Agent {
         iteration: usize,
         uid: Uid,
     ) -> Agent {
+        assert!(energy != f32::NAN);
         Agent {
             position,
             velocity,
@@ -113,20 +114,17 @@ impl Agent {
         iteration: usize,
         uid: Uid,
     ) -> Result<Agent, &'static str> {
-        if energy > 0.0 {
-            Result::Ok(Agent {
-                position,
-                velocity,
-                energy,
-                species_index,
-                seed_center,
-                last: None,
-                iteration,
-                id: uid,
-            })
-        } else {
-            Result::Err("Energy must be greater than zero")
-        }
+        assert!(energy >= 0.0, "Energy must be >= 0 but was {}!", energy);
+        Result::Ok(Agent {
+            position,
+            velocity,
+            energy,
+            species_index,
+            seed_center,
+            last: None,
+            iteration,
+            id: uid,
+        })
     }
 
     pub fn mk_rnd_vel(

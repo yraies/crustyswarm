@@ -134,10 +134,18 @@ impl OffspringEnergy {
             OffspringEnergy::Inherit(factor) => current * factor,
             OffspringEnergy::PropRel(offset) => {
                 let newcount = if parent_persists { count + 1 } else { count };
-                (current - offset) / newcount as f32
+                if newcount > 0 {
+                    (current - offset) / newcount as f32
+                } else {
+                    0.0
+                }
             }
             OffspringEnergy::PropConst(offset, ammount) => {
-                f32::min(*ammount, (current - offset) / count as f32)
+                if count == 0 {
+                    0.0
+                } else {
+                    f32::min(*ammount, (current - offset) / count as f32)
+                }
             }
         }
     }

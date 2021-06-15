@@ -4,7 +4,7 @@ use self::fnv::FnvHashMap;
 use cgmath::{MetricSpace, Vector2, Vector3};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
+use std::{cmp::Ordering, ops::Deref};
 
 use crate::{
     swarm::{
@@ -437,8 +437,8 @@ impl Terrain {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChunkedWorld {
-    agent_cells: FnvHashMap<(i16, i16), Vec<Agent>>,
-    artifact_cells: FnvHashMap<(i16, i16), Vec<Artifact>>,
+    agent_cells: FnvHashMap<Coord, Vec<Agent>>,
+    artifact_cells: FnvHashMap<Coord, Vec<Artifact>>,
     terrain: Terrain,
     agent_count: usize,
     artifact_count: usize,
@@ -466,7 +466,7 @@ impl ChunkedWorld {
     ) -> impl Iterator<Item = &Agent> {
         self.agent_cells
             .iter()
-            .filter(move |(&cell_pos, _)| self.is_cell_included(range, cell_pos, center_pos))
+            .filter(move |(&cell_pos, _)| self.is_cell_included(range, *cell_pos, center_pos))
             .flat_map(|(_, cell)| cell.iter())
     }
     #[allow(dead_code)]
@@ -477,7 +477,7 @@ impl ChunkedWorld {
     ) -> impl Iterator<Item = &Artifact> {
         self.artifact_cells
             .iter()
-            .filter(move |(&cell_pos, _)| self.is_cell_included(range, cell_pos, center_pos))
+            .filter(move |(&cell_pos, _)| self.is_cell_included(range, *cell_pos, center_pos))
             .flat_map(|(_, cell)| cell.iter())
     }
 
@@ -501,7 +501,7 @@ impl ChunkedWorld {
 
         let cell = self
             .agent_cells
-            .entry((x_coord, y_coord))
+            .entry((x_coord, y_coord).into())
             .or_insert_with(Vec::new);
         cell.push(agent);
         self.agent_count += 1;
@@ -513,7 +513,7 @@ impl ChunkedWorld {
 
         let cell = self
             .artifact_cells
-            .entry((x_coord, y_coord))
+            .entry((x_coord, y_coord).into())
             .or_insert_with(Vec::new);
         cell.push(artifact);
         self.artifact_count += 1;
@@ -549,5 +549,59 @@ impl ChunkedWorld {
 fn test_terrain_map() {
     for i in -100..100 {
         assert_eq!(i, Terrain::translate_back(Terrain::translate(i)));
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+struct Coord((i16, i16));
+
+impl From<(i16, i16)> for Coord {
+    fn from(coord: (i16, i16)) -> Self {
+        Coord(coord)
+    }
+}
+impl Deref for Coord {
+    type Target = (i16, i16);
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Serialize for Coord {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&format!("({},{})", self.0 .0, self.0 .1))
+    }
+}
+
+impl<'de> Deserialize<'de> for Coord {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let foo = deserializer.deserialize_str(super::genome::StrVisitor)?;
+        let mut ints = foo
+            .trim()
+            .strip_prefix("(")
+            .unwrap()
+            .strip_suffix(")")
+            .unwrap()
+            .split(",");
+        let x = ints.next().unwrap().parse::<i16>().unwrap();
+        let y = ints.next().unwrap().parse::<i16>().unwrap();
+
+        Ok(Coord((x, y)))
+    }
+
+    fn deserialize_in_place<D>(deserializer: D, place: &mut Self) -> Result<(), D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // Default implementation just delegates to `deserialize` impl.
+        *place = Deserialize::deserialize(deserializer)?;
+        Ok(())
     }
 }

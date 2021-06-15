@@ -16,12 +16,19 @@ pub struct OIDESwarmParams {
 
 pub struct OIDESwarmEvalInfo {
     pub iterations: usize,
+    pub pop_size: usize,
+    pub pop_id: usize,
+    pub trial_type: TrialType,
 }
 
 impl Evaluatable<SwarmGrammar> for genome::OIDESwarmGenome {
     type Params = OIDESwarmParams;
     type EvalInfo = OIDESwarmEvalInfo;
-    fn eval(&self, params: &Self::Params) -> (SwarmGrammar, Self::EvalInfo) {
+    fn eval(
+        &self,
+        general_params: &GeneralParams,
+        params: &Self::Params,
+    ) -> (SwarmGrammar, Self::EvalInfo) {
         let mut rnd = StdRng::seed_from_u64(params.seed);
         let genome = super::genome::SwarmGenome::from(self);
         let mut sg = SwarmGrammar::from(genome, &mut rnd);
@@ -30,7 +37,7 @@ impl Evaluatable<SwarmGrammar> for genome::OIDESwarmGenome {
         let mut iteration = 0;
         for _ in 0..params.max_iterations {
             if iteration % 100 == 0 {
-                println!("Iteration {}", iteration);
+                println!("Iteration {:4}/{:4}", iteration, params.max_iterations);
             }
             sg.step(&mut rnd);
             iteration = iteration + 1;
@@ -42,6 +49,9 @@ impl Evaluatable<SwarmGrammar> for genome::OIDESwarmGenome {
             sg,
             OIDESwarmEvalInfo {
                 iterations: iteration,
+                pop_size: general_params.pop_size,
+                pop_id: general_params.pop_id,
+                trial_type: general_params.trial_type,
             },
         )
     }

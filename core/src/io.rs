@@ -1,6 +1,9 @@
+use compression::prelude::{DecodeExt, Deflater, EncodeExt, Inflater};
+
 use crate::swarm::evo::genome::OIDESwarmGenome;
 use crate::swarm::genome::dummies::DummySwarmGenome;
 use crate::swarm::genome::SwarmGenome;
+use crate::swarm::grammar::SwarmGrammar;
 use crate::swarm::world::World;
 
 use std::fs::File;
@@ -63,6 +66,38 @@ pub fn oide_genome_from_file(path: impl AsRef<Path>) -> OIDESwarmGenome {
 
 pub fn oide_genome_to_file(template: &OIDESwarmGenome, path: impl AsRef<Path>) -> Option<Error> {
     fs::write(&path, serde_json::to_string_pretty(&template).unwrap()).err()
+}
+
+pub fn grammar_from_file(path: impl AsRef<Path>) -> SwarmGrammar {
+    let mut file = File::open(&path)
+        .map_err(|e| {
+            format!(
+                "Error while opening json from {}! \nError: {}",
+                path.as_ref().display(),
+                e
+            )
+        })
+        .unwrap();
+    let mut byte_vec = vec![];
+    file.read_to_end(&mut byte_vec).unwrap();
+    let decompressed = byte_vec
+        .into_iter()
+        .decode(&mut Deflater::new())
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let decompressed = String::from_utf8(decompressed).unwrap();
+    fs::write("decompressed.grammar.json", &decompressed).unwrap_or(());
+    serde_json::from_str(&decompressed).unwrap()
+}
+
+pub fn grammar_to_file(template: &SwarmGrammar, path: impl AsRef<Path>) -> Option<Error> {
+    let json = serde_json::to_string_pretty(&template).unwrap();
+    let compressed = json
+        .into_bytes()
+        .encode(&mut Inflater::new(), compression::prelude::Action::Finish)
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    fs::write(&path, compressed).err()
 }
 
 #[allow(dead_code)]

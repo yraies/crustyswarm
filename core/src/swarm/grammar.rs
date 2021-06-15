@@ -209,6 +209,12 @@ impl SwarmGrammar {
             .energy
             .on_movement
             .get(agent.velocity.magnitude());
+        assert!(
+            out_agent.energy != f32::NAN,
+            "Calculated energy was NAN! {:?}=>{}",
+            out_agent.velocity,
+            out_agent.energy
+        );
         out_agent
     }
 

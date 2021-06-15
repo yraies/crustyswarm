@@ -59,6 +59,15 @@ fn main() {
                 .help("Creates screenshots every x iterations"),
         )
         .arg(
+            Arg::with_name("screenshot-once")
+                .long("screenshot-once")
+                .takes_value(true)
+                .help("Creates a single single screenshot of a given grammar")
+                .conflicts_with("screenshot")
+                .conflicts_with("instant")
+                .conflicts_with("max-iteration"),
+        )
+        .arg(
             Arg::with_name("instant")
                 .long("instant")
                 .short("i")
@@ -153,9 +162,22 @@ fn main() {
                 .help("Shows no tweenz initially"),
         )
         .arg(
-            Arg::with_name("raw")
-                .long("raw")
-                .help("specifies whether to interpret the configuration raw or nice"),
+            Arg::with_name("genome")
+                .long("genome")
+                .help("specifies to interpret the configuration as a SG genome")
+                .conflicts_with("oide"),
+        )
+        .arg(
+            Arg::with_name("grammar")
+                .long("grammar")
+                .help("specifies to interpret the configuration as a raw grammar")
+                .conflicts_with("oide"),
+        )
+        .arg(
+            Arg::with_name("oide")
+                .long("oide")
+                .help("specifies to interpret the configuration as a oide genome")
+                .conflicts_with("raw"),
         )
         .get_matches();
 
@@ -265,9 +287,15 @@ fn main() {
     println!("seed: {}", seed);
 
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
-    let mut sg = {
+    let mut sg = if matches.is_present("grammar") {
+        crustswarm::io::grammar_from_file(configfile)
+    } else {
         let temp = if matches.is_present("raw") {
             crustswarm::io::raw_genome_from_file(configfile)
+        } else if matches.is_present("oide") {
+            crustswarm::swarm::genome::SwarmGenome::from(&crustswarm::io::oide_genome_from_file(
+                configfile,
+            ))
         } else {
             crustswarm::io::genome_from_file(configfile)
         };
@@ -332,9 +360,10 @@ fn main() {
     let max_iteration = matches
         .value_of("max-iteration")
         .map_or(std::i32::MAX, |i| i.parse::<i32>().unwrap());
+    let mut made_screenshot_once = false;
 
     while !rl.window_should_close() {
-        if iteration > max_iteration {
+        if iteration > max_iteration || made_screenshot_once {
             println!("{:?}", camera);
             break;
         }
@@ -670,6 +699,11 @@ fn main() {
                         &screenshot_path, &basename, &iteration
                     ));
                 }
+            }
+            if matches.is_present("screenshot-once") {
+                let path = matches.value_of("screenshot-once").unwrap_or(".");
+                rl.take_screenshot(&thread, &format!("{}/{}.png", &path, &configfile));
+                made_screenshot_once = true;
             }
         }
     }

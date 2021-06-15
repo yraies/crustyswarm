@@ -2,8 +2,8 @@ pub mod atoms;
 
 pub mod prelude {
     pub use crate::traits::{
-        Differentiable, Evaluatable, IODEPopulation, OIDEAdd, OIDEBoundApplication, OIDEDiff,
-        OIDEOpposite, OIDERandomize, OIDEScale,
+        Differentiable, Evaluatable, GeneralParams, IODEPopulation, OIDEAdd, OIDEBoundApplication,
+        OIDEDiff, OIDEOpposite, OIDERandomize, OIDEScale, TrialType,
     };
 
     pub use crate::atoms::{
@@ -55,19 +55,59 @@ pub mod traits {
     pub trait Evaluatable<E>: Differentiable {
         type Params;
         type EvalInfo;
-        fn eval(&self, params: &Self::Params) -> (E, Self::EvalInfo);
+        fn eval(
+            &self,
+            general_params: &GeneralParams,
+            params: &Self::Params,
+        ) -> (E, Self::EvalInfo);
     }
 
-    pub trait IODEPopulation<B: Evaluatable<E, Params = P, EvalInfo = I>, E, P, I> {
+    pub trait IODEPopulation<B: Evaluatable<E>, E, P, I> {
         fn get_size(&self) -> usize;
         fn get_population(&self) -> Vec<&B>;
         fn step(
             &self,
-            selection: &mut dyn FnMut(&[(B, E, I)], usize) -> Vec<B>,
+            selection: &mut dyn FnMut(&[(B, E, I)]) -> Vec<B>,
             rng: &mut impl Rng,
             params: P,
             f: f32,
         ) -> Vec<B>;
+    }
+
+    #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+    pub enum TrialType {
+        Target,
+        TargetOpposite,
+        Trial,
+        TrialOpposite,
+    }
+
+    impl TrialType {
+        pub fn to_string(&self) -> &str {
+            match self {
+                TrialType::Target => "Target",
+                TrialType::TargetOpposite => "-Target",
+                TrialType::Trial => "Target+Trial",
+                TrialType::TrialOpposite => "Target-Trial",
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Eq, PartialEq)]
+    pub struct GeneralParams {
+        pub pop_id: usize,
+        pub pop_size: usize,
+        pub trial_type: TrialType,
+    }
+
+    impl GeneralParams {
+        fn new(pop_id: usize, pop_size: usize, trial_type: TrialType) -> GeneralParams {
+            GeneralParams {
+                pop_id,
+                pop_size,
+                trial_type,
+            }
+        }
     }
 
     impl<B, E, P, I> IODEPopulation<B, E, P, I> for Vec<B>
@@ -84,7 +124,7 @@ pub mod traits {
 
         fn step(
             &self,
-            selection: &mut dyn FnMut(&[(B, E, I)], usize) -> Vec<B>,
+            selection: &mut dyn FnMut(&[(B, E, I)]) -> Vec<B>,
             rng: &mut impl Rng,
             params: P,
             f: f32,
@@ -92,7 +132,8 @@ pub mod traits {
             let variants = self
                 .get_population()
                 .iter()
-                .map(|&target| {
+                .enumerate()
+                .map(|(idx, &target)| {
                     let parent1 = self
                         .iter()
                         .filter(|&curr| curr.ne(target))
@@ -106,10 +147,22 @@ pub mod traits {
                     let trial = target.trial_plus_from(parent1, parent2, f);
                     let trial_opposite = target.trial_minus_from(parent1, parent2, f);
                     [
-                        target.clone(),
-                        trial,
-                        trial_opposite,
-                        target.clone().opposite(),
+                        (
+                            GeneralParams::new(idx, self.get_size(), TrialType::Target),
+                            target.clone(),
+                        ),
+                        (
+                            GeneralParams::new(idx, self.get_size(), TrialType::Trial),
+                            trial,
+                        ),
+                        (
+                            GeneralParams::new(idx, self.get_size(), TrialType::TrialOpposite),
+                            trial_opposite,
+                        ),
+                        (
+                            GeneralParams::new(idx, self.get_size(), TrialType::TargetOpposite),
+                            target.clone().opposite(),
+                        ),
                     ]
                 })
                 .collect::<Vec<_>>();
@@ -118,11 +171,15 @@ pub mod traits {
                 .iter()
                 .enumerate()
                 .map(|(idx, set)| {
-                    println!("#############################\nEvaluating triple #{:3} of {:3}\n#############################", idx + 1, self.len());
+                    println!(
+                        "################\nEval #{:3} of {:3}\n################",
+                        idx + 1,
+                        self.len()
+                    );
                     std::thread::sleep(std::time::Duration::from_millis(300));
                     set.into_iter()
-                        .map(|base| {
-                            let (eval, info) = base.eval(&params);
+                        .map(|(general_params, base)| {
+                            let (eval, info) = base.eval(general_params, &params);
                             (base.clone(), eval, info)
                         })
                         .collect::<Vec<_>>()
@@ -131,8 +188,7 @@ pub mod traits {
 
             evaled_pairs
                 .into_iter()
-                .enumerate()
-                .flat_map(|(num, pair)| selection(&pair, num))
+                .flat_map(|pair| selection(&pair))
                 .collect()
         }
     }
@@ -178,7 +234,7 @@ pub mod tests {
     impl Evaluatable<f32> for f32 {
         type Params = ();
         type EvalInfo = ();
-        fn eval(&self, _params: &Self::Params) -> (f32, ()) {
+        fn eval(&self, _gen_par: &GeneralParams, _params: &Self::Params) -> (f32, ()) {
             (*self, ())
         }
     }
@@ -198,7 +254,7 @@ pub mod tests {
             println!("Iteration {i}", i = i);
             println!("Input : {:?}", pop);
             pop = pop.step(
-                &mut |t: &[(f32, f32, ())], _num: usize| {
+                &mut |t: &[(f32, f32, ())]| {
                     vec![
                         t.iter()
                             .map(|c| (c, (c.1 + 20.1111211).abs()))
