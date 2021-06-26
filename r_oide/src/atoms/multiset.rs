@@ -4,6 +4,8 @@ use crate::traits::*;
 use rand::{distributions::Uniform, prelude::*};
 use serde::{Deserialize, Serialize};
 
+use super::Util;
+
 //
 // Definition
 //
@@ -58,7 +60,7 @@ impl OIDEScale for IndexMultiset {
 
 /// Returns v in ]-inf,inf[
 impl OIDEOpposite for IndexMultiset {
-    fn opposite(&self) -> Self {
+    fn opposite(&self, _midpoint: Option<&Self>) -> Self {
         self.0.iter().map(|s| -s).collect()
 
         //let (max_val, target_sum) = self
@@ -108,6 +110,23 @@ impl OIDERandomize for IndexMultiset {
             .iter()
             .map(|_| rng.sample(Uniform::new_inclusive(0.0, 1.0)))
             .collect()
+    }
+}
+
+/// Returns v in ]-inf,inf[
+impl OIDECrossover for IndexMultiset {
+    fn crossover(&self, other: &Self, rng: &mut impl Rng, rate: f64) -> Self {
+        self.0
+            .iter()
+            .zip(other.0.iter())
+            .map(|(s, o)| Util::crossover(s, o, rng, rate))
+            .collect()
+    }
+}
+
+impl OIDEZero for IndexMultiset {
+    fn zero(&self) -> Self {
+        self.0.iter().map(|_| 0.0).collect()
     }
 }
 

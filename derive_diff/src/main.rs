@@ -8,14 +8,16 @@ where
         + OIDEScale
         + OIDEOpposite
         + OIDERandomize
+        + OIDECrossover
         + OIDEBoundApplication
+        + OIDEZero
         + Clone,
 {
     fn trial_plus_from(&self, parent1: &Self, parent2: &Self, factor: f32) -> Self {
         self.add(&parent1.difference(parent2).scale(factor))
     }
     fn trial_minus_from(&self, parent1: &Self, parent2: &Self, factor: f32) -> Self {
-        self.add(&parent1.difference(parent2).opposite().scale(factor))
+        self.add(&parent1.difference(parent2).opposite(None).scale(factor))
     }
 }
 
@@ -29,13 +31,19 @@ trait OIDEScale {
     fn scale(&self, factor: f32) -> Self;
 }
 trait OIDEOpposite {
-    fn opposite(&self) -> Self;
+    fn opposite(&self, midpoint: Option<&Self>) -> Self;
 }
 trait OIDERandomize {
     fn random(&self, rng: &mut impl Rng) -> Self;
 }
+trait OIDECrossover {
+    fn crossover(&self, other: &Self, rng: &mut impl Rng, rate: f64) -> Self;
+}
 trait OIDEBoundApplication {
     fn apply_bounds(&self, other: &Self) -> Self;
+}
+trait OIDEZero {
+    fn zero(&self) -> Self;
 }
 
 impl OIDEAdd for usize {
@@ -54,8 +62,8 @@ impl OIDEScale for usize {
     }
 }
 impl OIDEOpposite for usize {
-    fn opposite(&self) -> Self {
-        usize::MAX - self
+    fn opposite(&self, midpoint: Option<&Self>) -> Self {
+        midpoint.map(|m| m * 2).unwrap_or(usize::MAX) - self
     }
 }
 impl OIDERandomize for usize {
@@ -63,9 +71,23 @@ impl OIDERandomize for usize {
         rng.gen()
     }
 }
+impl OIDECrossover for usize {
+    fn crossover(&self, other: &Self, rng: &mut impl Rng, rate: f64) -> Self {
+        if rng.gen_bool(rate) {
+            *other
+        } else {
+            *self
+        }
+    }
+}
 impl OIDEBoundApplication for usize {
     fn apply_bounds(&self, other0: &Self) -> Self {
         *other0
+    }
+}
+impl OIDEZero for usize {
+    fn zero(&self) -> Self {
+        0
     }
 }
 impl Differentiable for usize {}
@@ -95,16 +117,49 @@ impl<T: Differentiable> OIDEScale for (T, T) {
     }
 }
 impl<T: Differentiable> OIDEOpposite for (T, T) {
-    fn opposite(&self) -> Self {
+    fn opposite(&self, midpoint: Option<&Self>) -> Self {
         (
-            OIDEOpposite::opposite(&self.0),
-            OIDEOpposite::opposite(&self.1),
+            OIDEOpposite::opposite(
+                &self.0,
+                match midpoint {
+                    Some(ref m) => Some(&m.0),
+                    None => None,
+                },
+            ),
+            OIDEOpposite::opposite(
+                &self.1,
+                match midpoint {
+                    Some(ref m) => Some(&m.1),
+                    None => None,
+                },
+            ),
         )
     }
 }
 impl<T: Differentiable> OIDERandomize for (T, T) {
     fn random(&self, rng: &mut impl rand::Rng) -> Self {
         (self.0.random(rng), self.1.random(rng))
+    }
+}
+impl<T: Differentiable + Clone> OIDECrossover for (T, T) {
+    fn crossover(&self, other: &Self, rng: &mut impl Rng, rate: f64) -> Self {
+        (
+            if rng.gen_bool(rate) {
+                other.0.clone()
+            } else {
+                self.0.clone()
+            },
+            if rng.gen_bool(rate) {
+                other.1.clone()
+            } else {
+                self.1.clone()
+            },
+        )
+    }
+}
+impl<T: Differentiable + Clone> OIDEZero for (T, T) {
+    fn zero(&self) -> Self {
+        (self.0.zero(), self.1.zero())
     }
 }
 impl<T: Differentiable> OIDEBoundApplication for (T, T) {
@@ -123,7 +178,9 @@ impl<T: Differentiable> Differentiable for (T, T) {}
     OIDEScale,
     OIDEOpposite,
     OIDERandomize,
+    OIDECrossover,
     OIDEBoundApplication,
+    OIDEZero,
     Clone,
     Differentiable,
 )]
@@ -142,12 +199,15 @@ struct UnnamedStruct(usize, usize);
     OIDEScale,
     OIDEOpposite,
     OIDERandomize,
+    OIDECrossover,
     OIDEBoundApplication,
+    OIDEZero,
     Clone,
     Differentiable,
 )]
 struct UnitStruct;
 
+/*
 #[allow(dead_code)]
 #[derive(
     Debug,
@@ -156,6 +216,7 @@ struct UnitStruct;
     OIDEScale,
     OIDEOpposite,
     OIDERandomize,
+    OIDECrossover,
     OIDEBoundApplication,
     Clone,
     Differentiable,
@@ -169,6 +230,7 @@ enum Enum {
     },
     Unit,
 }
+*/
 
 fn main() {
     let a = NamedStruct { baz: 7, var: 3 };
@@ -181,6 +243,7 @@ fn main() {
     let b = UnitStruct;
     let _c = a.add(&b);
     println!("Hello, Unit Struct!");
+    /*
     let a = Enum::Unnamed((7, 3));
     let b = Enum::Unnamed((1, 6));
     if let Enum::Unnamed((_, c)) = a.add(&b) {
@@ -207,4 +270,5 @@ fn main() {
     let a = 10usize;
     let b = 50usize;
     println!("Hello, usize! Result: {}", a.difference(&b).scale(0.1));
+    */
 }

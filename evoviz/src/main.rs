@@ -197,7 +197,7 @@ fn main() {
                 .random(&mut rnd)
                 .scale(0.2 * (i as f32 / gens as f32));
             population.push(oidegenome.add(&random_genome));
-            population.push(oidegenome.add(&random_genome.opposite()));
+            population.push(oidegenome.add(&random_genome.opposite(None)));
         }
 
         (population, oidegenome)
@@ -227,8 +227,10 @@ fn main() {
             let genome = base.random(&mut rnd);
 
             let mut grammar = SwarmGrammar::from(SwarmGenome::from(&genome), &mut rnd);
+
+            let mut loc_rnd = rand::rngs::StdRng::seed_from_u64(seed);
             for _ in 0..10 {
-                grammar.step(&mut rnd);
+                grammar.step(&mut loc_rnd);
             }
 
             if grammar.get_world().get_all_agents().count()
@@ -759,15 +761,18 @@ fn main() {
         .unwrap_or(10);
 
     for _i in 0..100 {
+        let midpoint = population.get_midpoints();
         population = population.step(
             &mut selectfoo,
             &mut rnd,
             OIDESwarmParams {
-                seed: seed,
+                seed,
                 max_iterations: iterations as usize,
                 timeout_hint: Duration::from_secs(timeout),
             },
-            0.2,
+            Some(&midpoint),
+            0.5,
+            0.5,
         );
         generation.replace_with(|&mut v| v + 1);
         save_path.map(|path| {
@@ -784,7 +789,7 @@ fn main() {
             })
         });
         if population.len() > 3 {
-            let mut max_add = (population_size_target as f32 / 10f32) as u32;
+            let mut max_add = (population_size_target as f32 / 2f32) as u32;
             while population.len() <= population_size_target && max_add > 0 {
                 population.push(oidegenome.random(&mut rnd));
                 max_add -= 1;
@@ -808,7 +813,7 @@ fn get_color(index: usize) -> Color {
         8 => Color::DARKGREEN,
         9 => Color::DARKBLUE,
         10 => Color::GRAY,
-        _ => Color::WHITE,
+        _ => Color::ORANGE,
     }
 }
 
@@ -895,7 +900,7 @@ impl ConditionalDraw {
             artifacts: true,
             grid: false,
             tweenz: true,
-            ignores: false,
+            ignores: true,
         }
     }
 }

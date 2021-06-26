@@ -86,12 +86,13 @@ pub fn grammar_from_file(path: impl AsRef<Path>) -> SwarmGrammar {
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
     let decompressed = String::from_utf8(decompressed).unwrap();
-    fs::write("decompressed.grammar.json", &decompressed).unwrap_or(());
+    //fs::write("decompressed.grammar.json", &decompressed).unwrap_or(());
     serde_json::from_str(&decompressed).unwrap()
 }
 
 pub fn grammar_to_file(template: &SwarmGrammar, path: impl AsRef<Path>) -> Option<Error> {
     let json = serde_json::to_string_pretty(&template).unwrap();
+    fs::write(&path.as_ref().with_extension("plain.json"), &json).err();
     let compressed = json
         .into_bytes()
         .encode(&mut Inflater::new(), compression::prelude::Action::Finish)

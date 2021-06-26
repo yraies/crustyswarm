@@ -32,8 +32,8 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
                         }
                         2 => MovementEnergy::None,
                         _ => unreachable!(
-                            "This should not happen! on_movement: {}",
-                            oide_species.energy.on_movement.0.get_value()
+                            "This should not happen! on_movement: {:?}",
+                            oide_species.energy.on_movement.0
                         ),
                     },
                     on_zero: match oide_species.energy.on_zero.0.get_value().trunc() as usize {
@@ -187,10 +187,9 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
             species_map,
             artifact_map: oide_genome
                 .artifact_map
-                .vec
                 .iter()
                 .map(|entry| ArtifactType {
-                    color_index: entry.value,
+                    color_index: **entry,
                 })
                 .collect(),
             start_dist: (*oide_genome.start_dist).clone(),
@@ -459,7 +458,7 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
             artifact_map: genome
                 .artifact_map
                 .iter()
-                .map(|foo| (true, foo.color_index))
+                .map(|foo| foo.color_index.into())
                 .collect(),
             start_dist: genome.start_dist.clone().into(),
             strategy: genome.strategy.clone().into(),

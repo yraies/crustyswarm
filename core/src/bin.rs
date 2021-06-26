@@ -124,8 +124,9 @@ fn oide_genome() {
 }
 
 #[test]
+#[cfg(test)]
 fn oide_genome2() -> Result<(), std::io::Error> {
-    use r_oide::traits::Differentiable;
+    use r_oide::prelude::*;
     println!("Cur. Dir: {:?}", std::env::current_dir());
     let base_tree = crustswarm::io::genome_from_file(r"..\experiments\base_tree.json");
     let base_tree_genome = crustswarm::swarm::evo::genome::OIDESwarmGenome::from(&base_tree);
@@ -155,6 +156,44 @@ fn oide_genome2() -> Result<(), std::io::Error> {
     let added_tree_genome = rebound_tree_genome.add(&scaled_tree_genome);
 
     crustswarm::io::oide_genome_to_file(&added_tree_genome, "test_3.oide.json")
+        .map(|err| println!("Error occured while converting: {:?}", err));
+
+    Ok(())
+}
+
+#[test]
+#[cfg(test)]
+fn oide_genome3() -> Result<(), std::io::Error> {
+    use r_oide::prelude::*;
+    println!("Cur. Dir: {:?}", std::env::current_dir());
+    let base_tree = crustswarm::io::genome_from_file(r"..\experiments\base_tree.json");
+    let base_tree_genome = crustswarm::swarm::evo::genome::OIDESwarmGenome::from(&base_tree);
+
+    let new_bound_genome = OIDESwarmGenome::new(
+        *base_tree_genome.species_count,
+        *base_tree_genome.artifact_count,
+        *base_tree_genome.rule_count,
+    );
+
+    let rebound_tree_genome = new_bound_genome.apply_bounds(&base_tree_genome);
+
+    crustswarm::io::oide_genome_to_file(&rebound_tree_genome, "test_avg_base.oide.json")
+        .map(|err| println!("Error occured while converting: {:?}", err));
+
+    let randomized_tree_genome = rebound_tree_genome
+        .random(&mut <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(123123621));
+
+    crustswarm::io::oide_genome_to_file(&randomized_tree_genome, "test_avg_1.oide.json")
+        .map(|err| println!("Error occured while converting: {:?}", err));
+
+    let midpoints = vec![rebound_tree_genome.clone(), randomized_tree_genome].get_midpoints();
+
+    crustswarm::io::oide_genome_to_file(&midpoints, "test_avg_midpoints.oide.json")
+        .map(|err| println!("Error occured while converting: {:?}", err));
+
+    let opposite = rebound_tree_genome.opposite(Some(&midpoints));
+
+    crustswarm::io::oide_genome_to_file(&opposite, "test_avg_opposite.oide.json")
         .map(|err| println!("Error occured while converting: {:?}", err));
 
     Ok(())

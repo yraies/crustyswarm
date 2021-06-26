@@ -26,7 +26,9 @@ pub fn derive_all_oide_traits(input: TokenStream) -> TokenStream {
     let scale = scale(&ast);
     let opposite = opposite(&ast);
     let randomize = randomize(&ast);
+    let crossover = crossover(&ast);
     let bound_application = bound_application(&ast);
+    let zero = zero(&ast);
     let differentiable = differentiable(&ast);
 
     quote!(
@@ -35,7 +37,9 @@ pub fn derive_all_oide_traits(input: TokenStream) -> TokenStream {
     #scale
     #opposite
     #randomize
+    #crossover
     #bound_application
+    #zero
     #differentiable
     )
     .into()
@@ -152,18 +156,20 @@ pub fn derive_opposite(input: TokenStream) -> TokenStream {
 fn opposite(ast: &DeriveInput) -> proc_macro2::TokenStream {
     let fq_trait = format_ident!("OIDEOpposite");
 
-    let signature = quote!(fn opposite(&self) -> Self);
+    let signature = quote!(fn opposite(&self, midpoint: Option<&Self>) -> Self);
     let self_params = 0;
 
     let named_struct_fn = Box::new(|id: &dyn IdentFragment| {
         let s = format_ident!("{}", id);
-        quote!( ::opposite( &self.#s ) )
+        quote!( ::opposite( &self.#s, match midpoint { Some(ref m) => Some(&m.#s), None => None} ) )
     });
     let named_enum_fn = Box::new(|id: &dyn IdentFragment| {
-        let s = format_ident!("s_{}", id);
-        quote!( ::opposite( &#s ))
+        let (s, ms) = (format_ident!("s_{}", id), format_ident!("{}", id));
+        quote!( ::opposite( &#s, match midpoint { Some(ref m) => Some(&m.#ms), None => None} ))
     });
-    let unnamed_fn = Box::new(|id: &Index| quote!( ::opposite( &self.#id )));
+    let unnamed_fn = Box::new(
+        |id: &Index| quote!( ::opposite( &self.#id, match midpoint { Some(ref m) => Some(&m.#id), None => None} )),
+    );
 
     impl_semi_group_like_foo(
         &ast.ident,
@@ -211,6 +217,42 @@ fn randomize(ast: &DeriveInput) -> proc_macro2::TokenStream {
     )
 }
 
+#[proc_macro_derive(OIDECrossover)]
+pub fn derive_crossover(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+
+    crossover(&ast).into()
+}
+fn crossover(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    let fq_trait = format_ident!("OIDECrossover");
+
+    let signature =
+        quote!(fn crossover(&self, other0: &Self, rng: &mut impl ::rand::Rng, rate: f64) -> Self);
+    let self_params = 1;
+
+    let named_struct_fn = Box::new(|id: &dyn IdentFragment| {
+        let (s, o) = (format_ident!("{}", id), format_ident!("{}", id));
+        quote!( ::crossover( &self.#s, &other0.#o, rng, rate ) )
+    });
+    let named_enum_fn = Box::new(|id: &dyn IdentFragment| {
+        let (s, o) = (format_ident!("s_{}", id), format_ident!("o0_{}", id));
+        quote!( ::crossover( &#s, &#o, rng, rate))
+    });
+    let unnamed_fn =
+        Box::new(|id: &Index| quote!( ::crossover( &self.#id, &other0.#id, rng, rate)));
+
+    impl_semi_group_like_foo(
+        &ast.ident,
+        &ast.data,
+        &fq_trait,
+        signature,
+        self_params,
+        named_struct_fn,
+        named_enum_fn,
+        unnamed_fn,
+    )
+}
+
 #[proc_macro_derive(OIDEBoundApplication)]
 pub fn derive_bound_application(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
@@ -245,14 +287,48 @@ fn bound_application(ast: &DeriveInput) -> proc_macro2::TokenStream {
     )
 }
 
+#[proc_macro_derive(OIDEZero)]
+pub fn derive_zero(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+
+    zero(&ast).into()
+}
+fn zero(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    let fq_trait = format_ident!("OIDEZero");
+
+    let signature = quote!(fn zero(&self) -> Self);
+    let self_params = 0;
+
+    let named_struct_fn = Box::new(|id: &dyn IdentFragment| {
+        let s = format_ident!("{}", id);
+        quote!( ::zero( &self.#s ) )
+    });
+    let named_enum_fn = Box::new(|id: &dyn IdentFragment| {
+        let s = format_ident!("s_{}", id);
+        quote!( ::zero( &#s ))
+    });
+    let unnamed_fn = Box::new(|id: &Index| quote!( ::zero( &self.#id )));
+
+    impl_semi_group_like_foo(
+        &ast.ident,
+        &ast.data,
+        &fq_trait,
+        signature,
+        self_params,
+        named_struct_fn,
+        named_enum_fn,
+        unnamed_fn,
+    )
+}
+
 fn impl_semi_group_like_foo(
     implementor: &Ident,
     data: &Data,
     trait_id: &Ident,
     signature: quote::__private::TokenStream,
-    self_params: usize,
+    _self_params: usize,
     named_struct_fn: Box<dyn Fn(&dyn IdentFragment) -> quote::__private::TokenStream>,
-    enum_fn: Box<dyn Fn(&dyn IdentFragment) -> quote::__private::TokenStream>,
+    _enum_fn: Box<dyn Fn(&dyn IdentFragment) -> quote::__private::TokenStream>,
     unnamed_struct_fn: Box<dyn Fn(&Index) -> quote::__private::TokenStream>,
 ) -> proc_macro2::TokenStream {
     let contents = match data {
@@ -282,8 +358,8 @@ fn impl_semi_group_like_foo(
             }
             syn::Fields::Unit => quote!( #implementor ),
         },
-        Data::Enum(e) => {
-            let variant_arm_quotes = e.variants.iter().map(|v| {
+        Data::Enum(_e) => {
+            /*let variant_arm_quotes = e.variants.iter().map(|v| {
                 let vident = &v.ident;
                 match &v.fields {
                     syn::Fields::Named(named) => {
@@ -360,7 +436,8 @@ fn impl_semi_group_like_foo(
                     #(#variant_arm_quotes ,)*
                     _ => panic!("All Self parameters have to be the same enum variant!"),
                 }
-            )
+            )*/
+            quote!()
         }
         Data::Union(_u) => {
             quote!()

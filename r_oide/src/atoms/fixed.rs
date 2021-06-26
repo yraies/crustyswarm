@@ -29,7 +29,7 @@ impl<T: Clone> OIDEScale for Fixed<T> {
     }
 }
 impl<T: Clone> OIDEOpposite for Fixed<T> {
-    fn opposite(&self) -> Self {
+    fn opposite(&self, _: Option<&Self>) -> Self {
         self.clone()
     }
 }
@@ -38,9 +38,19 @@ impl<T: Clone> OIDERandomize for Fixed<T> {
         self.clone()
     }
 }
+impl<T: Clone> OIDECrossover for Fixed<T> {
+    fn crossover(&self, _other: &Self, _rng: &mut impl Rng, _rate: f64) -> Self {
+        self.clone()
+    }
+}
 impl<T: Clone> OIDEBoundApplication for Fixed<T> {
     fn apply_bounds(&self, other: &Self) -> Self {
         other.clone()
+    }
+}
+impl<T: Clone> OIDEZero for Fixed<T> {
+    fn zero(&self) -> Self {
+        self.clone()
     }
 }
 impl<T: Differentiable> Differentiable for Fixed<T> {}

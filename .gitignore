@@ -7,3 +7,4 @@ Cargo.lock
 viz/src/gl.rs
 last_seed
 *.iml
+test_*/

@@ -4,24 +4,19 @@ screenshotdir=./screenshots
 destdir=./montages
 
 mkdir -p "$destdir"
-#mkdir -p "$screenshotdir"
-if [[ "$1" == "clean" ]]; then
-  rm -r "$destdir"/*
-  #rm -r "$screenshotdir"/*
-  exit 0
-fi
+mkdir -p "$screenshotdir"
 
-#rm -r "$screenshotdir"/*.png
+rm -r "$screenshotdir"/*.png
 rm -r "$destdir"/*.png
 
 GLOBIGNORE='*0000.png:*0000.jpg'
 
-#for f in $(ls -1 *.grammar.json)
-#do
-#  /usr/local/bin/cargo run --bin viz -- --grammar "$f" --fixed-camera --screenshot-once "." --no-ui
-#done
-#
-#mv *.png $screenshotdir
+for f in $(ls -1 *.grammar.json)
+do
+  /usr/local/bin/cargo run --bin viz -- --grammar "$f" --fixed-camera --screenshot-once "$screenshotdir" --no-ui
+done
+
+mv *.png $screenshotdir
 
 imagesize="640x480"
 
@@ -44,7 +39,7 @@ sleep 1
 
 N=4
 (
-for p in $(ls -1 "$screenshotdir"/mini_*.jpg | sed "s#$screenshotdir/##" | awk -F '_' '{print $2 "_" $3}' | sort | uniq)
+for p in $(ls -1 "$screenshotdir"/mini_*.jpg | sed "s#$screenshotdir/##" | awk -F '_' '{print $2 "_" $3 "_" }' | sort | uniq)
 do
   ((i=i%N)); ((i++==0)) && wait
   echo "montaging mont_$p"

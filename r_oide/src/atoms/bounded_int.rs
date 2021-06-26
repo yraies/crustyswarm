@@ -2,6 +2,8 @@ use crate::traits::*;
 use rand::{distributions::Uniform, prelude::*};
 use serde::{Deserialize, Serialize};
 
+use super::Util;
+
 //
 // Definition
 //
@@ -66,8 +68,6 @@ impl BoundedInt {
 impl OIDEAdd for BoundedInt {
     fn add(&self, other: &Self) -> Self {
         BoundedInt {
-            base: self.base,
-            range: self.range,
             offset: {
                 let sum = self.offset + other.offset; // -2 self.range <= sum <= 2 self.range
                 if sum > self.range {
@@ -78,14 +78,13 @@ impl OIDEAdd for BoundedInt {
                     sum // -self.range <= offset <= self.range
                 }
             },
+            ..*self
         }
     }
 }
 impl OIDEDiff for BoundedInt {
     fn difference(&self, other: &Self) -> Self {
         BoundedInt {
-            base: self.base,
-            range: self.range,
             offset: {
                 let diff = self.offset - other.offset; // -2 self.range <= diff <= 2 self.range
                 if diff > self.range {
@@ -96,24 +95,24 @@ impl OIDEDiff for BoundedInt {
                     diff // -self.range <= 0 <= self.range
                 }
             },
+            ..*self
         }
     }
 }
 impl OIDEScale for BoundedInt {
     fn scale(&self, factor: f32) -> Self {
         BoundedInt {
-            base: self.base,
-            range: self.range,
             offset: (self.offset as f32 * factor) as i32, //TODO: Handle factor > 1.0
+            ..*self
         }
     }
 }
 impl OIDEOpposite for BoundedInt {
-    fn opposite(&self) -> Self {
+    fn opposite(&self, midpoint: Option<&Self>) -> Self {
         BoundedInt {
             base: self.base,
             range: self.range,
-            offset: -self.offset,
+            offset: 2 * midpoint.map(|m| m.offset).unwrap_or(0) - self.offset,
         }
     }
 }
@@ -126,13 +125,22 @@ impl OIDERandomize for BoundedInt {
         copy
     }
 }
+impl OIDECrossover for BoundedInt {
+    fn crossover(&self, other: &Self, rng: &mut impl Rng, rate: f64) -> Self {
+        Util::crossover(self, other, rng, rate)
+    }
+}
 impl OIDEBoundApplication for BoundedInt {
     fn apply_bounds(&self, other: &Self) -> Self {
         BoundedInt {
-            base: self.base,
-            range: self.range,
             offset: (other.get_value() - self.base).clamp(-self.range, self.range),
+            ..*self
         }
+    }
+}
+impl OIDEZero for BoundedInt {
+    fn zero(&self) -> Self {
+        BoundedInt { offset: 0, ..*self }
     }
 }
 impl Differentiable for BoundedInt {}
@@ -152,9 +160,10 @@ mod test {
     fn unif_dist() {
         let mut rng = StdRng::seed_from_u64(123123123);
         let base = BoundedInt::new_with_bounds(0, 9, 0);
+        let repeats = 10000;
         let (width, height, bins) = (10 + 5 * 20, 30, 20);
 
-        let values: Vec<_> = (0..100000)
+        let values: Vec<_> = (0..repeats)
             .into_iter()
             .map(|_| base.random(&mut rng).get_value() as f64)
             .collect();
@@ -165,7 +174,7 @@ mod test {
 
         let mut rng = StdRng::seed_from_u64(123123123);
         let base = BoundedInt::new_with_bounds(0, 10, 0);
-        let values: Vec<_> = (0..100000)
+        let values: Vec<_> = (0..repeats)
             .into_iter()
             .map(|_| {
                 base.random(&mut rng)
@@ -179,7 +188,7 @@ mod test {
         println!("\n### DIFF ###\n{}", res);
 
         let mut rng = StdRng::seed_from_u64(123123123);
-        let values: Vec<_> = (0..100000)
+        let values: Vec<_> = (0..repeats)
             .into_iter()
             .map(|_| {
                 base.random(&mut rng)
@@ -193,9 +202,9 @@ mod test {
         println!("\n### ADD ###\n{}", res);
 
         let mut rng = StdRng::seed_from_u64(123123123);
-        let values: Vec<_> = (0..100000)
+        let values: Vec<_> = (0..repeats)
             .into_iter()
-            .map(|_| base.random(&mut rng).opposite().get_value() as f64)
+            .map(|_| base.random(&mut rng).opposite(None).get_value() as f64)
             .collect();
         let hist = Histogram::from_slice(&values, HistogramBins::Count(bins));
         let view = ContinuousView::new().add(hist).x_range(-11.0, 11.0);
@@ -203,7 +212,7 @@ mod test {
         println!("\n### OPP ###\n{}", res);
 
         let mut rng = StdRng::seed_from_u64(123123123);
-        let values: Vec<_> = (0..100000)
+        let values: Vec<_> = (0..repeats)
             .into_iter()
             .map(|_| {
                 base.random(&mut rng)
@@ -217,7 +226,7 @@ mod test {
         println!("\n### ADDDIFF ###\n{}", res);
 
         let mut rng = StdRng::seed_from_u64(123123123);
-        let values: Vec<_> = (0..100000)
+        let values: Vec<_> = (0..repeats)
             .into_iter()
             .map(|_| {
                 base.random(&mut rng)
@@ -225,7 +234,7 @@ mod test {
                         &base
                             .random(&mut rng)
                             .difference(&base.random(&mut rng))
-                            .opposite(),
+                            .opposite(None),
                     )
                     .get_value() as f64
             })
@@ -235,6 +244,6 @@ mod test {
         let res = view.to_text(width, height).unwrap();
         println!("\n### ADDOPPDIFF ###\n{}", res);
 
-        assert!(false);
+        //assert!(false);
     }
 }

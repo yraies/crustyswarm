@@ -16,7 +16,7 @@ pub struct OIDESwarmGenome {
     pub artifact_count: Fixed<usize>,
     pub rule_count: Fixed<usize>,
     pub species_map: Vec<OIDESpecies>,
-    pub artifact_map: BoundedIdxVec,
+    pub artifact_map: Vec<Fixed<usize>>,
     pub start_dist: Fixed<Distribution>,
     pub strategy: Fixed<ApplicationStrategy>,
     pub terrain_influences: (BoundedFactorVec, BoundedFactorVec),
@@ -80,7 +80,9 @@ pub struct OIDERuleSet {
     OIDEDiff,
     OIDEScale,
     OIDERandomize,
+    OIDECrossover,
     OIDEBoundApplication,
+    OIDEZero,
 )]
 pub struct OIDEContextRule {
     pub context: IndexMultiset,
@@ -91,13 +93,22 @@ pub struct OIDEContextRule {
 }
 
 impl OIDEOpposite for OIDEContextRule {
-    fn opposite(&self) -> Self {
+    fn opposite(&self, midpoint: Option<&Self>) -> Self {
         OIDEContextRule {
             context: self.replacement.clone(),
-            range: self.range.clone(),
-            weight: self.weight.clone(),
-            persist: self.persist.clone(),
             replacement: self.context.clone(),
+            range: self.range.opposite(match midpoint {
+                Some(ref m) => Some(&m.range),
+                None => None,
+            }),
+            weight: self.weight.opposite(match midpoint {
+                Some(ref m) => Some(&m.weight),
+                None => None,
+            }),
+            persist: self.persist.opposite(match midpoint {
+                Some(ref m) => Some(&m.persist),
+                None => None,
+            }),
         }
     }
 }
@@ -108,11 +119,12 @@ impl OIDESwarmGenome {
             species_count: spec_count.into(),
             artifact_count: art_count.into(),
             rule_count: rule_count.into(),
-            species_map: vec![
-                OIDESpecies::new_with_size(spec_count, art_count, rule_count);
-                spec_count
-            ],
-            artifact_map: BoundedIdxVec::new_by_idx_count(15, art_count), // colors
+            species_map: (0..spec_count)
+                .map(|idx| OIDESpecies::new_with_size(spec_count, art_count, rule_count, idx))
+                .collect(),
+            artifact_map: (spec_count..(spec_count + art_count))
+                .map(|idx| idx.into())
+                .collect(), // colors
             start_dist: Distribution::Single(
                 Vector3::new(0.0, 0.0, 0.0),
                 SurroundingIndex::Agent(SpeciesIndex(0)),
@@ -138,9 +150,10 @@ impl OIDESpecies {
         species_count: usize,
         artifact_count: usize,
         rule_count: usize,
+        index: usize,
     ) -> OIDESpecies {
         OIDESpecies {
-            index: 0.into(),
+            index: index.into(),
             separation: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
             alignment: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
             cohesion: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
@@ -175,7 +188,7 @@ impl OIDESpecies {
             energy: OIDEEnergy::new_with_size(species_count + artifact_count),
             hand_down_seed: false.into(),
             rules: OIDERuleSet::new_with_size(species_count + artifact_count, rule_count),
-            color_index: 0.into(),
+            color_index: index.into(),
         }
     }
 }

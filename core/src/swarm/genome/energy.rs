@@ -129,7 +129,8 @@ impl ZeroEnergy {
 
 impl OffspringEnergy {
     pub fn get(&self, current: f32, count: usize, parent_persists: bool) -> f32 {
-        match self {
+        assert!(current != f32::NAN);
+        let ret = match self {
             OffspringEnergy::Constant(value) => *value,
             OffspringEnergy::Inherit(factor) => current * factor,
             OffspringEnergy::PropRel(offset) => {
@@ -147,7 +148,9 @@ impl OffspringEnergy {
                     f32::min(*ammount, (current - offset) / count as f32)
                 }
             }
-        }
+        };
+        assert_ne!(current, f32::NAN);
+        ret
     }
     pub fn get_param(&self) -> f32 {
         match self {

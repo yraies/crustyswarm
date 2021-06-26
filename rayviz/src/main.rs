@@ -171,13 +171,13 @@ fn main() {
             Arg::with_name("grammar")
                 .long("grammar")
                 .help("specifies to interpret the configuration as a raw grammar")
-                .conflicts_with("oide"),
+                .conflicts_with("genome"),
         )
         .arg(
             Arg::with_name("oide")
                 .long("oide")
                 .help("specifies to interpret the configuration as a oide genome")
-                .conflicts_with("raw"),
+                .conflicts_with("grammar"),
         )
         .get_matches();
 
@@ -290,7 +290,7 @@ fn main() {
     let mut sg = if matches.is_present("grammar") {
         crustswarm::io::grammar_from_file(configfile)
     } else {
-        let temp = if matches.is_present("raw") {
+        let temp = if matches.is_present("genome") {
             crustswarm::io::raw_genome_from_file(configfile)
         } else if matches.is_present("oide") {
             crustswarm::swarm::genome::SwarmGenome::from(&crustswarm::io::oide_genome_from_file(

@@ -16,6 +16,17 @@ pub use crate::atoms::bounded_int::*;
 pub use crate::atoms::fixed::*;
 pub use crate::atoms::tuples::*;
 
+struct Util {}
+impl Util {
+    fn crossover<T: Clone>(this: &T, other: &T, rng: &mut impl Rng, rate: f64) -> T {
+        if rng.gen_bool(rate) {
+            other.clone()
+        } else {
+            this.clone()
+        }
+    }
+}
+
 impl<T: OIDEAdd> OIDEAdd for Vec<T> {
     fn add(&self, other: &Self) -> Self {
         assert_eq!(self.len(), other.len());
@@ -40,13 +51,28 @@ impl<T: OIDEScale> OIDEScale for Vec<T> {
     }
 }
 impl<T: OIDEOpposite> OIDEOpposite for Vec<T> {
-    fn opposite(&self) -> Self {
-        self.iter().map(|s| s.opposite()).collect()
+    fn opposite(&self, midpoint: Option<&Self>) -> Self {
+        self.iter()
+            .zip(
+                midpoint
+                    .map(|m| m.into_iter().map(|v| Some(v)).collect())
+                    .unwrap_or_else(|| vec![None; self.len()]),
+            )
+            .map(|(s, m)| s.opposite(m))
+            .collect()
     }
 }
 impl<T: OIDERandomize> OIDERandomize for Vec<T> {
     fn random(&self, rng: &mut impl Rng) -> Self {
         self.iter().map(|s| s.random(rng)).collect()
+    }
+}
+impl<T: OIDECrossover + Clone> OIDECrossover for Vec<T> {
+    fn crossover(&self, other: &Self, rng: &mut impl Rng, rate: f64) -> Self {
+        self.iter()
+            .zip(other.iter())
+            .map(|(s, o)| Util::crossover(s, o, rng, rate))
+            .collect()
     }
 }
 impl<T: OIDEBoundApplication + Debug> OIDEBoundApplication for Vec<T> {
@@ -64,6 +90,11 @@ impl<T: OIDEBoundApplication + Debug> OIDEBoundApplication for Vec<T> {
             .collect()
     }
 }
+impl<T: OIDEZero> OIDEZero for Vec<T> {
+    fn zero(&self) -> Self {
+        self.iter().map(|s| s.zero()).collect()
+    }
+}
 impl<T: Differentiable + Debug> Differentiable for Vec<T> {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
@@ -75,6 +106,14 @@ pub struct BoolCell<T> {
 impl<T> BoolCell<T> {
     pub fn is_active(&self) -> bool {
         self.active.clone().into()
+    }
+}
+impl<T: OIDEZero> BoolCell<T> {
+    fn zero(&self) -> Self {
+        BoolCell {
+            active: self.active.zero(),
+            value: self.value.zero(),
+        }
     }
 }
 
@@ -106,17 +145,25 @@ impl BoolCell<usize> {
             value: (self.value as f32 * factor).round() as usize,
         }
     }
-    fn opposite(&self, index_count: usize) -> Self {
+    fn opposite(&self, index_count: usize, midpoint: Option<&BoolCell<usize>>) -> Self {
         Self {
-            active: self.active.opposite(),
+            active: self.active.opposite(match midpoint {
+                Some(ref m) => Some(&m.active),
+                None => None,
+            }),
             value: index_count - self.value,
         }
     }
-
     pub fn random(&self, rng: &mut impl Rng, lower_bound: usize, upper_bound: usize) -> Self {
         BoolCell {
             active: rng.sample(Uniform::new_inclusive(0.0, 1.0)).into(),
             value: rng.gen_range(lower_bound, upper_bound + 1),
+        }
+    }
+    fn zero(&self) -> Self {
+        BoolCell {
+            active: self.active.zero(),
+            value: 0,
         }
     }
 }
@@ -264,12 +311,17 @@ impl OIDEScale for BoundedIdxVec {
     }
 }
 impl OIDEOpposite for BoundedIdxVec {
-    fn opposite(&self) -> Self {
+    fn opposite(&self, midpoint: Option<&Self>) -> Self {
         BoundedIdxVec {
             vec: self
                 .vec
                 .iter()
-                .map(|cell| cell.opposite(self.upper_bound))
+                .zip(
+                    midpoint
+                        .map(|m| m.vec.iter().map(|v| Some(v)).collect())
+                        .unwrap_or_else(|| vec![None; self.vec.len()]),
+                )
+                .map(|(cell, mid)| cell.opposite(self.upper_bound, mid))
                 .collect(),
             upper_bound: self.upper_bound,
         }
@@ -286,6 +338,19 @@ impl OIDERandomize for BoundedIdxVec {
         copy
     }
 }
+impl OIDECrossover for BoundedIdxVec {
+    fn crossover(&self, other: &Self, rng: &mut impl Rng, rate: f64) -> Self {
+        BoundedIdxVec {
+            vec: self
+                .vec
+                .iter()
+                .zip(other.vec.iter())
+                .map(|(s, o)| Util::crossover(s, o, rng, rate))
+                .collect(),
+            upper_bound: self.upper_bound,
+        }
+    }
+}
 impl OIDEBoundApplication for BoundedIdxVec {
     fn apply_bounds(&self, other: &Self) -> Self {
         BoundedIdxVec {
@@ -298,6 +363,14 @@ impl OIDEBoundApplication for BoundedIdxVec {
                     new_val
                 })
                 .collect(),
+            upper_bound: self.upper_bound,
+        }
+    }
+}
+impl OIDEZero for BoundedIdxVec {
+    fn zero(&self) -> Self {
+        BoundedIdxVec {
+            vec: self.vec.iter().map(|s| s.zero()).collect(),
             upper_bound: self.upper_bound,
         }
     }
@@ -349,14 +422,19 @@ impl OIDEScale for BoundedFactorVec {
     }
 }
 impl OIDEOpposite for BoundedFactorVec {
-    fn opposite(&self) -> Self {
+    fn opposite(&self, midpoint: Option<&Self>) -> Self {
         BoundedFactorVec {
             vec: self
                 .vec
                 .iter()
-                .map(|first| BoolCell {
-                    active: first.active.opposite(),
-                    value: first.value.opposite(),
+                .zip(
+                    midpoint
+                        .map(|m| m.vec.iter().map(|v| Some(v)).collect())
+                        .unwrap_or_else(|| vec![None; self.vec.len()]),
+                )
+                .map(|(cell, mid)| BoolCell {
+                    active: cell.active.opposite(mid.map(|m| &m.active)),
+                    value: cell.value.opposite(mid.map(|m| &m.value)),
                 })
                 .collect(),
         }
@@ -376,10 +454,29 @@ impl OIDERandomize for BoundedFactorVec {
         copy
     }
 }
+impl OIDECrossover for BoundedFactorVec {
+    fn crossover(&self, other: &Self, rng: &mut impl Rng, rate: f64) -> Self {
+        BoundedFactorVec {
+            vec: self
+                .vec
+                .iter()
+                .zip(other.vec.iter())
+                .map(|(s, o)| Util::crossover(s, o, rng, rate))
+                .collect(),
+        }
+    }
+}
 impl OIDEBoundApplication for BoundedFactorVec {
     fn apply_bounds(&self, other: &Self) -> Self {
         BoundedFactorVec {
             vec: other.vec.clone(),
+        }
+    }
+}
+impl OIDEZero for BoundedFactorVec {
+    fn zero(&self) -> Self {
+        BoundedFactorVec {
+            vec: self.vec.iter().map(|s| s.zero()).collect(),
         }
     }
 }
@@ -439,15 +536,15 @@ mod testbounded_factors {
         let factor = BoundedFactor::new_with_bounds(0.0, 4.0, 2.0);
         let factor2 = BoundedFactor::new_with_bounds(0.0, 4.0, 3.0);
         assert_eq!(
-            BoundedFactor::new_with_bounds(0.0, 4.0, 3.0),
-            factor.add(&factor2)
+            BoundedFactor::new_with_bounds(0.0, 4.0, 3.0).get_value(),
+            factor.add(&factor2).get_value()
         );
 
         let factor = BoundedFactor::new_with_bounds(10.0, 20.0, 19.0);
         let factor2 = BoundedFactor::new_with_bounds(10.0, 20.0, 19.0);
         assert_eq!(
-            BoundedFactor::new_with_bounds(10.0, 20.0, 12.0),
-            factor.add(&factor2)
+            BoundedFactor::new_with_bounds(10.0, 20.0, 12.0).get_value(),
+            factor.add(&factor2).get_value()
         );
     }
 
@@ -479,9 +576,9 @@ mod testbounded_factors {
     fn fuzz_opposite_idempotent() {
         test_bounded_factor(1000, |factor| {
             assert!(
-                factor.get_value() - factor.opposite().opposite().get_value() <= 0.000001,
+                factor.get_value() - factor.opposite(None).opposite(None).get_value() <= 0.000001,
                 "Difference: {:?}",
-                factor.get_value() - factor.opposite().opposite().get_value()
+                factor.get_value() - factor.opposite(None).opposite(None).get_value()
             );
         });
     }
@@ -489,7 +586,7 @@ mod testbounded_factors {
     #[test]
     fn fuzz_add_opposite_eq_upper() {
         test_bounded_factor(1000, |factor| {
-            let testfac = factor.add(&factor.opposite());
+            let testfac = factor.add(&factor.opposite(None));
             assert!(
                 testfac.get_value() - testfac.get_lower_bound() - testfac.get_range() <= 0.000001,
                 "Difference: {:?}",
@@ -502,14 +599,14 @@ mod testbounded_factors {
     fn fuzz_sum_of_diff_and_diff_opposite_idempotent() {
         test_bounded_factors(1000, |factor1, factor2| {
             let diff = factor1.difference(&factor2);
-            let testfac = factor1.add(&diff).add(&diff.opposite()).opposite();
+            let testfac = factor1.add(&diff).add(&diff.opposite(None)).opposite(None);
             assert!(
                 factor1.get_offset() - factor1.get_range() - testfac.get_offset() <= 0.00001,
                 "\nF1: {:?}\nF2: {:?}\nDiff: {:?}\nDiff.opp: {:?}\nF1.add(Diff): {:?}\nF1.add(Diff).add(Diff.opp): {:?}",
                 factor1,
                 factor2,
                 diff.get_offset(),
-                diff.opposite().get_offset(),
+                diff.opposite(None).get_offset(),
                 factor1.add(&diff).get_offset(),
                 testfac.get_offset()
             ); // kaputt, weil a+(a-b)-(a-b) != a+((a-b)-(a-b))
@@ -579,11 +676,11 @@ mod testidxvec {
                 println!("v2  : {} {}", &v2, f1(&v2));
                 assert!(!f1(&v2));
 
-                let o1 = v1.opposite();
+                let o1 = v1.opposite(None);
                 println!("o1 : {} {} ", o1, f1(&o1));
                 assert!(!f1(&o1));
 
-                let o2 = v2.opposite();
+                let o2 = v2.opposite(None);
                 println!("o2 : {} {} ", o2, f1(&o2));
                 assert!(!f1(&o2));
 
