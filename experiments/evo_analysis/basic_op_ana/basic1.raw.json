@@ -1,0 +1,155 @@
+{
+  "species_map": [
+    {
+      "index": 0,
+      "separation": 0.2,
+      "alignment": 0.01,
+      "cohesion": 0.2,
+      "randomness": 0.1,
+      "center": 0.05,
+      "floor": 0.01,
+      "bias": {
+        "x": 0.0,
+        "y": 0.2,
+        "z": 0.0
+      },
+      "gradient": 0.0,
+      "normal": 1.0,
+      "slope": 0.0,
+      "normal_speed": 1.0,
+      "max_speed": 1.2,
+      "max_acceleration": 0.6,
+      "pacekeeping": 0.1,
+      "view_distance": 50.0,
+      "view_angle": 350.0,
+      "sep_distance": 30.0,
+      "axis_constraint": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "influenced_by": {
+        "g0": 1.0,
+        "r0": 0.2,
+        "r1": 0
+      },
+      "noclip": false,
+      "energy": {
+        "on_movement": {
+          "Distance": 0.13
+        },
+        "on_zero": "Die",
+        "on_replication": {
+          "Constant": 0.0
+        },
+        "for_offspring": {
+          "Inherit": 1.0
+        }
+      },
+      "hand_down_seed": true,
+      "rules": [
+        {
+          "context": [],
+          "range": 1.0,
+          "weight": 3.0,
+          "persist": true,
+          "replacement": {
+            "Simple": [
+              "r0"
+            ]
+          }
+        },
+        {
+          "context": [],
+          "range": 1.0,
+          "weight": 1.0,
+          "persist": false,
+          "replacement": {
+            "Simple": [
+              "r0",
+              "g0",
+              "g0"
+            ]
+          }
+        }
+      ],
+      "color_index": 1
+    }
+  ],
+  "artifact_map": [
+    {
+      "color_index": 2
+    },
+    {
+      "color_index": 5
+    }
+  ],
+  "start_dist": {
+    "Multi": [
+      {
+        "Single": [
+          {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "g0"
+        ]},
+      {
+        "Single": [
+          {
+            "x":  40.0,
+            "y":  10.0,
+            "z":  40.0
+          },
+          "r1"
+        ]},
+      {
+        "Single": [
+          {
+            "x": -40.0,
+            "y":  10.0,
+            "z":  40.0
+          },
+          "r1"
+        ]},
+      {
+        "Single": [
+          {
+            "x": -40.0,
+            "y":  10.0,
+            "z": -40.0
+          },
+          "r1"
+        ]},
+      {
+        "Single": [
+          {
+            "x":  40.0,
+            "y":  10.0,
+            "z": -40.0
+          },
+          "r1"
+        ]},
+      {
+        "Single": [
+          {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "r1"
+        ]}
+    ]
+  },
+  "strategy": {
+    "every": 2,
+    "offset": 1
+  },
+  "terrain_influences": [
+    [ 0.0 ],
+    [ 0.0, 2.9 ]
+  ],
+  "terrain_size": 25,
+  "terrain_spacing": 10.0
+}

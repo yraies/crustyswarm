@@ -2,8 +2,9 @@ pub mod atoms;
 
 pub mod prelude {
     pub use crate::traits::{
-        Differentiable, Evaluatable, GeneralParams, IODEPopulation, OIDEAdd, OIDEBoundApplication,
-        OIDECrossover, OIDEDiff, OIDEOpposite, OIDERandomize, OIDEScale, OIDEZero, TrialType,
+        Differentiable, Evaluatable, FeatureCollector, FeatureTraversal, GeneralParams,
+        IODEPopulation, OIDEAdd, OIDEBoundApplication, OIDECrossover, OIDEDiff, OIDEOpposite,
+        OIDEParameterCount, OIDERandomize, OIDEScale, OIDEZero, TrialType, Visit, Visitor,
     };
 
     pub use crate::atoms::{
@@ -13,7 +14,7 @@ pub mod prelude {
 
 pub mod traits {
     use rand::prelude::*;
-    use std::fmt::Debug;
+    use std::{collections::hash_map::DefaultHasher, fmt::Debug, hash::Hasher};
 
     pub trait Differentiable
     where
@@ -25,8 +26,17 @@ pub mod traits {
             + OIDECrossover
             + OIDEBoundApplication
             + OIDEZero
-            + Clone,
+            + OIDEParameterCount
+            + Visit<f32>
+            + Visit<FeatureTraversal>
+            + Clone
+            + std::hash::Hash,
     {
+        fn my_hash(&self) -> u64 {
+            let mut hasher = DefaultHasher::new();
+            self.hash(&mut hasher);
+            hasher.finish()
+        }
     }
 
     pub trait OIDEAdd {
@@ -52,6 +62,65 @@ pub mod traits {
     }
     pub trait OIDEZero {
         fn zero(&self) -> Self;
+    }
+    pub trait OIDEParameterCount {
+        fn parameter_count(&self) -> usize;
+    }
+
+    pub trait Visitor<T> {
+        type Error;
+        fn handle(&mut self, data: T) -> Result<(), Self::Error>;
+    }
+    pub trait Visit<T> {
+        fn visit_with<V: Visitor<T>>(&self, visitor: &mut V) -> Result<(), V::Error>;
+    }
+    pub struct VecCollector(Vec<f32>);
+    impl Visitor<f32> for VecCollector {
+        type Error = ();
+
+        fn handle(&mut self, data: f32) -> Result<(), Self::Error> {
+            self.0.push(data);
+            Ok(())
+        }
+    }
+    impl VecCollector {
+        pub fn collect(site: &impl Visit<f32>) -> Vec<f32> {
+            let mut collector = VecCollector(vec![]);
+            site.visit_with(&mut collector).unwrap();
+            collector.0
+        }
+    }
+    pub enum FeatureTraversal {
+        Push(String),
+        Collect(String),
+        Pop,
+    }
+    pub struct FeatureCollector(Vec<String>, Vec<String>);
+    impl Visitor<FeatureTraversal> for FeatureCollector {
+        type Error = ();
+
+        fn handle(&mut self, data: FeatureTraversal) -> Result<(), Self::Error> {
+            match data {
+                FeatureTraversal::Push(name) => self.1.push(name),
+                FeatureTraversal::Collect(name) => {
+                    self.1.push(name);
+                    self.0
+                        .push(itertools::Itertools::join(&mut self.1.iter(), "."));
+                    self.1.pop();
+                }
+                FeatureTraversal::Pop => {
+                    self.1.pop();
+                }
+            }
+            Ok(())
+        }
+    }
+    impl FeatureCollector {
+        pub fn collect(site: &impl Visit<FeatureTraversal>) -> Vec<String> {
+            let mut collector = FeatureCollector(vec![], vec![]);
+            site.visit_with(&mut collector).unwrap();
+            collector.0
+        }
     }
 
     pub trait Evaluatable<E>: Differentiable {
@@ -90,10 +159,10 @@ pub mod traits {
     impl TrialType {
         pub fn to_string(&self) -> &str {
             match self {
-                TrialType::Target => "Target",
+                TrialType::Target => "+Target",
                 TrialType::TargetOpposite => "-Target",
-                TrialType::Trial => "Target+Trial",
-                TrialType::TrialOpposite => "Target-Trial",
+                TrialType::Trial => "+Target+Trial",
+                TrialType::TrialOpposite => "-Target+Trial",
             }
         }
     }
@@ -103,14 +172,21 @@ pub mod traits {
         pub pop_id: usize,
         pub pop_size: usize,
         pub trial_type: TrialType,
+        pub parents: (u64, u64),
     }
 
     impl GeneralParams {
-        fn new(pop_id: usize, pop_size: usize, trial_type: TrialType) -> GeneralParams {
+        fn new(
+            pop_id: usize,
+            pop_size: usize,
+            trial_type: TrialType,
+            parents: (u64, u64),
+        ) -> GeneralParams {
             GeneralParams {
                 pop_id,
                 pop_size,
                 trial_type,
+                parents,
             }
         }
     }
@@ -159,6 +235,7 @@ pub mod traits {
                         .filter(|&curr| curr.ne(target) && curr.ne(parent1))
                         .choose(rng)
                         .expect("No other individuals could be found!");
+                    let parents = (parent1.my_hash(), parent2.my_hash());
                     let mutant = target.add(&parent1.difference(parent2).scale(f));
                     //println!(
                     //    "BPPM: {:6.2?} {:6.2?} {:6.2?} {:6.2?}",
@@ -167,19 +244,29 @@ pub mod traits {
                     let trial = target.crossover(&mutant, rng, crossover_rate);
                     [
                         (
-                            GeneralParams::new(idx, self.get_size(), TrialType::Target),
+                            GeneralParams::new(idx, self.get_size(), TrialType::Target, parents),
                             target.clone(),
                         ),
                         (
-                            GeneralParams::new(idx, self.get_size(), TrialType::Trial),
+                            GeneralParams::new(idx, self.get_size(), TrialType::Trial, parents),
                             trial.clone(),
                         ),
                         (
-                            GeneralParams::new(idx, self.get_size(), TrialType::TrialOpposite),
+                            GeneralParams::new(
+                                idx,
+                                self.get_size(),
+                                TrialType::TrialOpposite,
+                                parents,
+                            ),
                             trial.opposite(midpoint.clone()),
                         ),
                         (
-                            GeneralParams::new(idx, self.get_size(), TrialType::TargetOpposite),
+                            GeneralParams::new(
+                                idx,
+                                self.get_size(),
+                                TrialType::TargetOpposite,
+                                parents,
+                            ),
                             target.opposite(midpoint.clone()),
                         ),
                     ]
@@ -239,62 +326,108 @@ pub mod traits {
 pub mod tests {
     #[allow(unused_imports)]
     use crate::prelude::*;
-    use crate::traits::OIDEZero;
+    use crate::traits::{
+        FeatureCollector, FeatureTraversal, OIDEZero, VecCollector, Visit, Visitor,
+    };
     use derive_diff::*;
     use rand::{distributions::Uniform, prelude::*};
 
-    impl OIDEAdd for f32 {
+    #[derive(Clone, Debug, PartialEq)]
+    struct F32(f32);
+
+    impl From<f32> for F32 {
+        fn from(f: f32) -> Self {
+            F32(f)
+        }
+    }
+    impl From<F32> for f32 {
+        fn from(f: F32) -> Self {
+            f.0
+        }
+    }
+    impl std::ops::Deref for F32 {
+        type Target = f32;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+
+    impl OIDEAdd for F32 {
         fn add(&self, other: &Self) -> Self {
-            self + other
+            F32(self.0 + other.0)
         }
     }
-    impl OIDEDiff for f32 {
+    impl OIDEDiff for F32 {
         fn difference(&self, other: &Self) -> Self {
-            other - self
+            F32(other.0 - self.0)
         }
     }
-    impl OIDEScale for f32 {
+    impl OIDEScale for F32 {
         fn scale(&self, factor: f32) -> Self {
-            self * factor
+            F32(self.0 * factor)
         }
     }
-    impl OIDEOpposite for f32 {
+    impl OIDEOpposite for F32 {
         fn opposite(&self, midpoint: Option<&Self>) -> Self {
-            2.0 * midpoint.unwrap_or(&0.0) - self
+            F32(2.0 * midpoint.unwrap_or(&F32(0.0)).0 - self.0)
         }
     }
-    impl OIDERandomize for f32 {
+    impl OIDERandomize for F32 {
         fn random(&self, rng: &mut impl rand::Rng) -> Self {
-            rng.gen()
+            F32(rng.gen())
         }
     }
-    impl OIDECrossover for f32 {
+    impl OIDECrossover for F32 {
         fn crossover(&self, other: &Self, rng: &mut impl rand::Rng, rate: f64) -> Self {
             if rng.gen_bool(rate) {
-                *other
+                other.0.into()
             } else {
-                *self
+                self.0.into()
             }
         }
     }
-    impl OIDEBoundApplication for f32 {
+    impl OIDEBoundApplication for F32 {
         fn apply_bounds(&self, other: &Self) -> Self {
-            *other
+            other.clone()
         }
     }
-    impl OIDEZero for f32 {
+    impl OIDEZero for F32 {
         fn zero(&self) -> Self {
-            0.0
+            F32(0.0)
+        }
+    }
+    impl OIDEParameterCount for F32 {
+        fn parameter_count(&self) -> usize {
+            1
+        }
+    }
+    impl Visit<f32> for F32 {
+        fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+            f.handle(self.0)
+        }
+    }
+    impl Visit<FeatureTraversal> for F32 {
+        fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+            f.handle(FeatureTraversal::Collect("f32".to_string()))
+        }
+    }
+    impl std::hash::Hash for F32 {
+        fn hash<H>(&self, state: &mut H)
+        where
+            H: std::hash::Hasher,
+        {
+            self.0.to_string().hash(state);
         }
     }
 
-    impl Differentiable for f32 {}
+    impl Differentiable for F32 {}
 
-    impl Evaluatable<f32> for f32 {
+    impl Evaluatable<f32> for F32 {
         type Params = f32;
         type EvalInfo = TrialType;
         fn eval(&self, gen_par: &GeneralParams, target: &Self::Params) -> (f32, TrialType) {
-            ((self - target).abs(), gen_par.trial_type)
+            ((self.0 - target).abs(), gen_par.trial_type)
         }
     }
 
@@ -302,7 +435,7 @@ pub mod tests {
     fn test_ode_1d() {
         for seed in 234168374800u64..234168374850u64 {
             let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
-            let mut pop: Vec<_> = (30..=45).map(|v| v as f32).collect();
+            let mut pop: Vec<F32> = (30..=45).map(|v| (v as f32).into()).collect();
             let mut lastbest = f32::MAX;
             let mut bests = vec![];
             let target = 5.37;
@@ -314,6 +447,7 @@ pub mod tests {
                             pop_id: 0,
                             pop_size: 0,
                             trial_type: TrialType::Trial,
+                            parents: (0, 0),
                         },
                         &target,
                     )
@@ -333,14 +467,14 @@ pub mod tests {
                 let midpoints = pop.get_midpoints();
                 println!("Midpoint   : {:?}", midpoints);
                 pop = pop.step(
-                    &mut |t: &[(f32, f32, TrialType)]| {
+                    &mut |t: &[(F32, f32, TrialType)]| {
                         let res = t
                             .iter()
                             .min_by(|a, b| {
                                 a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Less)
                             })
                             .unwrap();
-                        vec![res.0]
+                        vec![res.0.clone()]
                     },
                     &mut rng,
                     target,
@@ -356,6 +490,7 @@ pub mod tests {
                                 pop_id: 0,
                                 pop_size: 0,
                                 trial_type: TrialType::Trial,
+                                parents: (0, 0),
                             },
                             &target,
                         )
@@ -383,25 +518,25 @@ pub mod tests {
         }
     }
 
-    #[derive(Clone, Debug, PartialEq, AllOIDETraits)]
-    struct Vec4(f32, f32, f32, f32);
+    #[derive(Clone, Hash, Debug, PartialEq, AllOIDETraits)]
+    struct Vec4(F32, F32, F32, F32);
 
     impl Vec4 {
         fn dist(&self, other: &Self) -> f32 {
             f64::sqrt(
-                f64::powi(other.0 as f64 - self.0 as f64, 2)
-                    + f64::powi(other.1 as f64 - self.1 as f64, 2)
-                    + f64::powi(other.2 as f64 - self.2 as f64, 2)
-                    + f64::powi(other.3 as f64 - self.3 as f64, 2),
+                f64::powi(other.0 .0 as f64 - self.0 .0 as f64, 2)
+                    + f64::powi(other.1 .0 as f64 - self.1 .0 as f64, 2)
+                    + f64::powi(other.2 .0 as f64 - self.2 .0 as f64, 2)
+                    + f64::powi(other.3 .0 as f64 - self.3 .0 as f64, 2),
             ) as f32
         }
         fn rand(lower: f32, upper: f32, rng: &mut impl Rng) -> Vec4 {
             let distr = Uniform::new_inclusive(lower, upper);
             Vec4(
-                rng.sample(distr),
-                rng.sample(distr),
-                rng.sample(distr),
-                rng.sample(distr),
+                rng.sample(distr).into(),
+                rng.sample(distr).into(),
+                rng.sample(distr).into(),
+                rng.sample(distr).into(),
             )
         }
     }
@@ -415,6 +550,15 @@ pub mod tests {
     }
 
     #[test]
+    fn test_collection() {
+        let foo: F32 = 3.6f32.into();
+        assert_eq!(vec![3.6f32], VecCollector::collect(&foo));
+        assert_eq!(vec!("f32"), FeatureCollector::collect(&foo));
+        let bar = Vec4(1f32.into(), 2f32.into(), 3f32.into(), 4f32.into());
+        assert_eq!(vec![1f32, 2f32, 3f32, 4f32], VecCollector::collect(&bar));
+    }
+
+    #[test]
     fn test_ode_4d() {
         for iters in (20..=100).step_by(20) {
             let mut avg_bests = vec![];
@@ -425,9 +569,9 @@ pub mod tests {
                     let mut pop: Vec<_> = (0..=populationsize)
                         .map(|_| Vec4::rand(-50.0, 50.0, &mut rng))
                         .collect();
-                    let mut lastbest = f32::MAX;
+                    //let mut lastbest = f32::MAX;
                     let mut bests = vec![];
-                    let target = Vec4(7.3, 5.2, -10.0, 0.0);
+                    let target = Vec4(7.3.into(), 5.2.into(), (-10.0).into(), 0.0.into());
 
                     let newbest = pop.iter().fold(f32::MAX, |acc, elem| {
                         let eval = elem
@@ -436,6 +580,7 @@ pub mod tests {
                                     pop_id: 0,
                                     pop_size: 0,
                                     trial_type: TrialType::Trial,
+                                    parents: (0, 0),
                                 },
                                 &target,
                             )
@@ -478,6 +623,7 @@ pub mod tests {
                                         pop_id: 0,
                                         pop_size: 0,
                                         trial_type: TrialType::Trial,
+                                        parents: (0, 0),
                                     },
                                     &target,
                                 )
@@ -490,7 +636,7 @@ pub mod tests {
                         });
                         //println!("Best Error : {:?}", newbest);
                         //println!("Improvement: {:7.2?}", lastbest - newbest);
-                        lastbest = newbest;
+                        //lastbest = newbest;
                         bests.push(newbest);
                         //println!();
                     }

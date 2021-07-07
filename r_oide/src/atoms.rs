@@ -95,6 +95,29 @@ impl<T: OIDEZero> OIDEZero for Vec<T> {
         self.iter().map(|s| s.zero()).collect()
     }
 }
+impl<T: OIDEParameterCount> OIDEParameterCount for Vec<T> {
+    fn parameter_count(&self) -> usize {
+        self.iter().map(|v| v.parameter_count()).sum()
+    }
+}
+impl<T: Visit<f32>> Visit<f32> for Vec<T> {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        for elem in self {
+            elem.visit_with(f)?;
+        }
+        Ok(())
+    }
+}
+impl<T: Visit<FeatureTraversal>> Visit<FeatureTraversal> for Vec<T> {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        for (i, _) in self.iter().enumerate() {
+            f.handle(FeatureTraversal::Push(format!("vec{:02}", i)))?;
+            self[i].visit_with(f)?;
+            f.handle(FeatureTraversal::Pop)?;
+        }
+        Ok(())
+    }
+}
 impl<T: Differentiable + Debug> Differentiable for Vec<T> {}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq)]
@@ -375,6 +398,39 @@ impl OIDEZero for BoundedIdxVec {
         }
     }
 }
+impl OIDEParameterCount for BoundedIdxVec {
+    fn parameter_count(&self) -> usize {
+        self.vec.len() * 2
+    }
+}
+impl Visit<f32> for BoundedIdxVec {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        for elem in &self.vec {
+            elem.active.visit_with(f)?;
+            f.handle(elem.value as f32)?;
+        }
+        Ok(())
+    }
+}
+impl Visit<FeatureTraversal> for BoundedIdxVec {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        for i in 0..self.vec.len() {
+            f.handle(FeatureTraversal::Push(format!("vec{:02}", i)))?;
+            f.handle(FeatureTraversal::Collect("active".to_string()))?;
+            f.handle(FeatureTraversal::Collect("value".to_string()))?;
+            f.handle(FeatureTraversal::Pop)?;
+        }
+        Ok(())
+    }
+}
+impl std::hash::Hash for BoundedIdxVec {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.vec.iter().for_each(|v| {
+            v.active.hash(state);
+            v.value.hash(state);
+        });
+    }
+}
 impl Differentiable for BoundedIdxVec {}
 
 impl OIDEAdd for BoundedFactorVec {
@@ -478,6 +534,39 @@ impl OIDEZero for BoundedFactorVec {
         BoundedFactorVec {
             vec: self.vec.iter().map(|s| s.zero()).collect(),
         }
+    }
+}
+impl OIDEParameterCount for BoundedFactorVec {
+    fn parameter_count(&self) -> usize {
+        self.vec.len() * 2
+    }
+}
+impl Visit<f32> for BoundedFactorVec {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        for elem in &self.vec {
+            elem.active.visit_with(f)?;
+            elem.value.visit_with(f)?;
+        }
+        Ok(())
+    }
+}
+impl Visit<FeatureTraversal> for BoundedFactorVec {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        for (i, _) in self.vec.iter().enumerate() {
+            f.handle(FeatureTraversal::Push(format!("vec{:02}", i)))?;
+            f.handle(FeatureTraversal::Collect("active".to_string()))?;
+            f.handle(FeatureTraversal::Collect("value".to_string()))?;
+            f.handle(FeatureTraversal::Pop)?;
+        }
+        Ok(())
+    }
+}
+impl std::hash::Hash for BoundedFactorVec {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.vec.iter().for_each(|v| {
+            v.active.hash(state);
+            v.value.hash(state);
+        });
     }
 }
 impl Differentiable for BoundedFactorVec {}

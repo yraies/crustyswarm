@@ -1,0 +1,25 @@
+[package]
+name = "swarmcli"
+version = "0.2.0"
+authors = ["Yasin Raies <yasin.raies@gmail.de>"]
+edition = "2018"
+default-run = "swarmcli"
+
+[dependencies]
+rand = "^0.6"
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1"
+compression = "^0.1"
+linfa = "^0.4"
+linfa-reduction = "^0.4"
+ndarray = "^0.14"
+csv = "^1.1"
+
+[dependencies.crustswarm]
+path = "../core"
+
+[dependencies.derive_diff]
+path = "../derive_diff"
+
+[dependencies.r_oide]
+path = "../r_oide"

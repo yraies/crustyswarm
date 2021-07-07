@@ -45,7 +45,7 @@ pub fn raw_genome_from_file(path: impl AsRef<Path>) -> SwarmGenome {
     serde_json::from_str(&json_str).unwrap()
 }
 
-pub fn genome_to_file(template: &SwarmGenome, path: impl AsRef<Path>) -> Option<Error> {
+pub fn raw_genome_to_file(template: &SwarmGenome, path: impl AsRef<Path>) -> Option<Error> {
     fs::write(&path, serde_json::to_string_pretty(&template).unwrap()).err()
 }
 

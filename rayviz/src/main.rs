@@ -24,15 +24,15 @@ const TERRAIN_VS_SHADER: &str = include_str!("shaders/terrain.glsl.vs");
 
 fn main() {
     let matches = App::new("Crustswarm Visualizer")
-        .version("1.0")
+        .version("0.1")
         .author("Yasin Raies <yasin.raies@gmail.com>")
-        .about("Visualizes a multi species swarm agent simulation")
+        .about("Visualize a multi species swarm agent simulation")
         .arg(
             Arg::with_name("config")
                 .short("c")
                 .long("config")
                 .value_name("CONFIG")
-                .help("Setis a config file")
+                .help("Sets a config file")
                 .takes_value(true)
                 .required(true)
                 .index(1),
@@ -41,7 +41,7 @@ fn main() {
             Arg::with_name("framerate")
                 .long("fps")
                 .value_name("FPS")
-                .help("Sets the wanted framerate")
+                .help("Sets the target framerate")
                 .default_value("30")
                 .takes_value(true),
         )
@@ -54,15 +54,16 @@ fn main() {
         .arg(
             Arg::with_name("screenshots")
                 .long("screenshots")
+                .value_name("SNUM")
                 .default_value("1")
                 .takes_value(true)
-                .help("Creates screenshots every x iterations"),
+                .help("Creates screenshots every <SNUM> iterations"),
         )
         .arg(
             Arg::with_name("screenshot-once")
                 .long("screenshot-once")
                 .takes_value(true)
-                .help("Creates a single single screenshot of a given grammar")
+                .help("Creates a single single screenshot of a given grammar and quites")
                 .conflicts_with("screenshot")
                 .conflicts_with("instant")
                 .conflicts_with("max-iteration"),
@@ -71,7 +72,7 @@ fn main() {
             Arg::with_name("instant")
                 .long("instant")
                 .short("i")
-                .help("Instantly start the simulation"),
+                .help("Instantly starts the simulation"),
         )
         .arg(
             Arg::with_name("seed")
@@ -79,13 +80,12 @@ fn main() {
                 .long("seed")
                 .value_name("SEED")
                 .help("Sets a seed")
-                .takes_value(true)
-                .conflicts_with("random_seed"),
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("fixed-camera")
                 .long("fixed-camera")
-                .help("Wether the camera starts fixed"),
+                .help("Fixes the camera to orbit the scene"),
         )
         .arg(
             Arg::with_name("camera-height")
@@ -93,7 +93,7 @@ fn main() {
                 .short("y")
                 .allow_hyphen_values(true)
                 .takes_value(true)
-                .help("Y position of the simulation camera."),
+                .help("Y position of the simulation camera"),
         )
         .arg(
             Arg::with_name("camera-x")
@@ -101,7 +101,7 @@ fn main() {
                 .short("x")
                 .allow_hyphen_values(true)
                 .takes_value(true)
-                .help("X position of the simulation camera."),
+                .help("X position of the simulation camera"),
         )
         .arg(
             Arg::with_name("camera-z")
@@ -109,7 +109,7 @@ fn main() {
                 .short("z")
                 .allow_hyphen_values(true)
                 .takes_value(true)
-                .help("Z position of the simulation camera."),
+                .help("Z position of the simulation camera"),
         )
         .arg(
             Arg::with_name("camera-target")
@@ -117,7 +117,7 @@ fn main() {
                 .short("t")
                 .allow_hyphen_values(true)
                 .takes_value(true)
-                .help("Position the camera will look at."),
+                .help("Target height the camera will look at"),
         )
         .arg(
             Arg::with_name("orbit-speed")
@@ -125,14 +125,14 @@ fn main() {
                 .long("orbit-speed")
                 .allow_hyphen_values(true)
                 .takes_value(true)
-                .help("Set the orbiting speed."),
+                .help("Sets the orbiting speed."),
         )
         .arg(
             Arg::with_name("max-iteration")
                 .short("m")
                 .long("max-iteration")
                 .takes_value(true)
-                .help("Iteration to run up to."),
+                .help("Numbers of iterations to run (quits afterwards)"),
         )
         .arg(
             Arg::with_name("no-ui")
@@ -143,7 +143,7 @@ fn main() {
             Arg::with_name("fullscreen")
                 .short("f")
                 .long("fullscreen")
-                .help("Wether to run fullscreen"),
+                .help("Runs the application fullscreen"),
         )
         .arg(
             Arg::with_name("square")
@@ -157,26 +157,37 @@ fn main() {
                 .help("Shows no buoys initially"),
         )
         .arg(
+            Arg::with_name("no-terrain")
+                .long("no-terrain")
+                .help("Shows no terrain initially"),
+        )
+        .arg(
             Arg::with_name("no-tweenz")
                 .long("no-tweenz")
-                .help("Shows no tweenz initially"),
+                .help("Shows no tweenz (intermediary boxes indicating predecessors) initially"),
         )
         .arg(
             Arg::with_name("genome")
                 .long("genome")
-                .help("specifies to interpret the configuration as a SG genome")
+                .help("Interprets the configuration as a SG genome")
                 .conflicts_with("oide"),
         )
         .arg(
             Arg::with_name("grammar")
                 .long("grammar")
-                .help("specifies to interpret the configuration as a raw grammar")
+                .help("Interprets the configuration as a raw grammar")
                 .conflicts_with("genome"),
+        )
+        .arg(
+            Arg::with_name("restart")
+                .long("restart")
+                .help("Restarts the interpretation of a raw grammar at iteration zero")
+                .requires("grammar"),
         )
         .arg(
             Arg::with_name("oide")
                 .long("oide")
-                .help("specifies to interpret the configuration as a oide genome")
+                .help("Interprets the configuration as a oide genome")
                 .conflicts_with("grammar"),
         )
         .get_matches();
@@ -213,7 +224,7 @@ fn main() {
             ))
             .msaa_4x()
             .vsync()
-            .size(1500, 1500)
+            .size(1024, 1024)
             .build()
     } else {
         raylib::init()
@@ -256,7 +267,7 @@ fn main() {
     rl.update_camera(&mut camera);
     rl.set_target_fps(matches.value_of("framerate").unwrap().parse().unwrap());
 
-    let seed = if matches.is_present("baked_seed") {
+    let mut seed = if matches.is_present("baked_seed") {
         3672820499107940204u64
     } else if let Some(seed_string) = matches.value_of("seed") {
         seed_string.parse::<u64>().unwrap()
@@ -287,7 +298,7 @@ fn main() {
     println!("seed: {}", seed);
 
     let mut rnd: SmallRng = SmallRng::seed_from_u64(seed);
-    let mut sg = if matches.is_present("grammar") {
+    let mut sg = if matches.is_present("grammar") && !matches.is_present("restart") {
         crustswarm::io::grammar_from_file(configfile)
     } else {
         let temp = if matches.is_present("genome") {
@@ -296,6 +307,11 @@ fn main() {
             crustswarm::swarm::genome::SwarmGenome::from(&crustswarm::io::oide_genome_from_file(
                 configfile,
             ))
+        } else if matches.is_present("restart") {
+            if matches.is_present("baked_seed") {
+                seed = 73151514124691;
+            }
+            crustswarm::io::grammar_from_file(configfile).genome
         } else {
             crustswarm::io::genome_from_file(configfile)
         };
@@ -336,6 +352,7 @@ fn main() {
 
     let mut conditionals_draws = ConditionalDraw::new();
     conditionals_draws.buoys = !matches.is_present("no-buoys");
+    conditionals_draws.terrain = !matches.is_present("no-terrain");
     conditionals_draws.tweenz = !matches.is_present("no-tweenz");
 
     let font = rl

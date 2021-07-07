@@ -81,7 +81,7 @@ impl Replacement {
         hand_down_seed: bool,
         uid_gen: &mut UidGen,
     ) -> Agent {
-        assert!(new_energy != f32::NAN);
+        assert!(new_energy.is_finite(), "Not finite! Was {:?}", new_energy);
         let mut clone = parent.clone();
         clone.species_index = new_index;
         clone.energy = new_energy;
@@ -100,7 +100,7 @@ impl Replacement {
         energy: f32,
         uid_gen: &mut UidGen,
     ) -> (Vec<Agent>, Vec<Artifact>) {
-        assert!(energy != f32::NAN);
+        assert!(energy.is_finite(), "Not finite! Was {:?}", energy);
         let mut new_agents: Vec<Agent> = vec![];
         let mut new_artifacts: Vec<Artifact> = vec![];
 
@@ -206,7 +206,11 @@ impl Replacement {
 
         if persist {
             let mut new_parent = parent.clone();
-            assert!(new_parent_energy != f32::NAN);
+            assert!(
+                new_parent.energy.is_finite(),
+                "Not finite! Was {:?}",
+                new_parent.energy
+            );
             new_parent.energy = new_parent_energy;
             if new_artifacts.len() > 0 {
                 new_parent.last = Some(new_artifacts[0].id);

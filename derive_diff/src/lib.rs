@@ -29,6 +29,9 @@ pub fn derive_all_oide_traits(input: TokenStream) -> TokenStream {
     let crossover = crossover(&ast);
     let bound_application = bound_application(&ast);
     let zero = zero(&ast);
+    let parameter_count = parameter_count(&ast);
+    let visit_f32 = visit_f32(&ast);
+    let visit_feature = visit_feature(&ast);
     let differentiable = differentiable(&ast);
 
     quote!(
@@ -40,6 +43,9 @@ pub fn derive_all_oide_traits(input: TokenStream) -> TokenStream {
     #crossover
     #bound_application
     #zero
+    #parameter_count
+    #visit_f32
+    #visit_feature
     #differentiable
     )
     .into()
@@ -318,6 +324,148 @@ fn zero(ast: &DeriveInput) -> proc_macro2::TokenStream {
         named_struct_fn,
         named_enum_fn,
         unnamed_fn,
+    )
+}
+
+#[proc_macro_derive(OIDEParameterCount)]
+pub fn derive_parameter_count(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+
+    parameter_count(&ast).into()
+}
+fn parameter_count(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    let implementor = &ast.ident;
+
+    let contents = match &ast.data {
+        Data::Struct(s) => match &s.fields {
+            syn::Fields::Named(named) => {
+                let fields: Vec<_> = named.named.iter().flat_map(|f| &f.ident).collect();
+
+                quote!(
+                    #(OIDEParameterCount::parameter_count(&self.#fields))+*
+                )
+            }
+            syn::Fields::Unnamed(unnamed) => {
+                let fields: Vec<_> = (0..unnamed.unnamed.len()).map(syn::Index::from).collect();
+
+                quote!(
+                    #(OIDEParameterCount::parameter_count(&self.#fields))+*
+                )
+            }
+            syn::Fields::Unit => quote!(0),
+        },
+        Data::Enum(_e) => {
+            quote!()
+        }
+        Data::Union(_u) => {
+            quote!()
+        }
+    };
+
+    quote!(
+        impl OIDEParameterCount for #implementor {
+            fn parameter_count(&self) -> usize {
+                #contents
+            }
+        }
+    )
+}
+
+#[proc_macro_derive(VisitF32)]
+pub fn derive_visit_f32(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+
+    visit_f32(&ast).into()
+}
+fn visit_f32(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    let implementor = &ast.ident;
+
+    let contents = match &ast.data {
+        Data::Struct(s) => match &s.fields {
+            syn::Fields::Named(named) => {
+                let fields: Vec<_> = named.named.iter().flat_map(|f| &f.ident).collect();
+
+                quote!(
+                    #(self.#fields.visit_with(visitor)?;)*
+                )
+            }
+            syn::Fields::Unnamed(unnamed) => {
+                let fields: Vec<_> = (0..unnamed.unnamed.len()).map(syn::Index::from).collect();
+
+                quote!(
+                    #(self.#fields.visit_with(visitor)?;);*
+                )
+            }
+            syn::Fields::Unit => quote!(),
+        },
+        Data::Enum(_e) => {
+            quote!()
+        }
+        Data::Union(_u) => {
+            quote!()
+        }
+    };
+
+    quote!(
+        impl Visit<f32> for #implementor {
+            fn visit_with<V: Visitor<f32>>(&self, visitor: &mut V) -> Result<(), V::Error> {
+                #contents
+                Ok(())
+            }
+        }
+    )
+}
+
+#[proc_macro_derive(VisitFeature)]
+pub fn derive_visit_feature(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+
+    visit_feature(&ast).into()
+}
+fn visit_feature(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    let implementor = &ast.ident;
+
+    let contents = match &ast.data {
+        Data::Struct(s) => match &s.fields {
+            syn::Fields::Named(named) => {
+                let fields: Vec<_> = named.named.iter().flat_map(|f| &f.ident).collect();
+
+                quote!(
+                    #(
+                        visitor.handle(FeatureTraversal::Push(stringify!(#fields).to_string()))?;
+                        self.#fields.visit_with(visitor)?;
+                        visitor.handle(FeatureTraversal::Pop)?;
+                    )*
+                )
+            }
+            syn::Fields::Unnamed(unnamed) => {
+                let fields: Vec<_> = (0..unnamed.unnamed.len()).map(syn::Index::from).collect();
+
+                quote!(
+                    #(
+                        visitor.handle(FeatureTraversal::Push(stringify!(#fields).to_string()))?;
+                        self.#fields.visit_with(visitor)?;
+                        visitor.handle(FeatureTraversal::Pop)?;
+                    )*
+                )
+            }
+            syn::Fields::Unit => quote!(),
+        },
+        Data::Enum(_e) => {
+            quote!()
+        }
+        Data::Union(_u) => {
+            quote!()
+        }
+    };
+
+    quote!(
+        impl Visit<FeatureTraversal> for #implementor {
+            fn visit_with<V: Visitor<FeatureTraversal>>(&self, visitor: &mut V) -> Result<(), V::Error> {
+                #contents
+                Ok(())
+            }
+        }
     )
 }
 

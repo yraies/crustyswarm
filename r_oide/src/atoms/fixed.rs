@@ -53,6 +53,24 @@ impl<T: Clone> OIDEZero for Fixed<T> {
         self.clone()
     }
 }
+impl<T: Clone> OIDEParameterCount for Fixed<T> {
+    fn parameter_count(&self) -> usize {
+        0
+    }
+}
+impl<T: Clone> Visit<f32> for Fixed<T> {
+    fn visit_with<V: Visitor<f32>>(&self, _f: &mut V) -> Result<(), V::Error> {
+        Ok(())
+    }
+}
+impl<T: Clone> Visit<FeatureTraversal> for Fixed<T> {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, _f: &mut V) -> Result<(), V::Error> {
+        Ok(())
+    }
+}
+impl<T: Clone> std::hash::Hash for Fixed<T> {
+    fn hash<H: std::hash::Hasher>(&self, _state: &mut H) {}
+}
 impl<T: Differentiable> Differentiable for Fixed<T> {}
 
 //

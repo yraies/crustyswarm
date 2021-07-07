@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use cgmath::Vector3;
+use rand::prelude::IteratorRandom;
 use serde::{Deserialize, Serialize};
 
 use super::super::genome::{
@@ -10,7 +11,25 @@ use super::super::genome::{
 use derive_diff::*;
 use r_oide::prelude::*;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, AllOIDETraits)]
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    PartialEq,
+    OIDEAdd,
+    OIDEDiff,
+    OIDEScale,
+    OIDEOpposite,
+    OIDERandomize,
+    OIDEBoundApplication,
+    OIDEZero,
+    OIDEParameterCount,
+    VisitF32,
+    VisitFeature,
+    Differentiable,
+    Hash,
+)]
 pub struct OIDESwarmGenome {
     pub species_count: Fixed<usize>,
     pub artifact_count: Fixed<usize>,
@@ -19,12 +38,12 @@ pub struct OIDESwarmGenome {
     pub artifact_map: Vec<Fixed<usize>>,
     pub start_dist: Fixed<Distribution>,
     pub strategy: Fixed<ApplicationStrategy>,
-    pub terrain_influences: (BoundedFactorVec, BoundedFactorVec),
+    pub terrain_influences: (Fixed<BoundedFactorVec>, Fixed<BoundedFactorVec>),
     pub terrain_size: Fixed<usize>,
     pub terrain_spacing: Fixed<f32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, AllOIDETraits)]
+#[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, AllOIDETraits)]
 pub struct OIDESpecies {
     pub index: Fixed<usize>,
     pub separation: BoundedFactor,
@@ -53,7 +72,7 @@ pub struct OIDESpecies {
     pub color_index: Fixed<usize>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, AllOIDETraits)]
+#[derive(Debug, Serialize, Deserialize, Clone, Hash, Default, PartialEq, AllOIDETraits)]
 pub struct OIDEEnergy {
     pub on_movement: (BoundedFactor, BoundedFactor),
     pub on_zero: (BoundedFactor, BoundedFactor, IndexMultiset),
@@ -61,7 +80,7 @@ pub struct OIDEEnergy {
     pub for_offspring: (BoundedFactor, BoundedFactor, BoundedFactor),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, AllOIDETraits)]
+#[derive(Debug, Serialize, Deserialize, Clone, Hash, Default, PartialEq, AllOIDETraits)]
 pub struct OIDERuleSet {
     pub rules: Vec<OIDEContextRule>,
     pub upper_weight_bound: Fixed<f32>,
@@ -73,9 +92,9 @@ pub struct OIDERuleSet {
     Serialize,
     Deserialize,
     Clone,
+    Hash,
     Default,
     PartialEq,
-    Differentiable,
     OIDEAdd,
     OIDEDiff,
     OIDEScale,
@@ -83,6 +102,10 @@ pub struct OIDERuleSet {
     OIDECrossover,
     OIDEBoundApplication,
     OIDEZero,
+    OIDEParameterCount,
+    VisitF32,
+    VisitFeature,
+    Differentiable,
 )]
 pub struct OIDEContextRule {
     pub context: IndexMultiset,
@@ -90,6 +113,41 @@ pub struct OIDEContextRule {
     pub weight: BoundedFactor,
     pub persist: FloatyBool,
     pub replacement: IndexMultiset,
+}
+
+impl OIDECrossover for OIDESwarmGenome {
+    fn crossover(&self, other: &Self, rng: &mut impl rand::Rng, rate: f64) -> Self {
+        let mut new_species_map = self.species_map.clone();
+
+        if new_species_map.len() > 1 && rng.gen_bool(rate * 0.1) {
+            self.swap_two_species(rng, &mut new_species_map);
+        }
+
+        new_species_map = self.species_map.crossover(&other.species_map, rng, rate);
+
+        OIDESwarmGenome {
+            species_count: self
+                .species_count
+                .crossover(&other.species_count, rng, rate),
+            artifact_count: self
+                .artifact_count
+                .crossover(&other.artifact_count, rng, rate),
+            rule_count: self.rule_count.crossover(&other.rule_count, rng, rate),
+            species_map: new_species_map,
+            artifact_map: self.artifact_map.crossover(&other.artifact_map, rng, rate),
+            start_dist: self.start_dist.crossover(&other.start_dist, rng, rate),
+            strategy: self.strategy.crossover(&other.strategy, rng, rate),
+            terrain_influences: self.terrain_influences.crossover(
+                &other.terrain_influences,
+                rng,
+                rate,
+            ),
+            terrain_size: self.terrain_size.crossover(&other.terrain_size, rng, rate),
+            terrain_spacing: self
+                .terrain_spacing
+                .crossover(&other.terrain_spacing, rng, rate),
+        }
+    }
 }
 
 impl OIDEOpposite for OIDEContextRule {
@@ -136,17 +194,42 @@ impl OIDESwarmGenome {
             }
             .into(),
             terrain_influences: (
-                BoundedFactorVec::new(0.0, 5.0, spec_count),
-                BoundedFactorVec::new(0.0, 5.0, art_count),
+                BoundedFactorVec::new(0.0, 5.0, spec_count).into(),
+                BoundedFactorVec::new(0.0, 5.0, art_count).into(),
             ),
             terrain_size: 40.into(),
             terrain_spacing: 6.0.into(),
         }
     }
+
+    fn swap_two_species(
+        &self,
+        rng: &mut impl rand::prelude::Rng,
+        new_species_map: &mut Vec<OIDESpecies>,
+    ) {
+        let s1 = (0..self.species_map.len()).choose(rng).unwrap();
+        let s2 = (0..self.species_map.len())
+            .filter(|i| *i != s1)
+            .choose(rng)
+            .unwrap();
+        let (i1, i2) = (
+            new_species_map[s1].index.clone(),
+            new_species_map[s2].index.clone(),
+        );
+        let (c1, c2) = (
+            new_species_map[s1].color_index.clone(),
+            new_species_map[s2].color_index.clone(),
+        );
+        new_species_map.swap(s1, s2);
+        new_species_map[s1].index = i1;
+        new_species_map[s1].color_index = c1;
+        new_species_map[s2].index = i2;
+        new_species_map[s2].color_index = c2;
+    }
 }
 
 impl OIDESpecies {
-    pub fn new_with_size(
+    pub fn new_with_size_arbitrary(
         species_count: usize,
         artifact_count: usize,
         rule_count: usize,
@@ -168,6 +251,51 @@ impl OIDESpecies {
             gradient: BoundedFactor::new_with_bounds(0.0, 1.0, 0.0),
             normal: BoundedFactor::new_with_bounds(0.0, 1.0, 0.0),
             slope: BoundedFactor::new_with_bounds(0.0, 0.5, 0.0),
+            normal_speed: BoundedFactor::new_with_bounds(0.0, 1.0, 0.5),
+            max_speed: BoundedFactor::new_with_bounds(0.0, 3.0, 1.0),
+            max_acceleration: BoundedFactor::new_with_bounds(0.0, 3.0, 1.0),
+            pacekeeping: BoundedFactor::new_with_bounds(0.0, 1.0, 0.0),
+            view_distance: BoundedFactor::new_with_bounds(0.0, 200.0, 50.0),
+            view_angle: BoundedFactor::new_with_bounds(1.0, 359.9, 270.0),
+            sep_distance: BoundedFactor::new_with_bounds(0.0, 50.0, 10.0),
+            axis_constraint: (
+                BoundedFactor::new_with_bounds(0.0, 1.0, 1.0),
+                BoundedFactor::new_with_bounds(0.0, 1.0, 1.0),
+                BoundedFactor::new_with_bounds(0.0, 1.0, 1.0),
+            ),
+            influenced_by: (
+                BoundedFactorVec::new(-1.0, 1.0, species_count),
+                BoundedFactorVec::new(-1.0, 1.0, artifact_count),
+            ),
+            noclip: false.into(),
+            energy: OIDEEnergy::new_with_size(species_count + artifact_count),
+            hand_down_seed: false.into(),
+            rules: OIDERuleSet::new_with_size(species_count + artifact_count, rule_count),
+            color_index: index.into(),
+        }
+    }
+    pub fn new_with_size(
+        species_count: usize,
+        artifact_count: usize,
+        rule_count: usize,
+        index: usize,
+    ) -> OIDESpecies {
+        OIDESpecies {
+            index: index.into(),
+            separation: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            alignment: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            cohesion: BoundedFactor::new_with_bounds(0.0, 2.0, 0.0),
+            randomness: BoundedFactor::new_with_bounds(0.0, 1.0, 0.0),
+            center: BoundedFactor::new_with_bounds(0.0, 1.0, 0.0),
+            floor: BoundedFactor::new_with_bounds(0.0, 1.0, 0.0),
+            bias: (
+                BoundedFactor::new_with_bounds(-1.0, 1.0, 0.0),
+                BoundedFactor::new_with_bounds(-1.0, 1.0, 0.0),
+                BoundedFactor::new_with_bounds(-1.0, 1.0, 0.0),
+            ),
+            gradient: BoundedFactor::new_with_bounds(0.0, 1.0, 0.0),
+            normal: BoundedFactor::new_with_bounds(0.0, 1.0, 0.0),
+            slope: BoundedFactor::new_with_bounds(0.0, 1.0, 0.0),
             normal_speed: BoundedFactor::new_with_bounds(0.0, 1.0, 0.5),
             max_speed: BoundedFactor::new_with_bounds(0.0, 3.0, 1.0),
             max_acceleration: BoundedFactor::new_with_bounds(0.0, 3.0, 1.0),
@@ -232,8 +360,8 @@ impl OIDEContextRule {
     pub fn new_with_size(index_count: usize) -> OIDEContextRule {
         OIDEContextRule {
             context: IndexMultiset::new_with_size(index_count),
-            range: BoundedFactor::new_with_bounds(0.0, 50.0, 0.0),
-            weight: BoundedFactor::new_with_bounds(0.0, 100.0, 0.0),
+            range: BoundedFactor::new_with_bounds(0.0, 50.0, 0.0), // TODO: change to 0.01
+            weight: BoundedFactor::new_with_bounds(0.0, 100.0, 0.0), // TODO: change to 0.01
             persist: true.into(),
             replacement: IndexMultiset::new_with_size(index_count),
         }

@@ -8,32 +8,32 @@
       "separation": {
         "base": 0.0,
         "range": 2.0,
-        "offset": 0.9
+        "offset": 0.26000002
       },
       "alignment": {
         "base": 0.0,
         "range": 2.0,
-        "offset": 1.0
+        "offset": 0.028
       },
       "cohesion": {
         "base": 0.0,
         "range": 2.0,
-        "offset": 0.0
+        "offset": 0.17000002
       },
       "randomness": {
         "base": 0.0,
-        "range": 2.0,
-        "offset": 0.1
+        "range": 1.0,
+        "offset": 0.24000001
       },
       "center": {
         "base": 0.0,
-        "range": 2.0,
-        "offset": 0.0001
+        "range": 1.0,
+        "offset": 0.040000003
       },
       "floor": {
         "base": 0.0,
-        "range": 2.0,
-        "offset": 0.0
+        "range": 1.0,
+        "offset": 0.028
       },
       "bias": [
         {
@@ -44,7 +44,7 @@
         {
           "base": -1.0,
           "range": 2.0,
-          "offset": 1.02
+          "offset": 1.1600001
         },
         {
           "base": -1.0,
@@ -54,69 +54,69 @@
       ],
       "gradient": {
         "base": 0.0,
-        "range": 2.0,
+        "range": 1.0,
         "offset": 0.0
       },
       "normal": {
         "base": 0.0,
-        "range": 2.0,
-        "offset": 0.1
+        "range": 1.0,
+        "offset": 0.8
       },
       "slope": {
         "base": 0.0,
-        "range": 2.0,
-        "offset": 0.0
+        "range": 1.0,
+        "offset": 0.2
       },
       "normal_speed": {
         "base": 0.0,
-        "range": 2.0,
-        "offset": 0.4
+        "range": 1.0,
+        "offset": 0.8
       },
       "max_speed": {
         "base": 0.0,
-        "range": 2.0,
-        "offset": 0.6
+        "range": 3.0,
+        "offset": 1.26
       },
       "max_acceleration": {
         "base": 0.0,
-        "range": 2.0,
-        "offset": 0.2
+        "range": 3.0,
+        "offset": 0.56
       },
       "pacekeeping": {
         "base": 0.0,
-        "range": 2.0,
-        "offset": 0.1
+        "range": 1.0,
+        "offset": 0.10000001
       },
       "view_distance": {
         "base": 0.0,
         "range": 200.0,
-        "offset": 20.0
+        "offset": 46.0
       },
       "view_angle": {
         "base": 1.0,
         "range": 358.9,
-        "offset": 169.0
+        "offset": 303.0
       },
       "sep_distance": {
         "base": 0.0,
         "range": 50.0,
-        "offset": 10.0
+        "offset": 26.0
       },
       "axis_constraint": [
         {
           "base": 0.0,
-          "range": 2.0,
-          "offset": 0.9
-        },
-        {
-          "base": 0.0,
-          "range": 2.0,
+          "range": 1.0,
           "offset": 1.0
         },
         {
           "base": 0.0,
-          "range": 2.0,
-          "offset": 0.9
+          "range": 1.0,
+          "offset": 1.0
+        },
+        {
+          "base": 0.0,
+          "range": 1.0,
+          "offset": 1.0
         }
       ],
       "influenced_by": [
@@ -138,138 +138,142 @@
               "active": 1.0,
               "value": {
                 "base": 0.0,
-                "range": 0.1,
-                "offset": 0.1
+                "range": 0.2,
+                "offset": 0.16000001
               }
             },
             {
               "active": 1.0,
               "value": {
                 "base": 0.0,
-                "range": 0.1,
+                "range": 0.2,
                 "offset": 0.0
               }
             }
           ]
         }
       ],
-      "noclip": false,
+      "noclip": 0.0,
       "energy": {
-        "on_movement": {
-          "base": 0.0,
-          "range": 10.0,
-          "offset": 0.2
-        },
+        "on_movement": [
+          {
+            "base": 0.0,
+            "range": 2.9999995,
+            "offset": 0.0
+          },
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "offset": 0.124
+          }
+        ],
         "on_zero": [
+          {
+            "base": 0.0,
+            "range": 2.9999995,
+            "offset": 0.3
+          },
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "offset": 2.0
+          },
+          [
+            0.0,
+            0.3,
+            0.0
+          ]
+        ],
+        "on_replication": [
+          {
+            "base": 0.0,
+            "range": 4.9999995,
+            "offset": 0.0
+          },
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "offset": 0.0
+          }
+        ],
+        "for_offspring": [
+          {
+            "base": 0.0,
+            "range": 3.9999995,
+            "offset": 1.0
+          },
           {
             "base": 0.0,
             "range": 10.0,
             "offset": 10.0
           },
           {
-            "vec": [
-              {
-                "active": 1.0,
-                "value": 1
-              }
-            ],
-            "upper_bound": 2
+            "base": 0.0,
+            "range": 10.0,
+            "offset": 0.0
           }
-        ],
-        "on_replication": {
-          "base": 0.0,
-          "range": 10.0,
-          "offset": 0.0
-        },
-        "for_offspring": {
-          "base": 0.0,
-          "range": 10.0,
-          "offset": 0.85
-        }
+        ]
       },
-      "hand_down_seed": 0.0,
+      "hand_down_seed": 0.800000011920929,
       "rules": {
         "rules": [
           {
-            "context": {
-              "vec": [],
-              "upper_bound": 2
-            },
+            "context": [
+              0.0,
+              0.0,
+              0.0
+            ],
             "range": {
               "base": 0.0,
               "range": 50.0,
-              "offset": 5.0
+              "offset": 1.0
             },
             "weight": {
               "base": 0.0,
               "range": 100.0,
-              "offset": 6.0
+              "offset": 3.4
             },
             "persist": 1.0,
-            "replacement": {
-              "vec": [
-                {
-                  "active": 1.0,
-                  "value": 1
-                },
-                {
-                  "active": 0.0,
-                  "value": 0
-                }
-              ],
-              "upper_bound": 2
-            }
+            "replacement": [
+              0.0,
+              1.2,
+              0.0
+            ]
           },
           {
-            "context": {
-              "vec": [],
-              "upper_bound": 2
-            },
+            "context": [
+              0.0,
+              0.0,
+              0.0
+            ],
             "range": {
               "base": 0.0,
               "range": 50.0,
-              "offset": 5.0
+              "offset": 1.0
             },
             "weight": {
               "base": 0.0,
               "range": 100.0,
-              "offset": 3.0
+              "offset": 1.0
             },
-            "persist": 1.0,
-            "replacement": {
-              "vec": [
-                {
-                  "active": 1.0,
-                  "value": 0
-                },
-                {
-                  "active": 1.0,
-                  "value": 1
-                }
-              ],
-              "upper_bound": 2
-            }
+            "persist": 0.20000000298023224,
+            "replacement": [
+              2.3,
+              1.2,
+              0.0
+            ]
           }
         ],
-        "upper_weight_bound": 6.0,
-        "upper_range_bound": 5.0
+        "upper_weight_bound": 3.0,
+        "upper_range_bound": 1.0
       },
-      "color_index": 2
+      "color_index": 1
     }
   ],
-  "artifact_map": {
-    "vec": [
-      {
-        "active": 1.0,
-        "value": 1
-      },
-      {
-        "active": 1.0,
-        "value": 0
-      }
-    ],
-    "upper_bound": 14
-  },
+  "artifact_map": [
+    2,
+    5
+  ],
   "start_dist": {
     "Multi": [
       {
@@ -281,12 +285,62 @@
           },
           "g0"
         ]
+      },
+      {
+        "Single": [
+          {
+            "x": 40.0,
+            "y": 10.0,
+            "z": 40.0
+          },
+          "r1"
+        ]
+      },
+      {
+        "Single": [
+          {
+            "x": -40.0,
+            "y": 10.0,
+            "z": 40.0
+          },
+          "r1"
+        ]
+      },
+      {
+        "Single": [
+          {
+            "x": -40.0,
+            "y": 10.0,
+            "z": -40.0
+          },
+          "r1"
+        ]
+      },
+      {
+        "Single": [
+          {
+            "x": 40.0,
+            "y": 10.0,
+            "z": -40.0
+          },
+          "r1"
+        ]
+      },
+      {
+        "Single": [
+          {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "r1"
+        ]
       }
     ]
   },
   "strategy": {
-    "every": 3,
-    "offset": 3
+    "every": 2,
+    "offset": 1
   },
   "terrain_influences": [
     {
@@ -307,7 +361,7 @@
           "active": 1.0,
           "value": {
             "base": 0.0,
-            "range": 3.0,
+            "range": 2.9,
             "offset": 0.0
           }
         },
@@ -315,13 +369,13 @@
           "active": 1.0,
           "value": {
             "base": 0.0,
-            "range": 3.0,
-            "offset": 3.0
+            "range": 2.9,
+            "offset": 2.9
           }
         }
       ]
     }
   ],
-  "terrain_size": 31,
-  "terrain_spacing": 5.0
+  "terrain_size": 25,
+  "terrain_spacing": 10.0
 }

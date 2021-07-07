@@ -143,6 +143,26 @@ impl OIDEZero for BoundedInt {
         BoundedInt { offset: 0, ..*self }
     }
 }
+impl OIDEParameterCount for BoundedInt {
+    fn parameter_count(&self) -> usize {
+        1
+    }
+}
+impl Visit<f32> for BoundedInt {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(self.offset as f32)
+    }
+}
+impl Visit<FeatureTraversal> for BoundedInt {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(FeatureTraversal::Collect("idx".to_string()))
+    }
+}
+impl std::hash::Hash for BoundedInt {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.get_offset().hash(state)
+    }
+}
 impl Differentiable for BoundedInt {}
 
 #[cfg(test)]

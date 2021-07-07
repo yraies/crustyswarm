@@ -1,0 +1,381 @@
+{
+  "species_count": 1,
+  "artifact_count": 2,
+  "rule_count": 2,
+  "species_map": [
+    {
+      "index": 0,
+      "separation": {
+        "base": 0.0,
+        "range": 2.0,
+        "offset": 0.39999998
+      },
+      "alignment": {
+        "base": 0.0,
+        "range": 2.0,
+        "offset": 0.08
+      },
+      "cohesion": {
+        "base": 0.0,
+        "range": 2.0,
+        "offset": 0.04
+      },
+      "randomness": {
+        "base": 0.0,
+        "range": 1.0,
+        "offset": 0.64
+      },
+      "center": {
+        "base": 0.0,
+        "range": 1.0,
+        "offset": 0.0
+      },
+      "floor": {
+        "base": 0.0,
+        "range": 1.0,
+        "offset": 0.08
+      },
+      "bias": [
+        {
+          "base": -1.0,
+          "range": 2.0,
+          "offset": 0.79999995
+        },
+        {
+          "base": -1.0,
+          "range": 2.0,
+          "offset": 0.79999995
+        },
+        {
+          "base": -1.0,
+          "range": 2.0,
+          "offset": 0.79999995
+        }
+      ],
+      "gradient": {
+        "base": 0.0,
+        "range": 1.0,
+        "offset": 0.0
+      },
+      "normal": {
+        "base": 0.0,
+        "range": 1.0,
+        "offset": 0.0
+      },
+      "slope": {
+        "base": 0.0,
+        "range": 1.0,
+        "offset": 0.79999995
+      },
+      "normal_speed": {
+        "base": 0.0,
+        "range": 1.0,
+        "offset": 0.53333336
+      },
+      "max_speed": {
+        "base": 0.0,
+        "range": 3.0,
+        "offset": 1.1999999
+      },
+      "max_acceleration": {
+        "base": 0.0,
+        "range": 3.0,
+        "offset": 0.32
+      },
+      "pacekeeping": {
+        "base": 0.0,
+        "range": 1.0,
+        "offset": 0.08
+      },
+      "view_distance": {
+        "base": 0.0,
+        "range": 200.0,
+        "offset": 24.0
+      },
+      "view_angle": {
+        "base": 1.0,
+        "range": 358.9,
+        "offset": 95.2
+      },
+      "sep_distance": {
+        "base": 0.0,
+        "range": 50.0,
+        "offset": 8.0
+      },
+      "axis_constraint": [
+        {
+          "base": 0.0,
+          "range": 1.0,
+          "offset": 0.79999995
+        },
+        {
+          "base": 0.0,
+          "range": 1.0,
+          "offset": 0.79999995
+        },
+        {
+          "base": 0.0,
+          "range": 1.0,
+          "offset": 0.79999995
+        }
+      ],
+      "influenced_by": [
+        {
+          "vec": [
+            {
+              "active": 0.8999999761581421,
+              "value": {
+                "base": 1.0,
+                "range": 0.0,
+                "offset": 0.0
+              }
+            }
+          ]
+        },
+        {
+          "vec": [
+            {
+              "active": 0.8999999761581421,
+              "value": {
+                "base": 0.0,
+                "range": 0.0,
+                "offset": 0.0
+              }
+            },
+            {
+              "active": 0.8999999761581421,
+              "value": {
+                "base": 0.0,
+                "range": 0.0,
+                "offset": 0.0
+              }
+            }
+          ]
+        }
+      ],
+      "noclip": 0.10000000149011612,
+      "energy": {
+        "on_movement": [
+          {
+            "base": 0.0,
+            "range": 2.9999995,
+            "offset": 0.0
+          },
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "offset": 0.08
+          }
+        ],
+        "on_zero": [
+          {
+            "base": 0.0,
+            "range": 2.9999995,
+            "offset": 1.1999999
+          },
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "offset": 8.0
+          },
+          [
+            0.0,
+            1.1999999,
+            0.0
+          ]
+        ],
+        "on_replication": [
+          {
+            "base": 0.0,
+            "range": 4.9999995,
+            "offset": 0.0
+          },
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "offset": 0.0
+          }
+        ],
+        "for_offspring": [
+          {
+            "base": 0.0,
+            "range": 3.9999995,
+            "offset": 0.79999995
+          },
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "offset": 8.0
+          },
+          {
+            "base": 0.0,
+            "range": 10.0,
+            "offset": 0.0
+          }
+        ]
+      },
+      "hand_down_seed": 0.10000000149011612,
+      "rules": {
+        "rules": [
+          {
+            "context": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "range": {
+              "base": 0.0,
+              "range": 50.0,
+              "offset": 0.79999995
+            },
+            "weight": {
+              "base": 0.0,
+              "range": 100.0,
+              "offset": 4.0
+            },
+            "persist": 0.8999999761581421,
+            "replacement": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "context": [
+              0.15,
+              0.0,
+              0.0
+            ],
+            "range": {
+              "base": 0.0,
+              "range": 50.0,
+              "offset": 0.79999995
+            },
+            "weight": {
+              "base": 0.0,
+              "range": 100.0,
+              "offset": 0.79999995
+            },
+            "persist": 0.8999999761581421,
+            "replacement": [
+              1.3499999,
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "upper_weight_bound": 5.0,
+        "upper_range_bound": 1.0
+      },
+      "color_index": 1
+    }
+  ],
+  "artifact_map": [
+    2,
+    5
+  ],
+  "start_dist": {
+    "Multi": [
+      {
+        "Single": [
+          {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "g0"
+        ]
+      },
+      {
+        "Single": [
+          {
+            "x": 40.0,
+            "y": 10.0,
+            "z": 40.0
+          },
+          "r1"
+        ]
+      },
+      {
+        "Single": [
+          {
+            "x": -40.0,
+            "y": 10.0,
+            "z": 40.0
+          },
+          "r1"
+        ]
+      },
+      {
+        "Single": [
+          {
+            "x": -40.0,
+            "y": 10.0,
+            "z": -40.0
+          },
+          "r1"
+        ]
+      },
+      {
+        "Single": [
+          {
+            "x": 40.0,
+            "y": 10.0,
+            "z": -40.0
+          },
+          "r1"
+        ]
+      },
+      {
+        "Single": [
+          {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "r1"
+        ]
+      }
+    ]
+  },
+  "strategy": {
+    "every": 2,
+    "offset": 1
+  },
+  "terrain_influences": [
+    {
+      "vec": [
+        {
+          "active": 1.0,
+          "value": {
+            "base": 0.0,
+            "range": 0.0,
+            "offset": 0.0
+          }
+        }
+      ]
+    },
+    {
+      "vec": [
+        {
+          "active": 1.0,
+          "value": {
+            "base": 0.0,
+            "range": 2.9,
+            "offset": 0.0
+          }
+        },
+        {
+          "active": 1.0,
+          "value": {
+            "base": 0.0,
+            "range": 2.9,
+            "offset": 2.9
+          }
+        }
+      ]
+    }
+  ],
+  "terrain_size": 25,
+  "terrain_spacing": 10.0
+}

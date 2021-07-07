@@ -19,6 +19,7 @@ pub struct OIDESwarmEvalInfo {
     pub pop_size: usize,
     pub pop_id: usize,
     pub trial_type: TrialType,
+    pub parents: (u64, u64),
 }
 
 impl Evaluatable<SwarmGrammar> for genome::OIDESwarmGenome {
@@ -52,6 +53,7 @@ impl Evaluatable<SwarmGrammar> for genome::OIDESwarmGenome {
                 pop_size: general_params.pop_size,
                 pop_id: general_params.pop_id,
                 trial_type: general_params.trial_type,
+                parents: general_params.parents,
             },
         )
     }

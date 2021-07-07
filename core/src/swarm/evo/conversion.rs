@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use cgmath::Vector3;
 
 use r_oide::atoms::BoundedFactor;
+use r_oide::prelude::BoundedFactorVec;
 
 use super::genome::*;
 use super::{
@@ -79,7 +80,7 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
                             oide_species.energy.for_offspring.1.get_value(),
                         ),
                         1 => OffspringEnergy::Inherit(
-                            oide_species.energy.for_offspring.1.get_value(),
+                            oide_species.energy.for_offspring.1.get_value() / 10.0,
                         ),
                         2 => OffspringEnergy::PropRel(
                             oide_species.energy.for_offspring.1.get_value(),
@@ -336,7 +337,7 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
                     for_offspring: {
                         let (v1, v2, v3): (f32, f32, f32) = match &species.energy.for_offspring {
                             OffspringEnergy::Constant(v1) => (0.0, *v1, 0.0),
-                            OffspringEnergy::Inherit(v1) => (1.0, *v1, 0.0),
+                            OffspringEnergy::Inherit(v1) => (1.0, *v1 * 10.0, 0.0),
                             OffspringEnergy::PropRel(v1) => (2.0, *v1, 0.0),
                             OffspringEnergy::PropConst(v1, v2) => (3.0, *v1, *v2),
                         };
@@ -442,13 +443,15 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
             .0
             .iter()
             .map(|v| (true, *v))
-            .collect();
+            .collect::<BoundedFactorVec>()
+            .into();
         let terrain_artifact_influences = genome
             .terrain_influences
             .1
             .iter()
             .map(|v| (true, *v))
-            .collect();
+            .collect::<BoundedFactorVec>()
+            .into();
 
         return OIDESwarmGenome {
             species_count: species_count.into(),

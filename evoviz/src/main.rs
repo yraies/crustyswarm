@@ -2,6 +2,7 @@ use crustswarm::swarm::evo::{OIDESwarmEvalInfo, OIDESwarmParams};
 use crustswarm::swarm::genome::SwarmGenome;
 use crustswarm::swarm::{evo::genome::OIDESwarmGenome, grammar::SwarmGrammar, world::World};
 use crustswarm_lib as crustswarm;
+use r_oide::prelude::OIDERandomize;
 
 use std::io::Write;
 use std::ops::Add;
@@ -173,7 +174,7 @@ fn main() {
 
     use r_oide::traits::*;
 
-    let (mut population, oidegenome) = if matches.is_present("template") {
+    let (mut population, _oidegenome) = if matches.is_present("template") {
         let configfile = matches.value_of("template").unwrap();
         println!("Using template: {}", &configfile);
         let mut oidegenome = crustswarm::io::oide_genome_from_file(configfile);
@@ -224,21 +225,8 @@ fn main() {
         let mut population = vec![];
 
         while population.len() < population_size {
-            let genome = base.random(&mut rnd);
-
-            let mut grammar = SwarmGrammar::from(SwarmGenome::from(&genome), &mut rnd);
-
-            let mut loc_rnd = rand::rngs::StdRng::seed_from_u64(seed);
-            for _ in 0..10 {
-                grammar.step(&mut loc_rnd);
-            }
-
-            if grammar.get_world().get_all_agents().count()
-                + grammar.get_world().get_all_artifacts().count()
-                > 0
-            {
+            if let Some(genome) = try_get_improved_random(&base, &mut rnd, seed) {
                 population.push(genome);
-                println!("Added not-so-random genome to population");
             }
         }
 
@@ -275,7 +263,7 @@ fn main() {
     let camera_z = matches
         .value_of("camera-z")
         .map_or(70.0, |h| h.parse().unwrap());
-    let mut camera_target = Vector3::new(
+    let camera_target = Vector3::new(
         0.0,
         matches
             .value_of("camera-target")
@@ -284,9 +272,30 @@ fn main() {
     );
 
     let generation = RefCell::new(1usize);
+    let next_pop_count = RefCell::new(0usize);
 
     let save_path = matches.value_of("save");
     save_path.map(|path| std::fs::create_dir(&path).unwrap());
+
+    if let Some(path) = save_path {
+        population.iter().enumerate().for_each(|(idx, oide)| {
+            match crustswarm_lib::io::oide_genome_to_file(
+                &oide,
+                format!(
+                    "{}/gen{:02}_{:02}_h{:020}_random.oide.json",
+                    path,
+                    generation.borrow(),
+                    idx,
+                    oide.my_hash()
+                ),
+            ) {
+                Some(e) => {
+                    panic!("{}", e)
+                }
+                None => {}
+            }
+        });
+    }
 
     let mut selectfoo = |inp: &[(OIDESwarmGenome, SwarmGrammar, OIDESwarmEvalInfo)]| {
         let mut activations = vec![false; inp.len()];
@@ -379,6 +388,17 @@ fn main() {
                     cube_size_exp += rl.get_mouse_wheel_move();
                 }
 
+                if rl.is_key_released(KeyboardKey::KEY_L) {
+                    if rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT)
+                        || rl.is_key_down(KeyboardKey::KEY_RIGHT_SHIFT)
+                    {
+                        dbg!(&sg.world.get_all_agents().collect::<Vec<_>>());
+                        dbg!(&sg.world.get_all_artifacts().collect::<Vec<_>>());
+                    } else {
+                        dbg!(&sg.genome.species_map[0]);
+                    }
+                }
+
                 if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
                     activations[curr_sel] = !activations[curr_sel];
                 }
@@ -416,10 +436,6 @@ fn main() {
                     && rl.is_key_down(KeyboardKey::KEY_LEFT_CONTROL)
                 {
                     panic!("This was the easiest way to kill this application ...");
-                }
-
-                if rl.is_key_pressed(KeyboardKey::KEY_L) {
-                    camera_target = camera.target;
                 }
 
                 if rl.is_key_pressed(KeyboardKey::KEY_O) {
@@ -679,7 +695,7 @@ fn main() {
                 if false {
                     // !matches.is_present("no-ui") {
                     let stat_info = format!(
-                        "FPS: {:2}\n{}\nAgents: {:4}\nArts:   {:4}\nBuoys:  {:4}",
+                        "FPS: {:02}\n{}\nAgents: {:4}\nArts:   {:4}\nBuoys:  {:4}",
                         d.get_fps(),
                         render_stats.to_string("Render", 6, false),
                         sg.world.get_agent_count(),
@@ -717,11 +733,11 @@ fn main() {
         save_path.map(|path| {
             inp.iter()
                 .zip(&activations)
-                .for_each(|((_, grammar, info), active)| {
+                .for_each(|((oide, grammar, info), active)| {
                     match crustswarm::io::grammar_to_file(
                         grammar,
                         &format!(
-                            "{}/gen{}_base{}_{}{}.grammar.json",
+                            "{}/gen{:02}_base{:02}_{:02}{}.grammar.json",
                             path,
                             generation.borrow(),
                             info.pop_id,
@@ -733,6 +749,25 @@ fn main() {
                             panic!("{}", e)
                         }
                         None => {}
+                    }
+                    if *active {
+                        match crustswarm::io::oide_genome_to_file(
+                            oide,
+                            format!(
+                                "{}/gen{:02}_{:02}_h{:020}_p1-{:020}_p2-{:020}_chosen.oide.json",
+                                path,
+                                generation.borrow(),
+                                next_pop_count.replace_with(|&mut v| v + 1),
+                                oide.my_hash(),
+                                info.parents.0,
+                                info.parents.1,
+                            ),
+                        ) {
+                            Some(e) => {
+                                panic!("{}", e)
+                            }
+                            None => {}
+                        };
                     }
                 })
         });
@@ -775,29 +810,61 @@ fn main() {
             0.5,
         );
         generation.replace_with(|&mut v| v + 1);
-        save_path.map(|path| {
-            population.iter().enumerate().for_each(|(idx, individuum)| {
-                match crustswarm_lib::io::oide_genome_to_file(
-                    individuum,
-                    format!("{}/gen{}_{}.oide.json", path, generation.borrow(), idx),
-                ) {
-                    Some(e) => {
-                        panic!("{}", e)
-                    }
-                    None => {}
-                }
-            })
-        });
+        next_pop_count.replace_with(|_| 0);
         if population.len() > 3 {
-            let mut max_add = (population_size_target as f32 / 2f32) as u32;
-            while population.len() <= population_size_target && max_add > 0 {
-                population.push(oidegenome.random(&mut rnd));
-                max_add -= 1;
+            let mut max_add = (population_size_target as f32 / 4f32) as u32;
+            while population.len() < population_size_target && max_add > 0 {
+                if let Some(genome) = try_get_improved_random(&population[0], &mut rnd, seed) {
+                    if let Some(path) = save_path {
+                        match crustswarm_lib::io::oide_genome_to_file(
+                            &genome,
+                            format!(
+                                "{}/gen{:02}_{:02}_h{:020}_random.oide.json",
+                                path,
+                                generation.borrow(),
+                                population.len(),
+                                genome.my_hash()
+                            ),
+                        ) {
+                            Some(e) => {
+                                panic!("{}", e)
+                            }
+                            None => {}
+                        }
+                    }
+                    population.push(genome);
+                    max_add -= 1;
+                }
             }
         }
     }
 
     //dbg!(&sg);
+}
+
+fn try_get_improved_random(
+    base: &OIDESwarmGenome,
+    rnd: &mut StdRng,
+    seed: u64,
+) -> Option<OIDESwarmGenome> {
+    let genome = base.random(rnd);
+    let mut grammar = SwarmGrammar::from(SwarmGenome::from(&genome), rnd);
+    let mut loc_rnd = rand::rngs::StdRng::seed_from_u64(seed);
+    for _ in 0..10 {
+        grammar.step(&mut loc_rnd);
+    }
+    if grammar.get_world().get_all_agents().count()
+        + grammar.get_world().get_all_artifacts().count()
+        > 0
+        && grammar.genome.species_map[0]
+            .rules
+            .iter()
+            .any(|r| r.replacement.count_replacements() >= 1)
+    {
+        Some(genome)
+    } else {
+        None
+    }
 }
 
 fn get_color(index: usize) -> Color {

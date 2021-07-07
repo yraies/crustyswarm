@@ -140,6 +140,26 @@ impl OIDEZero for BoundedFactor {
         }
     }
 }
+impl OIDEParameterCount for BoundedFactor {
+    fn parameter_count(&self) -> usize {
+        1
+    }
+}
+impl Visit<f32> for BoundedFactor {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(self.get_value())
+    }
+}
+impl Visit<FeatureTraversal> for BoundedFactor {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(FeatureTraversal::Collect("factor".to_string()))
+    }
+}
+impl std::hash::Hash for BoundedFactor {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.get_offset().to_string().hash(state)
+    }
+}
 impl Differentiable for BoundedFactor {}
 
 #[cfg(test)]

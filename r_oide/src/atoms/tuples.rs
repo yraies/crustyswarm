@@ -51,6 +51,28 @@ impl<T: OIDEZero, U: OIDEZero> OIDEZero for (T, U) {
         (self.0.zero(), self.1.zero())
     }
 }
+impl<T: OIDEParameterCount, U: OIDEParameterCount> OIDEParameterCount for (T, U) {
+    fn parameter_count(&self) -> usize {
+        self.0.parameter_count() + self.1.parameter_count()
+    }
+}
+impl<T: Visit<f32>, U: Visit<f32>> Visit<f32> for (T, U) {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        self.0.visit_with(f)?;
+        self.1.visit_with(f)
+    }
+}
+impl<T: Visit<FeatureTraversal>, U: Visit<FeatureTraversal>> Visit<FeatureTraversal> for (T, U) {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(FeatureTraversal::Push("0".to_string()))?;
+        self.0.visit_with(f)?;
+        f.handle(FeatureTraversal::Pop)?;
+        f.handle(FeatureTraversal::Push("1".to_string()))?;
+        self.1.visit_with(f)?;
+        f.handle(FeatureTraversal::Pop)?;
+        Ok(())
+    }
+}
 impl<T: Differentiable, U: Differentiable> Differentiable for (T, U) {}
 
 //
@@ -121,6 +143,36 @@ impl<T: OIDEBoundApplication, U: OIDEBoundApplication, V: OIDEBoundApplication> 
 impl<T: OIDEZero, U: OIDEZero, V: OIDEZero> OIDEZero for (T, U, V) {
     fn zero(&self) -> Self {
         (self.0.zero(), self.1.zero(), self.2.zero())
+    }
+}
+impl<T: OIDEParameterCount, U: OIDEParameterCount, V: OIDEParameterCount> OIDEParameterCount
+    for (T, U, V)
+{
+    fn parameter_count(&self) -> usize {
+        self.0.parameter_count() + self.1.parameter_count() + self.2.parameter_count()
+    }
+}
+impl<T: Visit<f32>, U: Visit<f32>, W: Visit<f32>> Visit<f32> for (T, U, W) {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        self.0.visit_with(f)?;
+        self.1.visit_with(f)?;
+        self.2.visit_with(f)
+    }
+}
+impl<T: Visit<FeatureTraversal>, U: Visit<FeatureTraversal>, W: Visit<FeatureTraversal>>
+    Visit<FeatureTraversal> for (T, U, W)
+{
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(FeatureTraversal::Push("0".to_string()))?;
+        self.0.visit_with(f)?;
+        f.handle(FeatureTraversal::Pop)?;
+        f.handle(FeatureTraversal::Push("1".to_string()))?;
+        self.1.visit_with(f)?;
+        f.handle(FeatureTraversal::Pop)?;
+        f.handle(FeatureTraversal::Push("2".to_string()))?;
+        self.2.visit_with(f)?;
+        f.handle(FeatureTraversal::Pop)?;
+        Ok(())
     }
 }
 impl<T: Differentiable, U: Differentiable, V: Differentiable> Differentiable for (T, U, V) {}

@@ -106,9 +106,10 @@ impl OIDEBoundApplication for IndexMultiset {
 /// Returns v in [0,1]
 impl OIDERandomize for IndexMultiset {
     fn random(&self, rng: &mut impl Rng) -> Self {
+        let p = 1.0 + (1.0 / self.0.len() as f32);
         self.0
             .iter()
-            .map(|_| rng.sample(Uniform::new_inclusive(0.0, 1.0)))
+            .map(|_| rng.sample(Uniform::new_inclusive(0.0, p)))
             .collect()
     }
 }
@@ -127,6 +128,36 @@ impl OIDECrossover for IndexMultiset {
 impl OIDEZero for IndexMultiset {
     fn zero(&self) -> Self {
         self.0.iter().map(|_| 0.0).collect()
+    }
+}
+
+impl OIDEParameterCount for IndexMultiset {
+    fn parameter_count(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl Visit<f32> for IndexMultiset {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        for elem in &self.0 {
+            f.handle(elem.abs())?;
+        }
+        Ok(())
+    }
+}
+
+impl Visit<FeatureTraversal> for IndexMultiset {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        for (i, _) in self.0.iter().enumerate() {
+            f.handle(FeatureTraversal::Collect(format!("mset{:02}", i)))?;
+        }
+        Ok(())
+    }
+}
+
+impl std::hash::Hash for IndexMultiset {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.iter().for_each(|v| v.abs().to_string().hash(state))
     }
 }
 

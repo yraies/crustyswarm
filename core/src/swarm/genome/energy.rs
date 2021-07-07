@@ -129,27 +129,34 @@ impl ZeroEnergy {
 
 impl OffspringEnergy {
     pub fn get(&self, current: f32, count: usize, parent_persists: bool) -> f32 {
-        assert!(current != f32::NAN);
+        assert!(current.is_finite(), "Not finite! Was {:?}", current);
         let ret = match self {
             OffspringEnergy::Constant(value) => *value,
             OffspringEnergy::Inherit(factor) => current * factor,
             OffspringEnergy::PropRel(offset) => {
-                let newcount = if parent_persists { count + 1 } else { count };
-                if newcount > 0 {
-                    (current - offset) / newcount as f32
-                } else {
-                    0.0
-                }
-            }
-            OffspringEnergy::PropConst(offset, ammount) => {
                 if count == 0 {
                     0.0
                 } else {
-                    f32::min(*ammount, (current - offset) / count as f32)
+                    let newcount = if parent_persists { count + 1 } else { count };
+                    (current - offset) / newcount as f32
                 }
             }
-        };
-        assert_ne!(current, f32::NAN);
+            OffspringEnergy::PropConst(offset, ammount) => {
+                if count > 0 {
+                    f32::min(*ammount, (current - offset) / count as f32)
+                } else {
+                    0.0
+                }
+            }
+        }
+        .clamp(-f32::MAX, f32::MAX);
+        assert!(
+            ret.is_finite(),
+            "Not finite! Was {:?} due to {:?} and {:?}",
+            ret,
+            current,
+            self
+        );
         ret
     }
     pub fn get_param(&self) -> f32 {

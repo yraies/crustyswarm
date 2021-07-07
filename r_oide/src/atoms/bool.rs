@@ -85,6 +85,26 @@ impl OIDEZero for FloatyBool {
         FloatyBool(0.0)
     }
 }
+impl OIDEParameterCount for FloatyBool {
+    fn parameter_count(&self) -> usize {
+        1
+    }
+}
+impl Visit<f32> for FloatyBool {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(self.0 as f32)
+    }
+}
+impl Visit<FeatureTraversal> for FloatyBool {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(FeatureTraversal::Collect("fbool".to_string()))
+    }
+}
+impl std::hash::Hash for FloatyBool {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.to_string().hash(state);
+    }
+}
 impl Differentiable for FloatyBool {}
 
 //

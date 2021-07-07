@@ -13,7 +13,7 @@ GLOBIGNORE='*0000.png:*0000.jpg'
 
 for f in $(ls -1 *.grammar.json)
 do
-  /usr/local/bin/cargo run --bin viz -- --grammar "$f" --fixed-camera --screenshot-once "$screenshotdir" --no-ui
+  /usr/local/bin/cargo run --bin viz -- --grammar "$f" --fixed-camera --screenshot-once "$screenshotdir" --no-ui --square
 done
 
 mv *.png $screenshotdir

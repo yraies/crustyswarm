@@ -11,6 +11,8 @@ where
         + OIDECrossover
         + OIDEBoundApplication
         + OIDEZero
+        + OIDEParameterCount
+        + Visit<f32>
         + Clone,
 {
     fn trial_plus_from(&self, parent1: &Self, parent2: &Self, factor: f32) -> Self {
@@ -44,6 +46,21 @@ trait OIDEBoundApplication {
 }
 trait OIDEZero {
     fn zero(&self) -> Self;
+}
+trait OIDEParameterCount {
+    fn parameter_count(&self) -> usize;
+}
+trait Visitor<T> {
+    type Error;
+    fn handle(&mut self, data: T) -> Result<(), Self::Error>;
+}
+trait Visit<T> {
+    fn visit_with<V: Visitor<T>>(&self, f: &mut V) -> Result<(), V::Error>;
+}
+enum FeatureTraversal {
+    Push(String),
+    Collect(String),
+    Pop,
 }
 
 impl OIDEAdd for usize {
@@ -88,6 +105,21 @@ impl OIDEBoundApplication for usize {
 impl OIDEZero for usize {
     fn zero(&self) -> Self {
         0
+    }
+}
+impl OIDEParameterCount for usize {
+    fn parameter_count(&self) -> usize {
+        1
+    }
+}
+impl Visit<f32> for usize {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(*self as f32)
+    }
+}
+impl Visit<FeatureTraversal> for usize {
+    fn visit_with<V: Visitor<FeatureTraversal>>(&self, f: &mut V) -> Result<(), V::Error> {
+        f.handle(FeatureTraversal::Collect("usize".to_string()))
     }
 }
 impl Differentiable for usize {}
@@ -162,12 +194,23 @@ impl<T: Differentiable + Clone> OIDEZero for (T, T) {
         (self.0.zero(), self.1.zero())
     }
 }
+impl<T: Differentiable + Clone> OIDEParameterCount for (T, T) {
+    fn parameter_count(&self) -> usize {
+        self.0.parameter_count() + self.1.parameter_count()
+    }
+}
 impl<T: Differentiable> OIDEBoundApplication for (T, T) {
     fn apply_bounds(&self, other0: &Self) -> Self {
         (
             OIDEBoundApplication::apply_bounds(&self.0, &other0.0),
             OIDEBoundApplication::apply_bounds(&self.1, &other0.1),
         )
+    }
+}
+impl<T: Differentiable> Visit<f32> for (T, T) {
+    fn visit_with<V: Visitor<f32>>(&self, f: &mut V) -> Result<(), V::Error> {
+        self.0.visit_with(f)?;
+        self.1.visit_with(f)
     }
 }
 impl<T: Differentiable> Differentiable for (T, T) {}
@@ -181,6 +224,8 @@ impl<T: Differentiable> Differentiable for (T, T) {}
     OIDECrossover,
     OIDEBoundApplication,
     OIDEZero,
+    OIDEParameterCount,
+    VisitF32,
     Clone,
     Differentiable,
 )]
@@ -202,6 +247,8 @@ struct UnnamedStruct(usize, usize);
     OIDECrossover,
     OIDEBoundApplication,
     OIDEZero,
+    OIDEParameterCount,
+    VisitF32,
     Clone,
     Differentiable,
 )]

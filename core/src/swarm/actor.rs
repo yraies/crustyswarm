@@ -92,7 +92,7 @@ impl Agent {
         iteration: usize,
         uid: Uid,
     ) -> Agent {
-        assert!(energy != f32::NAN);
+        assert!(energy.is_finite(), "Not finite! Was {:?}", energy);
         Agent {
             position,
             velocity,
