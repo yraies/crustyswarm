@@ -161,8 +161,8 @@ pub mod traits {
             match self {
                 TrialType::Target => "+Target",
                 TrialType::TargetOpposite => "-Target",
-                TrialType::Trial => "+Target+Trial",
-                TrialType::TrialOpposite => "-Target+Trial",
+                TrialType::Trial => "+Trial",
+                TrialType::TrialOpposite => "-Trial",
             }
         }
     }

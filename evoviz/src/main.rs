@@ -673,7 +673,7 @@ fn main() {
                         5,
                         5,
                         &format!(
-                            "Generation {}\nSelecting {} of {}\nViewing: {}\nI={}",
+                            "Generation {}\nSet {} of {}\nViewing: {}\nI={}",
                             generation.borrow(),
                             inp[curr_sel].2.pop_id + 1,
                             inp[curr_sel].2.pop_size,

@@ -162,6 +162,11 @@ fn main() {
                 .help("Shows no terrain initially"),
         )
         .arg(
+            Arg::with_name("no-agents")
+                .long("no-agents")
+                .help("Shows no agents initially"),
+        )
+        .arg(
             Arg::with_name("no-tweenz")
                 .long("no-tweenz")
                 .help("Shows no tweenz (intermediary boxes indicating predecessors) initially"),
@@ -353,6 +358,7 @@ fn main() {
     let mut conditionals_draws = ConditionalDraw::new();
     conditionals_draws.buoys = !matches.is_present("no-buoys");
     conditionals_draws.terrain = !matches.is_present("no-terrain");
+    conditionals_draws.agents = !matches.is_present("no-agents");
     conditionals_draws.tweenz = !matches.is_present("no-tweenz");
 
     let font = rl
@@ -378,6 +384,7 @@ fn main() {
         .value_of("max-iteration")
         .map_or(std::i32::MAX, |i| i.parse::<i32>().unwrap());
     let mut made_screenshot_once = false;
+    let mut user_made_screenshot = false;
 
     while !rl.window_should_close() {
         if iteration > max_iteration || made_screenshot_once {
@@ -439,6 +446,10 @@ fn main() {
                     }
                     orbit = true;
                 }
+            }
+
+            if rl.is_key_released(KeyboardKey::KEY_F12) {
+                user_made_screenshot = true;
             }
 
             if !orbit {
@@ -717,7 +728,7 @@ fn main() {
                     ));
                 }
             }
-            if matches.is_present("screenshot-once") {
+            if matches.is_present("screenshot-once") || user_made_screenshot {
                 let path = matches.value_of("screenshot-once").unwrap_or(".");
                 rl.take_screenshot(&thread, &format!("{}/{}.png", &path, &configfile));
                 made_screenshot_once = true;
