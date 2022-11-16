@@ -154,14 +154,14 @@ impl<T: Differentiable> OIDEOpposite for (T, T) {
             OIDEOpposite::opposite(
                 &self.0,
                 match midpoint {
-                    Some(ref m) => Some(&m.0),
+                    Some(m) => Some(&m.0),
                     None => None,
                 },
             ),
             OIDEOpposite::opposite(
                 &self.1,
                 match midpoint {
-                    Some(ref m) => Some(&m.1),
+                    Some(m) => Some(&m.1),
                     None => None,
                 },
             ),
