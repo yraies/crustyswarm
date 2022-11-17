@@ -6,6 +6,7 @@ use r_oide::prelude::OIDERandomize;
 
 use std::io::Write;
 use std::ops::Add;
+use std::path::PathBuf;
 use std::string::String;
 use std::time::{Duration, SystemTime};
 use std::{cell::RefCell, fs::File};
@@ -18,178 +19,135 @@ use rand::prelude::*;
 
 use raylib::prelude::*;
 
-use clap::{App, Arg};
+use clap::{arg, command, Parser};
 
 const TERRAIN_FS_SHADER: &str = include_str!("shaders/terrain.glsl.fs");
 const TERRAIN_VS_SHADER: &str = include_str!("shaders/terrain.glsl.vs");
 
-fn main() {
-    let matches = App::new("Crustswarm Evolution Visualizer")
-        .version("1.0")
-        .author("Yasin Raies <yasin.raies@stud-mail.uni-wuerzburg.de>")
-        .about("Visualizes a multi species swarm agent simulation.\nPress SPACE to transfer an individuum to the next iteration.\nPress 1 2 and 3 to show the three available variations of a given parent/target indiviuum.")
-        .arg(
-            Arg::with_name("framerate")
-                .long("fps")
-                .value_name("FPS")
-                .help("Sets the wanted framerate")
-                .default_value("30")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("seed")
-                .short("s")
-                .long("seed")
-                .value_name("SEED")
-                .help("Sets a seed")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("fixed-camera")
-                .long("fixed-camera")
-                .help("Wether the camera starts fixed"),
-        )
-        .arg(
-            Arg::with_name("camera-height")
-                .long("camera-height")
-                .short("y")
-                .allow_hyphen_values(true)
-                .takes_value(true)
-                .help("Y position of the simulation camera."),
-        )
-        .arg(
-            Arg::with_name("camera-x")
-                .long("camera-x")
-                .short("x")
-                .allow_hyphen_values(true)
-                .takes_value(true)
-                .help("X position of the simulation camera."),
-        )
-        .arg(
-            Arg::with_name("camera-z")
-                .long("camera-z")
-                .short("z")
-                .allow_hyphen_values(true)
-                .takes_value(true)
-                .help("Z position of the simulation camera."),
-        )
-        .arg(
-            Arg::with_name("camera-target")
-                .long("camera-target")
-                .short("t")
-                .allow_hyphen_values(true)
-                .takes_value(true)
-                .help("Position the camera will look at."),
-        )
-        .arg(
-            Arg::with_name("orbit-speed")
-                .short("o")
-                .long("orbit-speed")
-                .allow_hyphen_values(true)
-                .takes_value(true)
-                .help("Set the orbiting speed."),
-        )
-        .arg(
-            Arg::with_name("no-ui")
-                .long("no-ui")
-                .help("Disables the UI"),
-        )
-        .arg(
-            Arg::with_name("no-buoys")
-                .long("no-buoys")
-                .help("Shows no buoys initially"),
-        )
-        .arg(
-            Arg::with_name("tweenz")
-                .long("tweenz")
-                .help("Shows no tweenz initially"),
-        )
-        .arg(
-            Arg::with_name("population")
-                .long("population")
-                .help("size of evolved population")
-                .takes_value(true)
-        )
-        .arg(
-            Arg::with_name("species")
-                .long("species")
-                .help("species count in evolved vsgs")
-                .takes_value(true)
-                .conflicts_with("template"),
-        )
-        .arg(
-            Arg::with_name("artifact")
-                .long("artifact")
-                .help("artifact count in evolved vsgs")
-                .takes_value(true)
-                .conflicts_with("template"),
-        )
-        .arg(
-            Arg::with_name("rules")
-                .long("rules")
-                .help("rules count in evolved vsgs")
-                .takes_value(true)
-                .conflicts_with("template"),
-        )
-        .arg(
-            Arg::with_name("timeout")
-                .long("timeout")
-                .help("time after which a given simulation is aborted")
-                .takes_value(true)
-        )
-        .arg(
-            Arg::with_name("template")
-                .long("template")
-                .help("specify a template to generate the population from")
-                .value_name("CONFIG")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("iterations")
-                .long("iterations")
-                .help("iterations to simulate each vsgs")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("save")
-                .long("save-to")
-                .help("Specify a dir to save each generation to")
-                .value_name("SAVE_DIR")
-                .takes_value(true),
-        )
-        .get_matches();
+#[derive(Parser, Debug)]
+#[command(
+    name = "Crustswarm Evolution Visualizer",
+    author,
+    version,
+    about = "Evolve multi species swarm agent simulations.
+Press SPACE to transfer an individuum to the next iteration.
+Press 1 2 and 3 to show the three available variations of a given parent/target indiviuum."
+)]
+struct CliArgs {
+    /// Minimum size of the evolved population
+    #[arg(long, default_value_t = 20, help_heading = "Evolution")]
+    population: usize,
 
-    let seed = matches
-        .value_of("seed")
-        .map(|s| s.parse::<u64>().unwrap())
-        .unwrap_or(3672820499107940204u64);
+    /// Specifies when a configuration times out
+    #[arg(long, default_value_t = 10, help_heading = "Evolution")]
+    timeout: u64,
+
+    /// Specifies a number of iterations to simulate
+    #[arg(long, default_value_t = 30, help_heading = "Evolution")]
+    iterations: u64,
+
+    /// Seed for the random number generator
+    #[arg(
+        long,
+        short = 's',
+        default_value_t = 3672820499107940204u64,
+        help_heading = "Evolution"
+    )]
+    seed: u64,
+
+    /// Specifies a template to (uniformly) generate the population from
+    #[arg(long, value_name = "OIDE_TEMPLATE")]
+    template: Option<PathBuf>,
+
+    /// Sets the number of species in evolved vSGs
+    #[arg(long, conflicts_with = "template", default_value_t = 4)]
+    species_count: usize,
+
+    /// Sets the number of artifacts in evolved vSGs
+    #[arg(long, conflicts_with = "template", default_value_t = 4)]
+    artifact_count: usize,
+
+    /// Sets the number of rules in evolved vSGs
+    #[arg(long, conflicts_with = "template", default_value_t = 4)]
+    rule_count: usize,
+
+    /// Specifies a dir to save each generation to
+    #[arg(long = "save-to", value_name = "SAVE_DIR")]
+    save_dir: Option<PathBuf>,
+
+    /// Sets the wanted framerate
+    #[arg(long = "fps", default_value_t = 30, help_heading = "Visual")]
+    framerate: usize,
+
+    /// Sets the camera height
+    #[arg(long, short = 'x', default_value_t = 70.0, help_heading = "Visual")]
+    camera_x: f32,
+
+    /// Sets the camera height
+    #[arg(long, short = 'y', default_value_t = 40.0, help_heading = "Visual")]
+    camera_height: f32,
+
+    /// Sets the camera height
+    #[arg(long, short = 'z', default_value_t = 70.0, help_heading = "Visual")]
+    camera_z: f32,
+
+    /// Sets the height of the camera target
+    #[arg(long, short = 't', default_value_t = 40.0, help_heading = "Visual")]
+    camera_target: f32,
+
+    /// Sets the camera to be fixed on its orbit
+    #[arg(long = "fixed-camera", help_heading = "Visual")]
+    camera_fixed: bool,
+
+    /// Sets the camera orbit speed
+    #[arg(
+        long = "orbit-speed",
+        short = 'o',
+        default_value_t = 0.01,
+        help_heading = "Visual"
+    )]
+    camera_orbit_speed: f32,
+
+    /// Disables the UI
+    #[arg(long, alias = "no-ui", help_heading = "Visual")]
+    hide_ui: bool,
+
+    /// Hides relationship markers
+    #[arg(long, alias = "tweenz", help_heading = "Visual")]
+    hide_tweenz: bool,
+
+    /// Hides buoys on terrain
+    #[arg(long, alias = "no-buoys", help_heading = "Visual")]
+    hide_buoys: bool,
+}
+
+fn main() {
+    let cli = CliArgs::parse();
+
+    let seed = cli.seed;
     println!("Using seed: {}", seed);
 
     let mut rnd = rand::rngs::StdRng::seed_from_u64(seed);
 
-    let population_size = matches
-        .value_of("population")
-        .map(|s| s.parse::<usize>().unwrap())
-        .unwrap_or(20);
+    let population_size = cli.population;
 
     use r_oide::traits::*;
 
-    let (mut population, _oidegenome) = if matches.is_present("template") {
-        let configfile = matches.value_of("template").unwrap();
-        println!("Using template: {}", &configfile);
-        let mut oidegenome = crustswarm::io::oide_genome_from_file(configfile);
+    let (mut population, _oidegenome) = if let Some(ref configfile) = cli.template {
+        println!("Using template: {}", &configfile.display());
+        let oidegenome = crustswarm::io::oide_genome_from_file(configfile);
 
         let mut population = vec![];
 
-        if matches.is_present("rebound") {
-            let new_bound_genome = OIDESwarmGenome::new(
-                *oidegenome.species_count,
-                *oidegenome.artifact_count,
-                *oidegenome.rule_count,
-            );
+        // if matches.is_present("rebound") {
+        //     let new_bound_genome = OIDESwarmGenome::new(
+        //         *oidegenome.species_count,
+        //         *oidegenome.artifact_count,
+        //         *oidegenome.rule_count,
+        //     );
 
-            oidegenome = new_bound_genome.apply_bounds(&oidegenome);
-        }
+        //     oidegenome = new_bound_genome.apply_bounds(&oidegenome);
+        // }
 
         population.push(oidegenome.clone());
         let gens = (population_size - 1) / 2;
@@ -203,23 +161,10 @@ fn main() {
 
         (population, oidegenome)
     } else {
-        let species_count = matches
-            .value_of("species")
-            .map(|s| s.parse::<usize>().unwrap())
-            .unwrap_or(4);
-        let artifact_count = matches
-            .value_of("artifact")
-            .map(|s| s.parse::<usize>().unwrap())
-            .unwrap_or(4);
-        let rules_count = matches
-            .value_of("rules")
-            .map(|s| s.parse::<usize>().unwrap())
-            .unwrap_or(4);
-
         let base = crustswarm::swarm::evo::genome::OIDESwarmGenome::new(
-            species_count,
-            artifact_count,
-            rules_count,
+            cli.species_count,
+            cli.artifact_count,
+            cli.rule_count,
         );
 
         let mut population = vec![];
@@ -254,27 +199,15 @@ fn main() {
         .write_all(include_bytes!("../joystix/joystix monospace.ttf"))
         .unwrap();
 
-    let camera_height = matches
-        .value_of("camera-height")
-        .map_or(40.0, |h| h.parse().unwrap());
-    let camera_x = matches
-        .value_of("camera-x")
-        .map_or(70.0, |h| h.parse().unwrap());
-    let camera_z = matches
-        .value_of("camera-z")
-        .map_or(70.0, |h| h.parse().unwrap());
-    let camera_target = Vector3::new(
-        0.0,
-        matches
-            .value_of("camera-target")
-            .map_or(20.0, |h| h.parse().unwrap()),
-        0.0,
-    );
+    let camera_height = cli.camera_height;
+    let camera_x = cli.camera_x;
+    let camera_z = cli.camera_z;
+    let camera_target = Vector3::new(0.0, cli.camera_target, 0.0);
 
     let generation = RefCell::new(1usize);
     let next_pop_count = RefCell::new(0usize);
 
-    let save_path = matches.value_of("save");
+    let save_path = cli.save_dir.as_ref().map(|dir| dir.to_str()).flatten();
     save_path.map(|path| std::fs::create_dir(&path).unwrap());
 
     if let Some(path) = save_path {
@@ -325,14 +258,12 @@ fn main() {
 
         let mut render_stats = VizStats::new();
 
-        let mut orbit = true; //matches.is_present("fixed-camera");
-        let mut orbit_speed = matches
-            .value_of("orbit-speed")
-            .map_or(0.01, |o| o.parse().unwrap());
+        let mut orbit = cli.camera_fixed;
+        let mut orbit_speed = cli.camera_orbit_speed;
 
         let mut conditionals_draws = ConditionalDraw::new();
-        conditionals_draws.buoys = true; // !matches.is_present("no-buoys");
-        conditionals_draws.tweenz = matches.is_present("tweenz");
+        conditionals_draws.buoys = !cli.hide_buoys;
+        conditionals_draws.tweenz = !cli.hide_tweenz;
 
         let font = rl
             .load_font(&thread, fontfile_path.to_str().unwrap())
@@ -730,7 +661,7 @@ fn main() {
             }
         }
 
-        save_path.map(|path| {
+        save_path.clone().map(|path| {
             inp.iter()
                 .zip(&activations)
                 .for_each(|((oide, grammar, info), active)| {
@@ -785,15 +716,9 @@ fn main() {
             .collect()
     };
 
-    let iterations = matches
-        .value_of("iterations")
-        .map(|s| s.parse::<u64>().unwrap())
-        .unwrap_or(30);
+    let iterations = cli.iterations;
 
-    let timeout = matches
-        .value_of("timeout")
-        .map(|s| s.parse::<u64>().unwrap())
-        .unwrap_or(10);
+    let timeout = cli.timeout;
 
     for _i in 0..100 {
         let midpoint = population.get_midpoints();
