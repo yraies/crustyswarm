@@ -60,6 +60,7 @@ impl Default for ContextRule {
 pub enum Replacement {
     None,
     Simple(Vec<SurroundingIndex>),
+    SimpleStop(Vec<SurroundingIndex>),
     Multi(Vec<Replacement>),
     Spread(SpeciesIndex, usize, usize),
 }
@@ -69,6 +70,7 @@ impl Replacement {
         match self {
             Replacement::None => 0,
             Replacement::Simple(new_indices) => new_indices.len(),
+            Replacement::SimpleStop(new_indices) => new_indices.len(),
             Replacement::Multi(repls) => repls.iter().map(|o| o.count_replacements()).sum(),
             Replacement::Spread(_, count, _) => *count,
         }
@@ -117,6 +119,34 @@ impl Replacement {
                                 parent_species.hand_down_seed,
                                 uid_gen,
                             );
+                            new_agents.push(new_agent);
+                        }
+                        SurroundingIndex::Artifact(new_type_index) => {
+                            let new_artifact = Artifact {
+                                artifact_index: *new_type_index,
+                                id: uid_gen.next(),
+                                position: parent.position,
+                                pre: parent.last,
+                                iteration: parent.iteration + 1,
+                                energy,
+                            };
+                            new_artifacts.push(new_artifact);
+                        }
+                    }
+                }
+            }
+            Replacement::SimpleStop(new_indices) => {
+                for index in new_indices.iter() {
+                    match index {
+                        SurroundingIndex::Agent(new_species_index) => {
+                            let mut new_agent = Self::generate_agent(
+                                parent,
+                                *new_species_index,
+                                energy,
+                                parent_species.hand_down_seed,
+                                uid_gen,
+                            );
+                            new_agent.velocity = cgmath::vec3(0.0, 0.0, 0.0);
                             new_agents.push(new_agent);
                         }
                         SurroundingIndex::Artifact(new_type_index) => {

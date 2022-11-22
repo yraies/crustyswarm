@@ -7,6 +7,7 @@ pub struct Identifier(pub String);
 
 type Factor = f32;
 type InfluenceFactor = Factor;
+type TerrainInfluenceFactor = (Factor, Factor);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DummySwarmGenome {
@@ -21,7 +22,7 @@ pub struct DummySwarmGenome {
 pub struct TerrainConfig {
     pub size: usize,
     pub spacing: f32,
-    pub influenced_by: HashMap<String, InfluenceFactor>,
+    pub influenced_by: HashMap<String, TerrainInfluenceFactor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -88,6 +89,7 @@ impl Default for DummyContextRule {
 pub enum DummyReplacement {
     None,
     Simple(Vec<Identifier>),
+    SimpleStop(Vec<Identifier>),
     Multi(Vec<DummyReplacement>),
     Spread(Identifier, usize, usize),
 }
@@ -102,6 +104,7 @@ impl DummyReplacement {
         match self {
             Self::None => false,
             Self::Simple(ids) => ids.iter().any(|id| id.0.eq(other)),
+            Self::SimpleStop(ids) => ids.iter().any(|id| id.0.eq(other)),
             Self::Spread(id, _, _) => id.0.eq(other),
             Self::Multi(reps) => reps.iter().any(|rep| rep.contains(other)),
         }
@@ -181,7 +184,7 @@ pub fn example_dummy_genome() -> DummySwarmGenome {
 
     artifact_map.insert("a0".to_string(), super::ArtifactType::default());
 
-    terrain_map.insert("a0".to_string(), 0.0);
+    terrain_map.insert("a0".to_string(), (0.0, 0.0));
 
     DummySwarmGenome {
         strategy: DummyApplicationStrategy {

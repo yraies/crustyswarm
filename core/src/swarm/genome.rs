@@ -118,7 +118,7 @@ pub struct SwarmGenome {
     pub artifact_map: Vec<ArtifactType>,
     pub start_dist: Distribution,
     pub strategy: ApplicationStrategy,
-    pub terrain_influences: (Vec<f32>, Vec<f32>),
+    pub terrain_influences: (Vec<(f32, f32)>, Vec<(f32, f32)>),
     pub terrain_size: usize,
     pub terrain_spacing: f32,
 }
@@ -322,6 +322,13 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
                         .collect();
                     Ok(Replacement::Simple(replacements?))
                 }
+                DummyReplacement::SimpleStop(idents) => {
+                    let replacements: Result<Vec<SurroundingIndex>, String> = idents
+                        .iter()
+                        .map(|ident| convert_identifier(specs, arts, ident.0.to_owned()))
+                        .collect();
+                    Ok(Replacement::SimpleStop(replacements?))
+                }
                 DummyReplacement::Multi(reps) => Ok(Replacement::Multi(
                     reps.iter()
                         .map(|rep| convert_replacement(specs, arts, rep))
@@ -495,18 +502,18 @@ impl TryFrom<DummySwarmGenome> for SwarmGenome {
             artifact_results[*id] = Ok(dummy_art.clone())
         }
 
-        let mut terrain_art_results: Vec<Result<f32, Self::Error>> =
+        let mut terrain_art_results: Vec<Result<(f32, f32), Self::Error>> =
             vec![Err("No terrain influence initialized".to_string()); artifact_names.len()];
-        let mut terrain_spec_results: Vec<Result<f32, Self::Error>> =
+        let mut terrain_spec_results: Vec<Result<(f32, f32), Self::Error>> =
             vec![Err("No terrain influence initialized".to_string()); species_names.len()];
 
         for (name, id) in &species_names {
-            let dummy_inf = dummy.terrain.influenced_by.get(name).unwrap_or(&0.0);
+            let dummy_inf = dummy.terrain.influenced_by.get(name).unwrap_or(&(0.0, 0.0));
             terrain_spec_results[*id] = Ok(dummy_inf.clone())
         }
 
         for (name, id) in &artifact_names {
-            let dummy_inf = dummy.terrain.influenced_by.get(name).unwrap_or(&0.0);
+            let dummy_inf = dummy.terrain.influenced_by.get(name).unwrap_or(&(0.0, 0.0));
             terrain_art_results[*id] = Ok(dummy_inf.clone())
         }
 

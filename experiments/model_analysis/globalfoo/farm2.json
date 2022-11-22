@@ -288,7 +288,7 @@
     "size": 53,
     "spacing": 10,
     "influenced_by": {
-      "formant": 3
+      "formant": [3, 1]
     }
   },
   "start_dist": {

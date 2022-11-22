@@ -39,7 +39,7 @@ pub trait World {
     fn get_artifact_count(&self) -> usize;
     fn get_buoy_count(&self) -> usize;
 
-    fn update_terrain(&mut self, influences: (&[f32], &[f32]));
+    fn update_terrain(&mut self, influences: (&[(f32, f32)], &[(f32, f32)]));
     fn get_height(&self, agent: &Agent) -> f32;
     fn get_height_at(&self, x: f32, z: f32) -> f32;
     fn get_gradient_and_normal(&self, xpos: f32, zpos: f32) -> (Vector3<f32>, Vector3<f32>);
@@ -183,14 +183,14 @@ impl World for ChunkedWorld {
         self.terrain.sample_points.len() * self.terrain.sample_points[0].len()
     }
 
-    fn update_terrain(&mut self, influences: (&[f32], &[f32])) {
+    fn update_terrain(&mut self, influences: (&[(f32, f32)], &[(f32, f32)])) {
         use super::actor::*;
 
         fn update_buoy<'a>(
             actors: &[Actor],
             b: &mut Buoy,
             _spacing: f32,
-            influences: (&[f32], &[f32]),
+            influences: (&[(f32, f32)], &[(f32, f32)]),
         ) {
             let mut influecers = 0.0;
             let mut avg_ydist = 0.0;
@@ -198,18 +198,18 @@ impl World for ChunkedWorld {
             let bpos = Vector2::new(b.position.x, b.position.z);
 
             for other in actors {
-                let (otherpos, influence_factor) = match other {
+                let (otherpos, (influence_factor, influence_weight)) = match other {
                     Actor::Agent(ag) => (ag.position, influences.0[ag.species_index.0]),
                     Actor::Artifact(art) => (art.position, influences.1[art.artifact_index.0]),
                 };
 
-                if influence_factor == 0.0 {
+                if influence_weight == 0.0 {
                     continue;
                 }
 
                 let otherpos2d = Vector2::new(otherpos.x, otherpos.z);
                 let xzdist = bpos.distance(otherpos2d);
-                let influence = 1.0 / (1.0 + xzdist).powf(influence_factor);
+                let influence = influence_weight / (1.0 + xzdist).powf(influence_factor);
                 let ydist = otherpos.y - b.position.y;
 
                 if !(influence.is_nan() || ydist.is_nan()) {
@@ -238,13 +238,13 @@ impl World for ChunkedWorld {
             .agent_cells
             .values()
             .flat_map(|cell| cell.iter())
-            .filter(|ag| influences.0[ag.species_index.0] != 0.0)
+            .filter(|ag| influences.0[ag.species_index.0].1 != 0.0)
             .map(|ag| Actor::Agent(ag.clone()));
         let all_actors: Vec<Actor> = self
             .artifact_cells
             .values()
             .flat_map(|cell| cell.iter())
-            .filter(|art| influences.1[art.artifact_index.0] != 0.0)
+            .filter(|art| influences.1[art.artifact_index.0].1 != 0.0)
             .map(|art| Actor::Artifact(art.clone()))
             .chain(agents)
             .collect();

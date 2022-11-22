@@ -63,7 +63,7 @@ fn main() {
             Arg::with_name("screenshot-once")
                 .long("screenshot-once")
                 .takes_value(true)
-                .help("Creates a single single screenshot of a given grammar and quites")
+                .help("Creates a single single screenshot of a given grammar and quits")
                 .conflicts_with("screenshot")
                 .conflicts_with("instant")
                 .conflicts_with("max-iteration"),
@@ -749,6 +749,7 @@ fn main() {
             8 => Color::DARKGREEN,
             9 => Color::DARKBLUE,
             10 => Color::GRAY,
+            20 => Color::GRAY,
             _ => Color::WHITE,
         }
     }

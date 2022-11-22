@@ -196,8 +196,20 @@ impl From<&OIDESwarmGenome> for SwarmGenome {
             start_dist: (*oide_genome.start_dist).clone(),
             strategy: (*oide_genome.strategy).clone(),
             terrain_influences: (
-                oide_genome.terrain_influences.0.into_f32_vec(),
-                oide_genome.terrain_influences.1.into_f32_vec(),
+                oide_genome
+                    .terrain_influences
+                    .0
+                    .into_f32_vec()
+                    .iter()
+                    .map(|v| (*v, 1.0))
+                    .collect(),
+                oide_genome
+                    .terrain_influences
+                    .1
+                    .into_f32_vec()
+                    .iter()
+                    .map(|v| (*v, 1.0))
+                    .collect(),
             ),
             terrain_size: *oide_genome.terrain_size,
             terrain_spacing: *oide_genome.terrain_spacing,
@@ -259,6 +271,10 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
                     match rep {
                         Replacement::None => vec![],
                         Replacement::Simple(a) => {
+                            let foo = a.iter().map(|b| b.to_owned()).collect();
+                            foo
+                        }
+                        Replacement::SimpleStop(a) => {
                             let foo = a.iter().map(|b| b.to_owned()).collect();
                             foo
                         }
@@ -442,14 +458,14 @@ impl From<&SwarmGenome> for OIDESwarmGenome {
             .terrain_influences
             .0
             .iter()
-            .map(|v| (true, *v))
+            .map(|v| (true, v.0))
             .collect::<BoundedFactorVec>()
             .into();
         let terrain_artifact_influences = genome
             .terrain_influences
             .1
             .iter()
-            .map(|v| (true, *v))
+            .map(|v| (true, v.0))
             .collect::<BoundedFactorVec>()
             .into();
 
