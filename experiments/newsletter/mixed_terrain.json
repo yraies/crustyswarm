@@ -24,16 +24,75 @@
       "influenced_by": {},
       "noclip": true,
       "energy": {
-        "on_movement": "None",
+        "on_movement": {"Constant": 0.005},
         "on_zero": "Die",
         "on_replication": "None",
-        "for_offspring": {"Constant": 100}
+        "for_offspring": {"Constant": 10}
       },
-      "hand_down_seed": true,
+      "hand_down_seed": false,
       "rules": [
+        { "weight": 2,
+          "persist": true,
+          "replacement": {"SimpleStop": ["sun_ray"]}
+        },
         { "weight": 1,
+          "persist": true
+        }
+      ],
+      "color_index": 4
+    },
+    "sun_ray": {
+      "urges": {
+        "bias": [ 0.0, 0.0, 0.0 ],
+        "separation": 0,
+        "alignment": 0,
+        "cohesion": 0,
+        "randomness": 0.5,
+        "center": -0.001,
+        "floor": 0.01,
+        "pacekeeping": 0.9,
+        "normal": 0,
+        "gradient": 0,
+        "slope": 0
+      },
+      "normal_speed": 1.8,
+      "max_speed": 2,
+      "max_acceleration": 1.0,
+      "view_distance": 1,
+      "view_angle": 180,
+      "sep_distance": 100,
+      "axis_constraint": [ 1, 1, 1 ],
+      "influenced_by": {},
+      "noclip": false,
+      "energy": {
+        "on_movement": {"Constant": 0.04},
+        "on_zero": "Die",
+        "on_replication": "None",
+        "for_offspring": {"Inherit": 1}
+      },
+      "hand_down_seed": false,
+      "rules": [
+        { "weight": 99,
           "persist": true,
           "replacement": {"Simple": []}
+        },
+        { "weight": 1,
+          "persist": true,
+          "context": ["water"],
+          "range": 6,
+          "replacement": {"SimpleStop": ["fir_trunk_biaser", "guide_biaser"]}
+        },
+        { "weight": 9999,
+          "persist": true,
+          "context": ["water", "water", "water", "water", "water"],
+          "range": 8,
+          "replacement": {"SimpleStop": []}
+        },
+        { "weight": 9999,
+          "persist": true,
+          "context": ["wood", "wood", "wood", "wood"],
+          "range": 15,
+          "replacement": {"SimpleStop": []}
         }
       ],
       "color_index": 4
@@ -256,7 +315,7 @@
       "noclip": false,
       "energy": {
         "on_movement": {"Constant": 0.03},
-        "on_zero": {"Replace": [ 10, { "SimpleStop": ["fir_trunk_biaser", "guide_biaser"]} ]},
+        "on_zero": {"Replace": [ 10, { "SimpleStop": ["fir_distrib"]} ]},
         "on_replication": "None",
         "for_offspring": {"Constant": 10}
       },
@@ -268,6 +327,74 @@
         }
       ],
       "color_index": 3
+    },
+    "fir_distrib": {
+      "urges": {
+        "bias": [ 0, 0, 0 ],
+        "separation": 0.5,
+        "alignment": 0,
+        "cohesion": 0.1,
+        "randomness": 0.1,
+        "center": 0.0001,
+        "floor": 0.01,
+        "pacekeeping": 0,
+        "normal": 0,
+        "gradient": 0.02,
+        "slope": 0.01
+      },
+      "normal_speed": 0.5,
+      "max_speed": 0.5,
+      "max_acceleration": 0.25,
+      "view_distance": 50,
+      "view_angle": 359,
+      "sep_distance": 30,
+      "axis_constraint": [ 1, 1, 1],
+      "influenced_by": { "rock": 1 },
+      "noclip": false,
+      "energy": {
+        "on_movement": {"Distance": 0.03},
+        "on_zero": {"Replace": [ 3, { "SimpleStop": ["fir_trunk_biaser", "guide_biaser"]} ]},
+        "on_replication": "None",
+        "for_offspring": {"Constant": 10}
+      },
+      "hand_down_seed": true,
+      "rules": [
+        { "weight": 5,
+          "persist": true,
+          "replacement": {"Simple": []}
+        },
+        { "weight": 9999,
+          "persist": true,
+          "context": ["wood","wood","wood", "wood"],
+          "range": 4,
+          "replacement": {"Simple": []}
+        },
+        { "weight": 9999,
+          "persist": true,
+          "context": ["drop","drop","drop"],
+          "range": 3,
+          "replacement": {"Simple": []}
+        },
+        { "weight": 9999,
+          "persist": true,
+          "context": ["water","water","water"],
+          "range": 2,
+          "replacement": {"Simple": []}
+        },
+        { "weight": 2,
+          "persist": false,
+          "context": ["sun_ray"],
+          "range": 10,
+          "replacement": {"Simple": ["fir_trunk_biaser", "guide_biaser"]}
+        },
+        { "weight": 5,
+          "persist": false,
+          "context": ["sun_ray", "water"],
+          "range": 15,
+          "replacement": {"Simple": ["fir_trunk_biaser", "guide_biaser"]}
+        }
+      ],
+      "color_index": 2
     },
     "fir_trunk_biaser": {
       "urges": {
@@ -600,7 +727,7 @@
       "influenced_by": {"cloud": 1.0},
       "noclip": false,
       "energy": {
-        "on_movement": {"Constant": 0.006},
+        "on_movement": {"Constant": 0.007},
         "on_zero": "Die",
         "on_replication": "None",
         "for_offspring": {"Inherit": 7}
@@ -620,7 +747,7 @@
         { "weight": 1,
           "persist": true,
           "replacement": {
-            "Simple": ["drop"]
+            "SimpleStop": ["drop"]
           }
         }
       ],
@@ -662,37 +789,36 @@
       },
       "hand_down_seed": false,
       "rules": [
-        { "weight": 70,
+        { "weight": 50,
           "persist": true
         },
-        { "weight": 200,
+        { "weight": 9999,
+          "persist": true,
+          "context": ["water", "water", "water"],
+          "range": 2
+        },
+        { "weight": 999,
           "persist": true,
           "context": ["drop", "water", "wood"],
-          "range": 30
+          "range": 15
         },
-        { "weight": 37,
+        { "weight": 50,
           "context": ["drop", "drop", "drop", "drop"],
           "range": 11,
           "persist": true,
-          "replacement": {
-            "Simple" : ["water"]
-          }
+          "replacement": { "Simple" : ["water"] }
         },
-        { "weight": 2,
-          "context": ["drop", "drop", "drop", "water"],
+        { "weight": 50,
+          "context": ["drop", "drop", "water"],
           "range": 7,
           "persist": true,
-          "replacement": {
-            "Simple" : ["water"]
-          }
+          "replacement": { "Simple" : ["water"] }
         },
-        { "weight": 1,
-          "context": ["drop", "drop", "water"],
-          "range": 12,
+        { "weight": 2,
+          "context": ["sun_ray", "drop", "water"],
+          "range": 15,
           "persist": false,
-          "replacement": {
-            "SimpleStop" : ["moss_crawler"]
-          }
+          "replacement": { "SimpleStop" : ["moss_crawler"] }
         }
 
       ],
@@ -706,11 +832,11 @@
         "cohesion": 0.2,
         "randomness": 0.2,
         "center": 0.0001,
-        "floor": 0.05,
+        "floor": 0.5,
         "pacekeeping": 0.1,
-        "normal": 0.1,
+        "normal": 0.05,
         "gradient": 0,
-        "slope": -0.1
+        "slope": -0.05
       },
       "normal_speed": 0.5,
       "max_speed": 0.75,
@@ -730,7 +856,7 @@
       "hand_down_seed": false,
       "rules": [
         {
-          "weight": 100,
+          "weight": 50,
           "persist": true,
           "replacement": { "Simple": [] }
         },
@@ -772,8 +898,8 @@
         {
           "weight": 9999,
           "persist": true,
-          "context": ["moss", "moss", "moss"],
-          "range": 3,
+          "context": ["moss", "moss"],
+          "range": 1,
           "replacement": { "Simple": [] }
         },
         {
@@ -784,7 +910,7 @@
           "replacement": { "Simple": [] }
         }
       ],
-      "color_index": 2
+      "color_index": 8
     }
   },
   "artifact_map": {
@@ -801,8 +927,8 @@
     "size": 90,
     "spacing": 5,
     "influenced_by": {
-      "formant_narrow": [1.5, 0.5],
-      "formant_wide": [0.9, 1],
+      "formant_narrow": [1.7, 0.5],
+      "formant_wide": [1.1, 1],
       "rock": [3, 50],
       "biaser": [0.8, 0.1]
     }
@@ -810,7 +936,7 @@
   "start_dist": {
     "Multi" : [
       {"Single": [[20, 70, 40], "sun"]},
-      {"Single": [[0,0,0], "cloud_sleeper"] },
+      {"Grid": [2, 200, "cloud_sleeper"]},
       {"Grid": [4, 85, "rock_sleeper"]},
       {"Grid": [4, 65, "terrain_seed"]},
       {"Grid": [2, 100, "terrain_biaser"]}
